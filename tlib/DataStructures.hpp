@@ -282,23 +282,3 @@ struct Rect
         return topLeft.x < pos.x && pos.x < bottomRight.x && topLeft.y < pos.y && pos.y < bottomRight.y;
     }
 };
-
-
-/// Misc
-
-#ifdef OPENGL
-// A wrapper around glm::mat4 with convenience functions
-struct Transform
-{
-    glm::mat4 matrix;
-
-    Transform()                  { matrix = glm::mat4(1.f); }
-    Transform(glm::mat4 matrixv) { matrix = matrixv; }
-
-    Vector3f getTransform()               { return Vector3f(matrix[3][0], matrix[3][1], matrix[3][2]); }
-    void     setTransform(Vector3f value) { matrix[3][0] = value.x; matrix[3][1] = value.y; matrix[3][2] = value.z; }
-
-    glm::vec4 operator[](size_t index) { return matrix[index]; }
-    operator glm::mat4() { return matrix; }
-};
-#endif
