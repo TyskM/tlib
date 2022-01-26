@@ -17,12 +17,13 @@
 
 
 /// Vectors
-
+struct Vector2i;
 struct Vector2f
 {
     // https://github.com/godotengine/godot/blob/master/core/math/vector2.cpp
 
-    constexpr Vector2f(float xv, float yv) : x{ xv }, y{ yv }            { }
+    constexpr Vector2f(float xv, float yv) : x{ xv }, y{ yv } { }
+    Vector2f(Vector2i&);
     Vector2f() { }
 
     float x = 0;
@@ -68,8 +69,17 @@ struct Vector2f
     Vector2f reflect(const Vector2f& normal) const
     { return 2.f * normal * dot(normal) - *this; }
 
+    Vector2f abs() const
+    { return Vector2f(std::abs(x), std::abs(y)); }
+
+    Vector2f distanceTo(const Vector2f& other) const
+    { return (other - *this).abs(); }
+
     std::string toString()
     { return this->operator std::string(); }
+
+    Vector2f operator+(const float value) const { return Vector2f(x + value, y + value); }
+    Vector2f operator-(const float value) const { return Vector2f(x - value, y - value); }
 
     Vector2f operator+(const Vector2f& other) const { return Vector2f(x + other.x, y + other.y); }
     Vector2f operator-(const Vector2f& other) const { return Vector2f(x - other.x, y - other.y); }
@@ -89,7 +99,7 @@ struct Vector2f
     Vector2f operator/=(const int& num) { return Vector2f(x /= num, y /= num); }
     Vector2f operator*=(const float& num) { return Vector2f(x *= num, y *= num); }
     Vector2f operator/=(const float& num) { return Vector2f(x /= num, y /= num); }
-    friend Vector2f operator* (float num, Vector2f v) { return v * num; }
+    friend Vector2f operator* (float num, Vector2f point2) { return point2 * num; }
 
     bool operator==(const Vector2f other) const { return x == other.x && y == other.y; }
     bool operator!=(const Vector2f other) const { return !(operator==(other)); }
@@ -111,7 +121,7 @@ struct Vector2f
 #endif
 };
 
-inline Vector2f floor(const Vector2f v) { return Vector2f(std::floor(v.x), std::floor(v.y)); }
+inline Vector2f floor(const Vector2f point2) { return Vector2f(std::floor(point2.x), std::floor(point2.y)); }
 
 struct Vector2i
 {
@@ -122,6 +132,18 @@ struct Vector2i
 
     int x = 0;
     int y = 0;
+
+    float length() const
+    { return sqrtf(x * x + y * y); }
+
+    float lengthSquared() const
+    { return x * x + y * y; }
+
+    Vector2i abs() const
+    { return Vector2i(std::abs(x), std::abs(y)); }
+
+    Vector2i distanceTo(const Vector2i& other) const
+    { return (other - *this).abs(); }
 
     std::string toString()
     { return this->operator std::string(); }
@@ -147,7 +169,6 @@ struct Vector2i
     bool operator==(const Vector2i other) const { return x == other.x && y == other.y; }
     bool operator!=(const Vector2i other) const { return !(operator==(other)); }
 
-
     operator Vector2f()     const { return Vector2f(x, y); }
     operator std::string()  const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
 
@@ -158,12 +179,14 @@ struct Vector2i
 #endif
 };
 
-inline Vector2i floor(const Vector2i v) { return v; }
+Vector2f::Vector2f(Vector2i& other) : x{ static_cast<float>(other.x) }, y{ static_cast<float>(other.y) } { }
+
+inline Vector2i floor(const Vector2i point2) { return point2; }
 
 struct Vector3f
 {
     Vector3f(float xv, float yv, float zv) : x{xv}, y{yv}, z{zv} { }
-    
+    Vector3f(Vector2f other) { x = other.x; y = other.y; z = 0; }
     Vector3f() { }
 
     float x = 0;
@@ -172,6 +195,15 @@ struct Vector3f
 
     float length() const
     { return sqrtf(x * x + y * y + z * z); }
+
+    float lengthSquared() const
+    { return x * x + y * y + z * z; }
+
+    float distanceTo(const Vector3f& other) const
+    { return (other - *this).length(); }
+
+    float distanceSquaredTo(const Vector3f& other) const
+    { return (other - *this).lengthSquared(); }
 
     Vector3f normalized()
     {
@@ -197,6 +229,7 @@ struct Vector3f
 
     std::string toString() { return this->operator std::string(); }
 
+    explicit operator Vector2f() const { return Vector2f(x, y); }
     Vector3f operator+(const Vector3f& other) const { return Vector3f(x + other.x, y + other.y, z + other.z); }
     Vector3f operator-(const Vector3f& other) const { return Vector3f(x - other.x, y - other.y, z - other.z); }
     Vector3f operator*(const Vector3f& other) const { return Vector3f(x * other.x, y * other.y, z * other.z); }
@@ -282,23 +315,3 @@ struct Rect
         return topLeft.x < pos.x && pos.x < bottomRight.x && topLeft.y < pos.y && pos.y < bottomRight.y;
     }
 };
-
-
-/// Misc
-
-#ifdef OPENGL
-// A wrapper around glm::mat4 with convenience functions
-struct Transform
-{
-    glm::mat4 matrix;
-
-    Transform()                  { matrix = glm::mat4(1.f); }
-    Transform(glm::mat4 matrixv) { matrix = matrixv; }
-
-    Vector3f getTransform()               { return Vector3f(matrix[3][0], matrix[3][1], matrix[3][2]); }
-    void     setTransform(Vector3f value) { matrix[3][0] = value.x; matrix[3][1] = value.y; matrix[3][2] = value.z; }
-
-    glm::vec4 operator[](size_t index) { return matrix[index]; }
-    operator glm::mat4() { return matrix; }
-};
-#endif

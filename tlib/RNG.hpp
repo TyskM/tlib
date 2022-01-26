@@ -28,9 +28,9 @@ public:
 	// Returns a random object from a std::vector.
 	// It will throw an exception if the vector is empty.
 	template <typename T>
-	T choice(std::vector<T> vec)
+	T choice(std::vector<T> items)
 	{
-		if (vec.size() <= 0) throw std::runtime_error("Vector was empty!!");
-		return vec[randRangeInt(0, vec.size() - 1)];
+		if (items.size() <= 0) throw std::runtime_error("Vector was empty!!");
+		return items[randRangeInt(0, items.size() - 1)];
 	}
 };

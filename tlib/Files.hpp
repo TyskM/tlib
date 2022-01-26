@@ -5,12 +5,14 @@
 #include <stdexcept>
 #include <vector>
 
+struct FileReadError : public std::runtime_error { using std::runtime_error::runtime_error; };
+
 // Reads a file into a string
 std::string readFile(const std::string& filePath)
 {
 	// http://insanecoding.blogspot.de/2011/11/how-to-read-in-file-in-c.html
 	std::ifstream in(filePath, std::ios::in | std::ios::binary);
-	if (!in) throw std::runtime_error("Failed to read file: " + filePath);
+	if (!in) throw FileReadError("Failed to read file: " + filePath);
 	return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
@@ -18,6 +20,8 @@ std::string readFile(const std::string& filePath)
 std::vector<std::string> fileToStringVector(std::string path)
 {
     std::ifstream file(path);
+    if (!file) throw FileReadError("Failed to read file: " + path);
+
     std::string line;
     std::vector<std::string> outputVector;
 
