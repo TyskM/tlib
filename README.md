@@ -30,7 +30,7 @@ for (size_t x = 0; x < gridCount.x; x++)
 
         for (auto& posDiff : neighborsToAdd)
         {
-            auto neighborNode = getNodeByPosition(myPos + posDiff);
+            auto neighborNode = pathfinder.getNodeByPosition(myPos + posDiff);
             if (neighborNode != nullptr)
             { node->connect(neighborNode); }
         }
