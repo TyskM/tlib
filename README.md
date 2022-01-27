@@ -2,12 +2,18 @@
 Some headers I use a lot.
 
 # Pathfind.hpp AStar example
+
+![AStar example](https://imgur.com/IKYpU6G.gif)
+
 Setup:
 ```cpp
-using Node       = AStar2DNode<Vector2i>; // Use your 2D vector class
+using Node       = AStar2DNode<Vector2i>;
 using Pathfinder = AStar2D<Vector2i>;
+// Use your 2D vector class as the template parameter
+// If you don't have one, there's one in DataStructures.hpp (which requires Math.hpp)
+// SFML also has its own sf::Vector2i and sf::Vector2f.
 
-Pathfinder pathfinder;
+Pathfinder pathfinder; // Instance it!!!
 ```
 
 Create a grid of nodes and connect them:
@@ -24,7 +30,7 @@ for (size_t x = 0; x < gridCount.x; x++)
 
         for (auto& posDiff : neighborsToAdd)
         {
-            auto neighborNode = getNodeByPosition(myPos + posDiff);
+            auto neighborNode = pathfinder.getNodeByPosition(myPos + posDiff);
             if (neighborNode != nullptr)
             { node->connect(neighborNode); }
         }
@@ -34,9 +40,9 @@ for (size_t x = 0; x < gridCount.x; x++)
 
 Calculate path:
 ```cpp
-Node* startPoint = pathfinder.getNodes().front().get();
+Node* startPoint = pathfinder.getNodes().front().get(); // Get any two points
 Node* endPoint   = pathfinder.getNodes().back().get();
-std::vector<Node*> pointPath = pathfinder.findPath(startPoint, endPoint, true);
+std::vector<Node*> pointPath = pathfinder.findPath(startPoint, endPoint, true); // Then call findPath
 //\\ The boolean is for including the start point in the returned list. It is false by default.
 ```
 You can use getNodes() to.. get the nodes,  
