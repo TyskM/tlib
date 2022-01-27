@@ -1,6 +1,7 @@
 
 #define SFML
 #include <iostream>
+#include "DataStructures.hpp"
 #include "Pathfind.hpp"
 #include <SFML/Graphics.hpp>
 #include <vector>
