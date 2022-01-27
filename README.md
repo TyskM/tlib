@@ -2,6 +2,9 @@
 Some headers I use a lot.
 
 # Pathfind.hpp AStar example
+
+![AStar example](https://imgur.com/IKYpU6G.gif)
+
 Setup:
 ```cpp
 using Node       = AStar2DNode<Vector2i>;
