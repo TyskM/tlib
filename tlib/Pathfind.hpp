@@ -82,7 +82,7 @@ public:
 
             for (auto& neighbor : current->neighbors)
             {
-                if (neighbor->enabled && !cameFrom.contains(neighbor))
+                if (neighbor->enabled && !mapContains(cameFrom, neighbor))
                 {
                     frontier.push(neighbor);
                     cameFrom[neighbor] = current;
@@ -168,6 +168,13 @@ struct PriorityQueue
         return best_item;
     }
 };
+
+template <typename KeyType, typename ValueType>
+bool mapContains(std::unordered_map<KeyType, ValueType>& map, KeyType key)
+{
+    if (map.find(key) == map.end()) return false;
+    return true;
+}
 
 // UNTESTED
 template <typename Vector3DType>
@@ -257,7 +264,7 @@ public:
                 if (nextNode->enabled == false) continue;
 
                 auto newCost = costSoFar[current] + nextNode->moveCost;
-                if (!costSoFar.contains(nextNode) || newCost < costSoFar[nextNode])
+                if (!mapContains(costSoFar, nextNode) || newCost < costSoFar[nextNode])
                 {
                     costSoFar[nextNode] = newCost;
                     frontier.put(nextNode, newCost + heuristic(goal, nextNode));
@@ -378,7 +385,7 @@ public:
                 if (nextNode->enabled == false) continue;
 
                 auto newCost = costSoFar[current] + nextNode->moveCost;
-                if (!costSoFar.contains(nextNode) || newCost < costSoFar[nextNode])
+                if (!mapContains(costSoFar, nextNode) || newCost < costSoFar[nextNode])
                 {
                     costSoFar[nextNode] = newCost;
                     frontier.put(nextNode, newCost + heuristic(goal, nextNode));
