@@ -110,7 +110,6 @@ public:
 };
 
 // AStar
-// It's not great but it works.
 // Example:
 // 
 // Setup:
