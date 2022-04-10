@@ -15,7 +15,6 @@
     #include <glm/mat4x4.hpp>
 #endif
 
-
 /// Vectors
 struct Vector2i;
 struct Vector2f
@@ -127,7 +126,6 @@ struct Vector2i
 {
     Vector2i(int xv, int yv) : x{ xv }, y{ yv } { }
     Vector2i(Vector2f v2f) : Vector2i(v2f.x, v2f.y) { }
-        
     Vector2i() { }
 
     int x = 0;

@@ -16,7 +16,7 @@ struct Vector2D
 {
 private:
     std::vector<Type> items;
-    size_t x  = 0;
+    size_t x = 0;
     size_t y = 0;
 
 public:
@@ -46,16 +46,16 @@ public:
         { items[i] = point2; }
     }
 
-    Type get(size_t x, size_t y)
+    Type get(size_t x, size_t y) const
     { return items[indexFor(x, y)]; }
 
     void set(size_t x, size_t y, Type value)
     { items[indexFor(x, y)] = value; }
 
-    size_t indexFor(size_t x, size_t y)
-    {
-        return y * x + x;
-    }
+    size_t indexFor(size_t x, size_t y) const noexcept
+    { return y * x + x; }
+
+    void clear() { items.clear(); }
 
     inline auto data() noexcept { return items.data(); }
 
@@ -76,7 +76,7 @@ public:
     inline Type front() const noexcept { return items.front(); }
     inline Type back()  const noexcept { return items.back(); }
 
-#ifdef _DEBUG
+
     void printContents()
     {
         for (size_t yv = 0; yv < y; yv++)
@@ -88,5 +88,5 @@ public:
             }
         }
     }
-#endif
+
 };

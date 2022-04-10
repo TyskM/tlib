@@ -159,6 +159,7 @@
     <ClInclude Include="Math.hpp" />
     <ClInclude Include="RNG.hpp" />
     <ClInclude Include="SFMLHelpers.hpp" />
+    <ClInclude Include="StringHelpers.hpp" />
     <ClInclude Include="Vector2D.hpp" />
   </ItemGroup>
   <ItemGroup>

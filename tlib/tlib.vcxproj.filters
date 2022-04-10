@@ -50,6 +50,9 @@
     <ClInclude Include="Pathfind.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="StringHelpers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Font Include="Content\arial.ttf" />

@@ -3,8 +3,11 @@
 #include <iostream>
 #include "DataStructures.hpp"
 #include "Pathfind.hpp"
+#include "StringHelpers.hpp"
 #include <SFML/Graphics.hpp>
 #include <vector>
+
+#define ASSERT(x) if( !(x) ) { std::cout << "Assertion in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ << std::endl; abort(); }
 
 namespace BreadthFirstSearchExample
 {
@@ -349,8 +352,51 @@ namespace AStarExample
     }
 }
 
+namespace StringHelpersTests
+{
+    void test_beginswith()
+    {
+        ASSERT(  strhelp::beginswith("a.png", "a") );
+        ASSERT( !strhelp::beginswith("a.png", "b") );
+        ASSERT(  strhelp::beginswith("aphoto.png", "aphoto.") );
+        ASSERT(  strhelp::beginswith("jpeg.png", "jpeg") );
+        ASSERT( !strhelp::beginswith("jpeg.png", "no") );
+
+        printf("beginswith passed\n");
+    }
+
+    void test_endswith()
+    {
+        ASSERT(  strhelp::endswith("a.png", ".png") );
+        ASSERT( !strhelp::endswith("a.png", "pg") );
+        ASSERT(  strhelp::endswith("aphoto.png", "g") );
+        ASSERT(  strhelp::endswith("jpeg.png", "png") );
+        ASSERT( !strhelp::endswith("jpeg.png", "jpeg") );
+
+        printf("endswith passed\n");
+    }
+
+    void test_trim()
+    {
+        std::string ex1 = "  trim  me pls   \t  ";
+        ASSERT(strhelp::trimmed(ex1) == "trim  me pls");
+        ASSERT(strhelp::trimmed(" LMAO") == "LMAO");
+        ASSERT(strhelp::trimmed("getbodied    \n") == "getbodied");
+
+        printf("trim passed\n");
+    }
+
+    void start()
+    {
+        test_beginswith();
+        test_endswith();
+        test_trim();
+    }
+}
+
 int main()
 {
-    AStarExample::start();
+    //AStarExample::start();
     //BreadthFirstSearchExample::start();
+    StringHelpersTests::start();
 }
