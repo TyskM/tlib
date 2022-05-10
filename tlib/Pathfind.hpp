@@ -171,198 +171,141 @@ struct PriorityQueue
 template <typename KeyType, typename ValueType>
 bool mapContains(std::unordered_map<KeyType, ValueType>& map, KeyType key)
 {
-    if (map.find(key) == map.end()) return false;
-    return true;
+    return (map.find(key) != map.end());
 }
 
-// UNTESTED
-template <typename Vector3DType>
-struct AStar3DNode
+struct Point
 {
-    std::vector<AStar3DNode*> neighbors;
-    float moveCost = 1.f;
-    bool  enabled = true;
-    Vector3DType position;
-
-    void connect(AStar3DNode* node, bool bidirectional = true)
-    {
-        neighbors.push_back(node);
-        if (bidirectional) node->connect(this, false);
-    }
+    int x, y;
+    Point(int x, int y) : x{ x }, y{ y } { }
 };
 
-// UNTESTED
-template <typename Vector3DType>
-class AStar3D
+class AStar2DNode
 {
-    using Node = AStar3DNode<Vector3DType>;
-
-protected:
-    std::vector<std::unique_ptr<Node>> nodes;
+private:
+    int x, y;
 
 public:
-    struct FrontierComparator
-    { bool operator()(const Node* a, const Node* b) { return a->moveCost < b->moveCost; } };
-
-    Node* addNode(std::vector<Node*> neighbors)
-    {
-        nodes.push_back(std::make_unique<Node>());
-        for (auto& n : neighbors)
-        { nodes.back()->connect(n); }
-        return nodes.back().get();
-    }
-
-    Node* addNode()
-    {
-        nodes.push_back(std::make_unique<Node>());
-        return nodes.back().get();
-    }
-
-    Node* addNode(std::initializer_list<Node*> nodeInitList)
-    {
-        nodes.push_back(std::make_unique<Node>());
-        for (auto& n : nodeInitList)
-        { nodes.back()->connect(n); }
-        return nodes.back().get();
-    }
-
-    void removeNode(Node* nodeToRemove)
-    {
-        for (size_t i = 0; i < nodes.size(); i++)
-        {
-            if (nodes[i].get() == nodeToRemove)
-            { nodes.erase(nodes.begin() + i); return; }
-        }
-    }
-
-    const std::vector<std::unique_ptr<Node>>& getNodes() const { return nodes; }
-
-    float heuristic(const Node* a, const Node* b)
-    { return abs(a->position.x - b->position.x) + abs(a->position.y - b->position.y) + abs(a->position.z - b->position.z); };
-
-    // Will return an empty vector if there is no path.
-    std::vector<Node*> findPath(Node* start, Node* goal, bool includeStart = false) const
-    {
-        bool goalFound = false;
-        std::unordered_map<Node*, Node*> cameFrom;
-        std::unordered_map<Node*, float> costSoFar;
-        auto frontier = PriorityQueue<Node*, float>();
-
-        cameFrom[start] = nullptr;
-        costSoFar[start] = 0.f;
-        frontier.put(start, 0);
-
-        while (!frontier.empty())
-        {
-            auto current = frontier.get();
-
-            if (current == goal) { goalFound = true; break; }
-
-            for (auto& nextNode : current->neighbors)
-            {
-                if (nextNode->enabled == false) continue;
-
-                auto newCost = costSoFar[current] + nextNode->moveCost;
-                if (!mapContains(costSoFar, nextNode) || newCost < costSoFar[nextNode])
-                {
-                    costSoFar[nextNode] = newCost;
-                    frontier.put(nextNode, newCost + heuristic(goal, nextNode));
-                    cameFrom[nextNode] = current;
-                }
-            }
-        }
-
-        if (goalFound)
-        {
-            std::vector<Node*> path;
-            auto* current = goal;
-            while (current != start)
-            {
-                path.push_back(current);
-                current = cameFrom[current];
-            }
-            if (includeStart) path.push_back(start);
-            std::reverse(path.begin(), path.end());
-            return path;
-        }
-        else
-        { return std::vector<Node*>(); }
-
-    }
-};
-
-template <typename Vector2DType>
-struct AStar2DNode
-{
-    std::vector<AStar2DNode*> neighbors;
+    std::vector<AStar2DNode*> connections;
     float moveCost = 1.f;
     bool  enabled = true;
-    Vector2DType position;
 
-    void connect(AStar2DNode* node, bool bidirectional = true)
+    AStar2DNode(const int xv, const int yv, const int neighborReserve = 8) : x{ xv }, y{ yv }
     {
-        neighbors.push_back(node);
-        if (bidirectional) node->connect(this, false);
+        connections.reserve(neighborReserve);
+    }
+
+    ~AStar2DNode()
+    {
+        clearConnections();
+    }
+
+    inline Point getPosition() const noexcept
+    { return Point(x, y); }
+
+    void connect(AStar2DNode* const node, const bool bidirectional = true)
+    {
+        if (!hasConnection(node)) { connections.push_back(node); }
+        if (bidirectional) { node->connect(this, false); }
+    }
+
+    void disconnect(AStar2DNode* const node)
+    {
+        for (size_t i = 0; i < connections.size(); i++)
+        {
+            if (connections[i] == node)
+            {
+                connections.erase(connections.begin() + i);
+                return;
+            }
+        }
+    }
+
+    void clearConnections()
+    {
+        for (auto& n : connections) { n->disconnect(this); }
+        connections.clear();
+    }
+
+    bool hasConnectionAt(const int x, const int y)
+    {
+        for (auto& c : connections)
+        { if (c->x == x && c->y == y) return true; }
+        return false;
+    }
+
+    bool hasConnection(const AStar2DNode* const node) const
+    {
+        return std::find(connections.begin(), connections.end(), node) != connections.end();
     }
 };
 
-template <typename Vector2DType>
 class AStar2D
 {
-    using Node = AStar2DNode<Vector2DType>;
-
-protected:
-    std::vector<std::unique_ptr<Node>> nodes;
+    friend class AStar2DNode;
+    using Node = AStar2DNode;
 
 public:
+
+    // TODO: figure out why using a vector breaks everything
+#ifdef ASTAR_USE_VECTORCONT
+    std::vector<Node> nodes;
+#else
+    std::list<Node> nodes;
+#endif
+
     struct FrontierComparator
     { bool operator()(const Node* a, const Node* b) { return a->moveCost < b->moveCost; } };
 
-    Node* addNode(std::vector<Node*> neighbors)
+    Node* addNode(const int x, const int y, const int neighborReserve = 8)
     {
-        nodes.push_back(std::make_unique<Node>());
-        for (auto& n : neighbors)
-        { nodes.back()->connect(n); }
-        return nodes.back().get();
+        auto nodeToOverwrite = getNodeByPosition(x, y);
+        if (nodeToOverwrite != nullptr) removeNode(nodeToOverwrite);
+        nodes.emplace_back(x, y, neighborReserve);
+        return &nodes.back();
     }
 
-    Node* addNode()
+    void removeNode(Node* const nodeToRemove)
     {
-        nodes.push_back(std::make_unique<Node>());
-        return nodes.back().get();
-    }
-
-    Node* addNode(std::initializer_list<Node*> nodeInitList)
-    {
-        nodes.push_back(std::make_unique<Node>());
-        for (auto& n : nodeInitList)
-        { nodes.back()->connect(n); }
-        return nodes.back().get();
-    }
-
-    void removeNode(Node* nodeToRemove)
-    {
-        for (size_t i = 0; i < nodes.size(); i++)
+        for (auto it = nodes.begin(); it != nodes.end(); ++it)
         {
-            if (nodes[i].get() == nodeToRemove)
-            { nodes.erase(nodes.begin() + i); return; }
+            if (&*it == nodeToRemove)
+            {
+                nodes.erase(it);
+                return;
+            }
         }
     }
 
-    const std::vector<std::unique_ptr<Node>>& getNodes() const { return nodes; }
+    void removeNodeByPosition(const int x, const int y)
+    {
+        auto n = getNodeByPosition(x, y);
+        if (n != nullptr) removeNode(n);
+    }
 
-    float heuristic(const Node* a, const Node* b) const { return abs(a->position.x - b->position.x) + abs(a->position.y - b->position.y); };
+    // Deletes all nodes
+    void clear()
+    { nodes.clear(); }
+
+    float heuristic(const Node* const a, const Node* const b) const
+    {
+        auto apos = a->getPosition(); auto bpos = b->getPosition();
+        return abs(apos.x - bpos.x) + abs(apos.y - bpos.y);
+    };
 
     // Returns nullptr if there is no node at position
-    Node* getNodeByPosition(const Vector2DType& position) const
+    Node* getNodeByPosition(const int x, const int y)
     {
-        for (auto& node : nodes)
-        { if (node->position == position) return node.get(); }
+        for (Node& node : nodes)
+        {
+            auto pos = node.getPosition();
+            if (pos.x == x && pos.y == y) { return &node; }
+        }
         return nullptr;
     }
 
     // Will return an empty vector if there is no path.
-    std::vector<Node*> findPath(Node* start, Node* goal, bool includeStart = false) const
+    const std::vector<Node*> findPath(Node* start, Node* goal, const bool includeStart = false) const
     {
         bool goalFound = false;
         std::unordered_map<Node*, Node*> cameFrom;
@@ -379,7 +322,7 @@ public:
 
             if (current == goal) { goalFound = true; break; }
 
-            for (auto& nextNode : current->neighbors)
+            for (auto& nextNode : current->connections)
             {
                 if (nextNode->enabled == false) continue;
 

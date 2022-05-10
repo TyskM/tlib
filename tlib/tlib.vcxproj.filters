@@ -41,9 +41,6 @@
     <ClInclude Include="Files.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SFMLHelpers.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Vector2D.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

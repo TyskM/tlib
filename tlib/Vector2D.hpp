@@ -1,11 +1,7 @@
 #pragma once
 
-#ifdef _DEBUG
-    #include <iostream>
-#endif
-
+#include <iostream>
 #include <vector>
-
 #include <iterator>
 
 // https://stackoverflow.com/questions/12993403/accessing-a-vectorvectorint-as-a-flat-array

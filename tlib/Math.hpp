@@ -14,7 +14,6 @@ namespace math
     inline T deg2rad(T deg)
     { return deg * (pi / 180); }
 
-    // I don't remember why I put this here...
     template<class T>
     const auto clamp = std::clamp<T>;
 

@@ -10,8 +10,6 @@
 ///
 //
 // CSharp style events.
-// I forgot where I found this class...
-// but it works.
 // 
 // Use the bind method for class members.
 // Use the += operator for lambdas.
@@ -31,6 +29,10 @@
 // event2 += stdfunction;
 // event2 -= stdfunction;
 // event2 = nullptr;
+// 
+// then call the event:
+// yourEvent();
+// yourEvent(arg1, arg2);
 //
 ///
 

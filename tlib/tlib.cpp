@@ -180,8 +180,8 @@ namespace AStarExample
 {
     sf::Font defaultFont;
 
-    using Node       = AStar2DNode<Vector2i>;
-    using Pathfinder = AStar2D<Vector2i>;
+    using Node       = AStar2DNode;
+    using Pathfinder = AStar2D;
     
     Pathfinder pathfinder;
 
@@ -191,21 +191,23 @@ namespace AStarExample
         nodeShape.setSize(Vector2f(15, 15));
         nodeShape.setOrigin(-nodeShape.getSize().x / 2, -nodeShape.getSize().y / 2);
 
-        const auto& nodes = pathfinder.getNodes();
+        const auto& nodes = pathfinder.nodes;
 
         for (auto& node : nodes)
         {
             // Draw connections
-            if (node->enabled)
+            if (node.enabled)
             {
-                const auto& myPos = (Vector2f(node->position) * gridSize) + (gridSize / 2);
-                for (auto& n : node->neighbors)
+                const auto nodePos = Vector2f(node.getPosition().x, node.getPosition().y);
+                const auto& nodePixelPos = (nodePos * gridSize) + (gridSize / 2);
+                for (auto& conn : node.connections)
                 {
-                    if (n->enabled == false) continue;
-                    const auto& nPos = (Vector2f(n->position) * gridSize) + (gridSize / 2);
+                    if (conn->enabled == false) continue;
+                    const auto connPos = Vector2f(conn->getPosition().x, conn->getPosition().y);
+                    const auto& connPixelPos = (connPos * gridSize) + (gridSize / 2);
 
                     sf::Vertex line[] =
-                    { sf::Vertex(myPos, sf::Color(255, 255, 255, 20)), sf::Vertex(nPos, sf::Color(255, 255, 255, 20)) };
+                    { sf::Vertex(nodePixelPos, sf::Color(255, 255, 255, 20)), sf::Vertex(connPixelPos, sf::Color(255, 255, 255, 20)) };
                     target.draw(line, 2, sf::Lines);
                 }
             }
@@ -215,43 +217,46 @@ namespace AStarExample
             {
                 auto p1 = path.front();
 
-                for (auto& point : path)
+                for (auto& p2 : path)
                 {
-                    if (point == p1) continue;
+                    if (p2 == p1) continue;
                     else
                     {
                         sf::Vertex line[] =
                         {
-                            sf::Vertex(Vector2f(p1->position)    * gridSize + (gridSize / 2), sf::Color::Yellow),
-                            sf::Vertex(Vector2f(point->position) * gridSize + (gridSize / 2), sf::Color::Yellow)
+                            sf::Vertex(Vector2f(p1->getPosition().x, p1->getPosition().y) * gridSize + (gridSize / 2), sf::Color::Yellow),
+                            sf::Vertex(Vector2f(p2->getPosition().x, p2->getPosition().y) * gridSize + (gridSize / 2), sf::Color::Yellow)
                         };
                         target.draw(line, 2, sf::Lines);
 
-                        p1 = point;
+                        p1 = p2;
                     }
                 }
             }
         }
 
+        sf::Text costText("", defaultFont, 10);
+
         // Draw the bodies last, so their on top
         for (auto& node : nodes)
         {
             // Node body
-            nodeShape.setPosition(node->position.x * gridSize, node->position.y * gridSize);
+            const auto nodePos = node.getPosition();
+            nodeShape.setPosition(nodePos.x * gridSize, nodePos.y * gridSize);
 
-            if (node->enabled == false)
+            if (node.enabled == false)
             { nodeShape.setFillColor(sf::Color(25, 25, 25)); }
-            else if (node.get() == start)
+            else if (&node == start)
             { nodeShape.setFillColor(sf::Color::Green); }
-            else if (node.get() == end)
+            else if (&node == end)
             { nodeShape.setFillColor(sf::Color::Red); }
             else
-            { nodeShape.setFillColor(sf::Color(std::clamp(node->moveCost * 10, 0.f, 255.f), 75, 75)); }
+            { nodeShape.setFillColor(sf::Color(std::clamp(node.moveCost * 10, 0.f, 255.f), 75, 75)); }
 
             target.draw(nodeShape);
 
-            sf::Text costText(std::to_string(int(node->moveCost)), defaultFont, 10);
-            costText.setPosition(node->position.x * gridSize, node->position.y * gridSize);
+            costText.setString(std::to_string(static_cast<int>(node.moveCost)));
+            costText.setPosition(nodePos.x * gridSize, nodePos.y * gridSize);
             target.draw(costText);
         }
     }
@@ -271,13 +276,11 @@ namespace AStarExample
         {
             for (size_t y = 0; y < gridCount.y; y++)
             {
-                auto node = pathfinder.addNode();
-                Vector2i myPos = Vector2i(x, y);
-                node->position = myPos;
+                auto node = pathfinder.addNode(x, y);
 
                 for (auto& posDiff : neighborsToAdd)
                 {
-                    auto neighborNode = pathfinder.getNodeByPosition(myPos + posDiff);
+                    auto neighborNode = pathfinder.getNodeByPosition(x + posDiff.x, y + posDiff.y);
                     if (neighborNode != nullptr)
                     { node->connect(neighborNode); }
                 }
@@ -285,8 +288,8 @@ namespace AStarExample
         }
 
         const float gridSize = 32; // Size of each grid in pixels
-        Node* startPoint = pathfinder.getNodes().front().get();
-        Node* endPoint   = pathfinder.getNodes().back().get();
+        auto* startPoint = &pathfinder.nodes.front();
+        auto* endPoint   = &pathfinder.nodes.back();
         std::vector<Node*> pointPath;
         bool needToRecalcPath = true;
 
@@ -301,28 +304,28 @@ namespace AStarExample
 
                 if (e.type == sf::Event::MouseButtonPressed || e.type == sf::Event::MouseWheelMoved)
                 {
-                    Vector2i clickedPos = Vector2i(sf::Mouse::getPosition(window)) / gridSize;
-                    auto cp = pathfinder.getNodeByPosition(clickedPos);
-                    if (cp == nullptr) { continue; }
+                    Vector2i clickedPixelPos = Vector2i(sf::Mouse::getPosition(window)) / gridSize;
+                    auto clickedTile = pathfinder.getNodeByPosition(clickedPixelPos.x, clickedPixelPos.y);
+                    if (clickedTile == nullptr) { continue; }
 
                     if (e.type == sf::Event::MouseButtonPressed)
                     {
                         if (e.mouseButton.button == sf::Mouse::Left)
                         {
-                            if   (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) { cp->enabled = !cp->enabled; }
-                            else { startPoint = cp; }
+                            if   (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift)) { clickedTile->enabled = !clickedTile->enabled; }
+                            else { startPoint = clickedTile; }
                             needToRecalcPath = true;
                         }
                         else if (e.mouseButton.button == sf::Mouse::Right)
                         {
-                            endPoint = cp;
+                            endPoint = clickedTile;
                             needToRecalcPath = true;
                         }
                     }
 
                     else if (e.type == sf::Event::MouseWheelMoved)
                     {
-                        cp->moveCost = std::clamp(cp->moveCost + e.mouseWheel.delta, 1.f, 1000.f);
+                        clickedTile->moveCost = std::clamp(clickedTile->moveCost + e.mouseWheel.delta, 1.f, 1000.f);
                         needToRecalcPath = true;
                     }
                 }
@@ -396,7 +399,7 @@ namespace StringHelpersTests
 
 int main()
 {
-    //AStarExample::start();
+    AStarExample::start();
     //BreadthFirstSearchExample::start();
-    StringHelpersTests::start();
+    //StringHelpersTests::start();
 }

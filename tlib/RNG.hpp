@@ -25,12 +25,21 @@ public:
 		return dist(generator);
 	}
 
+	// Returns a random floating point value between min and max, including min and max.
+	// Uses float by default
+	template <typename T = float>
+	T randRangeReal(T min, T max)
+	{
+		std::uniform_real_distribution<T> dist(min, max);
+		return dist(generator);
+	}
+
 	// Returns a random object from a std::vector.
-	// It will throw an exception if the vector is empty.
+	// It will explode if the vector is empty
 	template <typename T>
 	T choice(std::vector<T> items)
 	{
-		if (items.size() <= 0) throw std::runtime_error("Vector was empty!!");
+		assert(items.size() > 0);
 		return items[randRangeInt(0, items.size() - 1)];
 	}
 };
