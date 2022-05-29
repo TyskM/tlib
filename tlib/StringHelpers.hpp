@@ -1,9 +1,25 @@
 #pragma once
 
 #include <string>
+#include <initializer_list>
+#include <utility>
 
 namespace strhelp
 {
+    std::string toLower(const std::string& s)
+    {
+        auto newstr = s;
+        std::transform(newstr.begin(), newstr.end(), newstr.begin(), [](unsigned char c){ return std::tolower(c); });
+        return newstr;
+    }
+
+    std::string toUpper(const std::string& s)
+    {
+        auto newstr = s;
+        std::transform(newstr.begin(), newstr.end(), newstr.begin(), [](unsigned char c){ return std::toupper(c); });
+        return newstr;
+    }
+
     bool endswith(const std::string& str, const std::string& ending)
     {
         if (str.length() >= ending.length())
@@ -12,12 +28,28 @@ namespace strhelp
         { return false; }
     }
 
+    bool endswith(const std::string& str, const std::initializer_list<std::string> endings)
+    {
+        bool r = true;
+        for (auto& ending : endings)
+        { if (!endswith(str, ending)) { r = false; } }
+        return r;
+    }
+
     bool beginswith(const std::string& str, const std::string& beginning)
     {
         if (str.length() >= beginning.length())
         { return (0 == str.compare(0, beginning.length(), beginning)); }
         else
         { return false; }
+    }
+
+    bool beginswith(const std::string& str, const std::initializer_list<std::string> beginnings)
+    {
+        bool r = true;
+        for (auto& beginning : beginnings)
+        { if (!beginswith(str, beginning)) { r = false; } }
+        return r;
     }
 
     std::string whitespace = " \t\n\r\f\v";

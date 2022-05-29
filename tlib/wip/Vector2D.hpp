@@ -49,7 +49,7 @@ public:
     { items[indexFor(x, y)] = value; }
 
     size_t indexFor(size_t x, size_t y) const noexcept
-    { return y * x + x; }
+    { return x * this->y + y; }
 
     void clear() { items.clear(); }
 

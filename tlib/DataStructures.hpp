@@ -4,132 +4,53 @@
 #include <cmath>
 #include "Math.hpp"
 
-#ifdef BOX2D
-    #include <box2d/box2d.h>
-#endif
-#ifdef SFML
-    #include <SFML/Graphics.hpp>
-#endif
-#ifdef OPENGL
-    #include <glm/vec3.hpp>
-    #include <glm/mat4x4.hpp>
+#ifdef BOOST_SERIALIZE
+    #include <boost/serialization/access.hpp>
 #endif
 
 /// Vectors
-struct Vector2i;
-struct Vector2f
+template <typename T>
+struct Vector2
 {
-    // https://github.com/godotengine/godot/blob/master/core/math/vector2.cpp
+    constexpr Vector2(T xv, T yv) : x{ xv }, y{ yv } { }
+    constexpr Vector2() { }
 
-    constexpr Vector2f(float xv, float yv) : x{ xv }, y{ yv } { }
-    Vector2f(Vector2i&);
-    Vector2f() { }
-
-    float x = 0;
-    float y = 0;
+    T x = 0;
+    T y = 0;
 
     void rotate(float radians)
     { *this = rotated(radians); }
 
     // SIN AND COS USES RADIANS YOU DUMB IDIOT
-    Vector2f rotated(const float& radians) const
+    Vector2<T> rotated(const float& radians) const
     {
         float sinv = sin(radians);
         float cosv = cos(radians);
-        return Vector2f(x * cosv - y * sinv, x * sinv + y * cosv);
+        return Vector2<T>(x * cosv - y * sinv, x * sinv + y * cosv);
     }
 
     void normalize()
     {
-        float len = length();
-        x == 0 ? 0 : x /= len;
-        y == 0 ? 0 : y /= len;
+        *this = normalized();
     }
 
-    Vector2f normalized()
+    Vector2<T> normalized()
     {
-        Vector2f me = *this;
-        me.normalize();
-        return me;
+        Vector2<T> rv;
+        float len = length();
+        if (rv.x != 0) rv.x /= len;
+        if (rv.y != 0) rv.y /= len;
+        return rv;
     }
 
-    float length() const
-    { return sqrtf(x * x + y * y); }
-
-    float lengthSquared() const
-    { return x * x + y * y; }
-
-    float dot(const Vector2f& other) const
+    float dot(const Vector2<T>& other) const
     { return x * other.x + y * other.y; }
 
-    float cross(const Vector2f& other) const
+    float cross(const Vector2<T>& other) const
     { return x * other.y - y * other.x; }
 
-    Vector2f reflect(const Vector2f& normal) const
-    { return 2.f * normal * dot(normal) - *this; }
-
-    Vector2f abs() const
-    { return Vector2f(std::abs(x), std::abs(y)); }
-
-    Vector2f distanceTo(const Vector2f& other) const
-    { return (other - *this).abs(); }
-
-    std::string toString()
-    { return this->operator std::string(); }
-
-    Vector2f operator+(const float value) const { return Vector2f(x + value, y + value); }
-    Vector2f operator-(const float value) const { return Vector2f(x - value, y - value); }
-
-    Vector2f operator+(const Vector2f& other) const { return Vector2f(x + other.x, y + other.y); }
-    Vector2f operator-(const Vector2f& other) const { return Vector2f(x - other.x, y - other.y); }
-    Vector2f operator*(const Vector2f& other) const { return Vector2f(x * other.x, y * other.y); }
-    Vector2f operator/(const Vector2f& other) const { return Vector2f(x / other.x, y / other.y); }
-    Vector2f operator*(const int& num)        const { return Vector2f(x * num, y * num); }
-    Vector2f operator/(const int& num)        const { return Vector2f(x / num, y / num); }
-    Vector2f operator*(const float& num)      const { return Vector2f(x * num, y * num); }
-    Vector2f operator/(const float& num)      const { return Vector2f(x / num, y / num); }
-    Vector2f operator-()                      const { return Vector2f(-x, -y); }
-
-    Vector2f operator+=(const Vector2f& other) { return Vector2f(x += other.x, y += other.y); }
-    Vector2f operator-=(const Vector2f& other) { return Vector2f(x -= other.x, y -= other.y); }
-    Vector2f operator*=(const Vector2f& other) { return Vector2f(x *= other.x, y *= other.y); }
-    Vector2f operator/=(const Vector2f& other) { return Vector2f(x /= other.x, y /= other.y); }
-    Vector2f operator*=(const int& num) { return Vector2f(x *= num, y *= num); }
-    Vector2f operator/=(const int& num) { return Vector2f(x /= num, y /= num); }
-    Vector2f operator*=(const float& num) { return Vector2f(x *= num, y *= num); }
-    Vector2f operator/=(const float& num) { return Vector2f(x /= num, y /= num); }
-    friend Vector2f operator* (float num, Vector2f point2) { return point2 * num; }
-
-    bool operator==(const Vector2f other) const { return x == other.x && y == other.y; }
-    bool operator!=(const Vector2f other) const { return !(operator==(other)); }
-
-    operator std::string() const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
-        
-#ifdef SFML
-    Vector2f(sf::Vector2f other) : x{ other.x }, y{ other.y }  { }
-    Vector2f(sf::Vector2i other) { x = other.x; y = other.y; }
-    operator sf::Vector2f() const { return sf::Vector2f(x, y); }
-#endif
-#ifdef BOX2D
-    Vector2f(b2Vec2 box2dVector2) : x{ box2dVector2.x }, y{ box2dVector2.y }  { }
-    operator b2Vec2()       const { return b2Vec2(x, y); }
-#endif
-#ifdef GLM
-    Vector2f(glm::vec2 other) : x{ other.x }, y{ other.y }  { }
-    operator glm::vec2() { return glm::vec2(x, y); }
-#endif
-};
-
-inline Vector2f floor(const Vector2f point2) { return Vector2f(std::floor(point2.x), std::floor(point2.y)); }
-
-struct Vector2i
-{
-    Vector2i(int xv, int yv) : x{ xv }, y{ yv } { }
-    Vector2i(Vector2f v2f) : Vector2i(v2f.x, v2f.y) { }
-    Vector2i() { }
-
-    int x = 0;
-    int y = 0;
+    Vector2<T> reflect(const Vector2<T>& normal) const
+    { return (normal * 2) * dot(normal) - *this; }
 
     float length() const
     { return sqrtf(x * x + y * y); }
@@ -137,119 +58,70 @@ struct Vector2i
     float lengthSquared() const
     { return x * x + y * y; }
 
-    Vector2i abs() const
-    { return Vector2i(std::abs(x), std::abs(y)); }
+    Vector2<T> abs() const
+    { return Vector2<T>(std::abs(x), std::abs(y)); }
 
-    Vector2i distanceTo(const Vector2i& other) const
+    Vector2<T> distanceTo(const Vector2<T>& other) const
     { return (other - *this).abs(); }
 
-    std::string toString()
+    std::string toString() const
     { return this->operator std::string(); }
 
-    Vector2i operator+(const Vector2i& other) const { return Vector2i(x + other.x, y + other.y); }
-    Vector2i operator-(const Vector2i& other) const { return Vector2i(x - other.x, y - other.y); }
-    Vector2i operator*(const Vector2i& other) const { return Vector2i(x * other.x, y * other.y); }
-    Vector2i operator/(const Vector2i& other) const { return Vector2i(x / other.x, y / other.y); }
-    Vector2i operator*(const int& num)        const { return Vector2i(x * num, y * num); }
-    Vector2i operator/(const int& num)        const { return Vector2i(x / num, y / num); }
-    Vector2i operator*(const float& num)      const { return Vector2i(x * num, y * num); }
-    Vector2i operator/(const float& num)      const { return Vector2i(x / num, y / num); }
+    operator std::string() const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
 
-    Vector2f operator+=(const Vector2i& other) { return Vector2i(x += other.x, y += other.y); }
-    Vector2f operator-=(const Vector2i& other) { return Vector2i(x -= other.x, y -= other.y); }
-    Vector2f operator*=(const Vector2i& other) { return Vector2i(x *= other.x, y *= other.y); }
-    Vector2f operator/=(const Vector2i& other) { return Vector2i(x /= other.x, y /= other.y); }
-    Vector2f operator*=(const int& num) { return Vector2i(x *= num, y *= num); }
-    Vector2f operator/=(const int& num) { return Vector2i(x /= num, y /= num); }
-    Vector2f operator*=(const float& num) { return Vector2i(x *= num, y *= num); }
-    Vector2f operator/=(const float& num) { return Vector2i(x /= num, y /= num); }
+    bool operator==(const Vector2<T> other) const { return x == other.x && y == other.y; }
+    bool operator!=(const Vector2<T> other) const { return !(operator==(other)); }
+    Vector2<T> operator+(const Vector2<T>& other) const { return Vector2<T>(x + other.x, y + other.y); }
+    Vector2<T> operator-(const Vector2<T>& other) const { return Vector2<T>(x - other.x, y - other.y); }
+    Vector2<T> operator*(const Vector2<T>& other) const { return Vector2<T>(x * other.x, y * other.y); }
+    Vector2<T> operator/(const Vector2<T>& other) const { return Vector2<T>(x / other.x, y / other.y); }
+    Vector2<T> operator*(const int& num) const { return Vector2<T>(x * num, y * num); }
+    Vector2<T> operator/(const int& num) const { return Vector2<T>(x / num, y / num); }
+    Vector2<T> operator*(const float& num) const { return Vector2<T>(x * num, y * num); }
+    Vector2<T> operator/(const float& num) const { return Vector2<T>(x / num, y / num); }
+    Vector2<T> operator+=(const Vector2<T>& other) { return Vector2<T>(x += other.x, y += other.y); }
+    Vector2<T> operator-=(const Vector2<T>& other) { return Vector2<T>(x -= other.x, y -= other.y); }
+    Vector2<T> operator*=(const Vector2<T>& other) { return Vector2<T>(x *= other.x, y *= other.y); }
+    Vector2<T> operator/=(const Vector2<T>& other) { return Vector2<T>(x /= other.x, y /= other.y); }
+    Vector2<T> operator*=(const int& num) { return Vector2<T>(x *= num, y *= num); }
+    Vector2<T> operator/=(const int& num) { return Vector2<T>(x /= num, y /= num); }
+    Vector2<T> operator*=(const float& num) { return Vector2<T>(x *= num, y *= num); }
+    Vector2<T> operator/=(const float& num) { return Vector2<T>(x /= num, y /= num); }
 
-    bool operator==(const Vector2i other) const { return x == other.x && y == other.y; }
-    bool operator!=(const Vector2i other) const { return !(operator==(other)); }
-
-    operator Vector2f()     const { return Vector2f(x, y); }
-    operator std::string()  const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
-
-#ifdef SFML
-    Vector2i(sf::Vector2i sfv2i) : Vector2i(sfv2i.x, sfv2i.y) { }
-    operator sf::Vector2i() const { return sf::Vector2i(x, y); }
-    operator sf::Vector2f() const { return sf::Vector2f(x, y); }
-#endif
+    #ifdef BOOST_SERIALIZE
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & x;
+        ar & y;
+    }
+    #endif
 };
 
-Vector2f::Vector2f(Vector2i& other) : x{ static_cast<float>(other.x) }, y{ static_cast<float>(other.y) } { }
-
-inline Vector2i floor(const Vector2i point2) { return point2; }
-
-struct Vector3f
+namespace std
 {
-    Vector3f(float xv, float yv, float zv) : x{xv}, y{yv}, z{zv} { }
-    Vector3f(Vector2f other) { x = other.x; y = other.y; z = 0; }
-    Vector3f() { }
-
-    float x = 0;
-    float y = 0;
-    float z = 0;
-
-    float length() const
-    { return sqrtf(x * x + y * y + z * z); }
-
-    float lengthSquared() const
-    { return x * x + y * y + z * z; }
-
-    float distanceTo(const Vector3f& other) const
-    { return (other - *this).length(); }
-
-    float distanceSquaredTo(const Vector3f& other) const
-    { return (other - *this).lengthSquared(); }
-
-    Vector3f normalized()
+    template <typename T>
+    struct hash<Vector2<T>>
     {
-        float len = length();
-        return Vector3f(x == 0 ? 0 : x /= len, y == 0 ? 0 : y /= len, z == 0 ? 0 : z /= len);
-    }
+        size_t operator()(const Vector2<T>& k) const
+        {
+            const auto xhash = hash<T>()(k.x);
+            const auto yhash = hash<T>()(k.y);
+            return (size_t(53) + xhash) * size_t(53) + yhash;
+        }
+    };
+}
 
-    float dot(const Vector3f& other) const
-    { return x * other.x + y * other.y + z * other.z; }
-
-    Vector3f cross(const Vector3f& other) const
-    {
-        return Vector3f((y * other.z) - (z * other.y),
-                        (z * other.x) - (x * other.z),
-                        (x * other.y) - (y * other.x));
-    }
-
-    Vector3f abs() const
-    { return Vector3f(fabs(x), fabs(y), fabs(z)); }
-
-    Vector3f sign() const
-    { return Vector3f(math::sign(x), math::sign(y), math::sign(z)); }
-
-    std::string toString() { return this->operator std::string(); }
-
-    explicit operator Vector2f() const { return Vector2f(x, y); }
-    Vector3f operator+(const Vector3f& other) const { return Vector3f(x + other.x, y + other.y, z + other.z); }
-    Vector3f operator-(const Vector3f& other) const { return Vector3f(x - other.x, y - other.y, z - other.z); }
-    Vector3f operator*(const Vector3f& other) const { return Vector3f(x * other.x, y * other.y, z * other.z); }
-    Vector3f operator/(const Vector3f& other) const { return Vector3f(x / other.x, y / other.y, z / other.z); }
-    Vector3f operator*(const float value)     const { return Vector3f(x * value, y * value, z * value); }
-    Vector3f operator-()                      const { return Vector3f(-x, -y, -z); }
-    bool     operator==(Vector3f other)       const { return x == other.x && y == other.y && z == other.z; }
-    bool     operator!=(Vector3f other)       const { return !(operator==(other)); }
-    operator std::string() const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ")"); }
-    
-#ifdef OPENGL
-    Vector3f(glm::vec3 glVec) : x{glVec.x}, y{glVec.y}, z{glVec.z} { }
-    operator glm::vec3() { return glm::vec3(x, y, z); }
-#endif
-};
+using Vector2f = Vector2<float>;
+using Vector2i = Vector2<int>;
 
 /// Colors
 
-float uint8ToFloat(uint8_t value)
+constexpr float uint8ToFloat(uint8_t value)
 { return value / 255.f; }
 
-uint8_t floatToUint8(float value)
+constexpr uint8_t floatToUint8(float value)
 { return value * 255.f; }
 
 // Represents a RGBA color with values 0f-1f
@@ -262,6 +134,28 @@ struct ColorRGBAf
     float g;
     float b;
     float a;
+
+    static inline ColorRGBAf red() { return ColorRGBAf{ 1.f, 0.f, 0.f }; }
+    static inline ColorRGBAf green() { return ColorRGBAf{ 0.f, 1.f, 0.f }; }
+    static inline ColorRGBAf blue() { return ColorRGBAf{ 0.f, 0.f, 1.f }; }
+    static inline ColorRGBAf white() { return ColorRGBAf{ 1.f, 1.f, 1.f }; }
+    static inline ColorRGBAf black() { return ColorRGBAf{ 0.f, 0.f, 0.f }; }
+    static inline ColorRGBAf purple() { return ColorRGBAf{ uint8ToFloat(127), 0.f, 1.f }; }
+    static inline ColorRGBAf yellow() { return ColorRGBAf{ 1.f, 1.f, 0.f }; }
+    static inline ColorRGBAf orange() { return ColorRGBAf{ 1.f, uint8ToFloat(128), 0.f }; }
+
+#ifdef BOOST_SERIALIZE
+    // Serialization
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version)
+    {
+        ar & r;
+        ar & g;
+        ar & b;
+        ar & a;
+    }
+#endif
 };
 
 // Represents a RGBA color with values 0-255

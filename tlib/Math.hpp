@@ -20,8 +20,8 @@ namespace math
     template<class T>
     inline T stepify(T value, T step)
     {
-        value = floor(value / step) * step;
-        return value;
+        // return ( floor(value / step) * step );
+        return step * std::round(value / step);
     }
 
     template <class T>
