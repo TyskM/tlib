@@ -3,6 +3,7 @@
 #include <string>
 #include <initializer_list>
 #include <utility>
+#include <algorithm>
 
 namespace strhelp
 {
@@ -75,5 +76,12 @@ namespace strhelp
         std::string retStr = str;
         trim(retStr, totrim);
         return retStr;
+    }
+
+    std::string floatToStr(float v, size_t precision)
+    {
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(precision) << v;
+        return ss.str();
     }
 }

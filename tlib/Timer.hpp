@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-struct Time : std::chrono::nanoseconds
+struct Time : std::chrono::duration<double>
 {
     using nanoseconds  = std::chrono::nanoseconds;
     using microseconds = std::chrono::microseconds;
@@ -12,26 +12,20 @@ struct Time : std::chrono::nanoseconds
     using hours        = std::chrono::hours;
 
     Time() = default;
-    Time(const nanoseconds& base) : nanoseconds::duration(base) { }
-    Time& operator=(const nanoseconds& base) { nanoseconds::operator=(base); return *this; }
+    Time(const std::chrono::duration<double>& base) : std::chrono::duration<double>(base) { }
+    Time& operator=(const std::chrono::duration<double>& base) { std::chrono::duration<double>::operator=(base); return *this; }
 
-    inline double asNanoseconds() noexcept
-    { return count(); }
+    inline double asNanoseconds() const noexcept
+    { return std::chrono::duration_cast<nanoseconds>(*this).count(); }
 
-    inline double asMicroseconds() noexcept
+    inline double asMicroseconds() const noexcept
     { return std::chrono::duration_cast<microseconds>(*this).count(); }
 
-    inline double asMilliseconds() noexcept
+    inline double asMilliseconds() const noexcept
     { return std::chrono::duration_cast<milliseconds>(*this).count(); }
 
-    inline double asSeconds() noexcept
-    { return std::chrono::duration_cast<seconds>(*this).count(); }
-
-    inline double asMinutes() noexcept
-    { return std::chrono::duration_cast<minutes>(*this).count(); }
-
-    inline double asHours() noexcept
-    { return std::chrono::duration_cast<hours>(*this).count(); }
+    inline double asSeconds() const noexcept
+    { return count(); }
 };
 
 class Timer
@@ -48,13 +42,13 @@ public:
     Time getElapsedTime() const noexcept
     {
         const auto endTime = std::chrono::steady_clock::now();
-        return Time(endTime - startTime);
+        return Time(endTime - _startTime);
     }
 
     Time restart() noexcept
     {
         auto t = getElapsedTime();
-        startTime = now();
+        _startTime = now();
         return t;
     }
 
@@ -62,8 +56,7 @@ public:
     { return std::chrono::steady_clock::now(); }
 
     inline const TimePoint getStartTime() const noexcept
-    { return startTime; }
+    { return _startTime; }
 
-protected:
-    TimePoint startTime;
+    TimePoint _startTime;
 };

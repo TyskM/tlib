@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -88,8 +88,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>Default</LanguageStandard>
-      <LanguageStandard_C>Default</LanguageStandard_C>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -147,9 +147,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="thirdparty\SDL_FontCache.c" />
     <ClCompile Include="tlib.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Media\Box2DDebugDraw.h" />
+    <ClInclude Include="Media\Event.hpp" />
+    <ClInclude Include="Media\Font.hpp" />
+    <ClInclude Include="Media\FPSLimit.hpp" />
+    <ClInclude Include="Media\GameTemplate.hpp" />
+    <ClInclude Include="Media\ImGui.hpp" />
+    <ClInclude Include="Media\ImGuiFileDialog.hpp" />
+    <ClInclude Include="Media\ImGuiWidgets.hpp" />
+    <ClInclude Include="Media\Media.hpp" />
+    <ClInclude Include="Media\Nuklear.hpp" />
+    <ClInclude Include="Media\Renderer.hpp" />
+    <ClInclude Include="Media\SysQuery.hpp" />
+    <ClInclude Include="StateMan.hpp" />
     <ClInclude Include="Macros.hpp" />
     <ClInclude Include="NonAssignable.hpp" />
     <ClInclude Include="Pathfind.hpp" />
@@ -162,8 +176,10 @@
     <ClInclude Include="RNG.hpp" />
     <ClInclude Include="SFMLDebugDraw.hpp" />
     <ClInclude Include="StringHelpers.hpp" />
+    <ClInclude Include="Media\Texture.hpp" />
+    <ClInclude Include="thirdparty\SDL_FontCache.h" />
     <ClInclude Include="Timer.hpp" />
-    <ClInclude Include="wip\Vector2D.hpp" />
+    <ClInclude Include="Media\Window.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="Content\arial.ttf">

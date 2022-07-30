@@ -5,7 +5,8 @@
 #include <stdexcept>
 #include <vector>
 
-struct FileReadError : public std::runtime_error { using std::runtime_error::runtime_error; };
+struct FileReadError  : public std::runtime_error { using std::runtime_error::runtime_error; };
+struct FileWriteError : public std::runtime_error { using std::runtime_error::runtime_error; };
 
 // Reads a file into a string
 std::string readFile(const std::string& filePath)
@@ -14,6 +15,14 @@ std::string readFile(const std::string& filePath)
 	std::ifstream in(filePath, std::ios::in | std::ios::binary);
 	if (!in) throw FileReadError("Failed to read file: " + filePath);
 	return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+}
+
+void writeToFile(const std::string& filePath, const std::string& value)
+{
+    std::ofstream out(filePath, std::ios::out | std::ios::binary);
+    if (!out) throw FileWriteError("Failed to write file: " + filePath);
+    out << value;
+    out.close();
 }
 
 // Puts each line of a file into a vector of strings

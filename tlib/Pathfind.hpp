@@ -5,9 +5,13 @@
 #include <set>
 #include <unordered_set>
 #include <unordered_map>
+#include <map>
+#include <functional>
+#include "DataStructures.hpp"
 
 // Breadth First Search
 
+#pragma region BFS
 template <class DataType = void*>
 struct BreadthFirstSearchNode
 {
@@ -108,6 +112,7 @@ public:
 
     }
 };
+#pragma endregion
 
 // AStar
 // Example:
@@ -174,18 +179,11 @@ bool mapContains(std::unordered_map<KeyType, ValueType>& map, KeyType key)
     return (map.find(key) != map.end());
 }
 
-struct Point
+struct AStar2DNode
 {
-    int x, y;
-    Point(int x, int y) : x{ x }, y{ y } { }
-};
-
-class AStar2DNode
-{
-private:
+    // DO NOT CHANGE THESE THEY ARE READ-ONLY
     int x, y;
 
-public:
     std::vector<AStar2DNode*> connections;
     float moveCost = 1.f;
     bool  enabled = true;
@@ -200,8 +198,8 @@ public:
         clearConnections();
     }
 
-    inline Point getPosition() const noexcept
-    { return Point(x, y); }
+    inline Vector2i getPosition() const noexcept
+    { return {x, y}; }
 
     void connect(AStar2DNode* const node, const bool bidirectional = true)
     {
@@ -242,17 +240,13 @@ public:
 
 class AStar2D
 {
-    friend class AStar2DNode;
-    using Node = AStar2DNode;
-
 public:
+    friend struct AStar2DNode;
+    using Node = AStar2DNode;
+    using ValidPositionCallback = std::function<bool(const Vector2i&)>;
 
-    // TODO: figure out why using a vector breaks everything
-#ifdef ASTAR_USE_VECTORCONT
-    std::vector<Node> nodes;
-#else
+    // TODO: use hash map
     std::list<Node> nodes;
-#endif
 
     struct FrontierComparator
     { bool operator()(const Node* a, const Node* b) { return a->moveCost < b->moveCost; } };
@@ -282,10 +276,10 @@ public:
         auto n = getNodeByPosition(x, y);
         if (n != nullptr) removeNode(n);
     }
+    void removeNodeByPosition(const Vector2i& v) { removeNodeByPosition(v.x, v.y); }
 
     // Deletes all nodes
-    void clear()
-    { nodes.clear(); }
+    void clear() { nodes.clear(); }
 
     float heuristic(const Node* const a, const Node* const b) const
     {
@@ -303,6 +297,46 @@ public:
         }
         return nullptr;
     }
+    Node* getNodeByPosition(const Vector2i& v) { return getNodeByPosition(v.x, v.y); }
+
+    // TODO: finish maybe
+    //Node* getNodeClosestToPosition(const Vector2i& v, size_t maxDistance = SIZE_MAX)
+    //{
+    //    auto* start = getNodeByPosition(v.x, v.y);
+    //    if (start != nullptr)
+    //    { return start; }
+    //
+    //    for (int d = 0; d < maxDistance; d++)
+    //    {
+    //        for (int x = xs-d; x < xs+d+1; x++)
+    //        {
+    //            // Point to check: (x, ys - d) and (x, ys + d) 
+    //            if (CheckPoint(x, ys - d) == true)
+    //            {
+    //                return (x, ys - d);
+    //            }
+    //
+    //            if (CheckPoint(x, ys + d) == true)
+    //            {
+    //                return (x, ys - d);
+    //            }
+    //        }
+    //
+    //        for (int y = ys-d+1; y < ys+d; y++)
+    //        {
+    //            // Point to check = (xs - d, y) and (xs + d, y) 
+    //            if (CheckPoint(x, ys - d) == true)
+    //            {
+    //                return (xs - d, y);
+    //            }
+    //
+    //            if (CheckPoint(x, ys + d) == true)
+    //            {
+    //                return (xs - d, y);
+    //            }
+    //        }
+    //    }
+    //}
 
     // Will return an empty vector if there is no path.
     const std::vector<Node*> findPath(Node* start, Node* goal, const bool includeStart = false) const
@@ -324,7 +358,7 @@ public:
 
             for (auto& nextNode : current->connections)
             {
-                if (nextNode->enabled == false) continue;
+                if (nextNode->enabled == false) { continue; }
 
                 auto newCost = costSoFar[current] + nextNode->moveCost;
                 if (!mapContains(costSoFar, nextNode) || newCost < costSoFar[nextNode])

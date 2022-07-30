@@ -4,16 +4,19 @@
 #include <cmath>
 #include "Math.hpp"
 
-#ifdef BOOST_SERIALIZE
-    #include <boost/serialization/access.hpp>
-#endif
-
-/// Vectors
+/// Container with 2 of a single type
 template <typename T>
 struct Vector2
 {
     constexpr Vector2(T xv, T yv) : x{ xv }, y{ yv } { }
     constexpr Vector2() { }
+
+    template <typename CT>
+    constexpr explicit Vector2(const CT& other)
+    {
+        x = static_cast<T>(other.x);
+        y = static_cast<T>(other.y);
+    }
 
     T x = 0;
     T y = 0;
@@ -61,8 +64,8 @@ struct Vector2
     Vector2<T> abs() const
     { return Vector2<T>(std::abs(x), std::abs(y)); }
 
-    Vector2<T> distanceTo(const Vector2<T>& other) const
-    { return (other - *this).abs(); }
+    T distanceTo(const Vector2<T>& other) const
+    { return std::max( std::abs( x - other.x), std::abs( y - other.y) ); }
 
     std::string toString() const
     { return this->operator std::string(); }
@@ -87,18 +90,9 @@ struct Vector2
     Vector2<T> operator/=(const int& num) { return Vector2<T>(x /= num, y /= num); }
     Vector2<T> operator*=(const float& num) { return Vector2<T>(x *= num, y *= num); }
     Vector2<T> operator/=(const float& num) { return Vector2<T>(x /= num, y /= num); }
-
-    #ifdef BOOST_SERIALIZE
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
-    {
-        ar & x;
-        ar & y;
-    }
-    #endif
 };
 
+///\cond INTERNAL
 namespace std
 {
     template <typename T>
@@ -112,11 +106,15 @@ namespace std
         }
     };
 }
+///\endcond
 
+/// Container with 2 floats
+/// \relates Vector2
 using Vector2f = Vector2<float>;
-using Vector2i = Vector2<int>;
 
-/// Colors
+/// Container with 2 ints
+/// \relates Vector2
+using Vector2i = Vector2<int>;
 
 constexpr float uint8ToFloat(uint8_t value)
 { return value / 255.f; }
@@ -143,19 +141,6 @@ struct ColorRGBAf
     static inline ColorRGBAf purple() { return ColorRGBAf{ uint8ToFloat(127), 0.f, 1.f }; }
     static inline ColorRGBAf yellow() { return ColorRGBAf{ 1.f, 1.f, 0.f }; }
     static inline ColorRGBAf orange() { return ColorRGBAf{ 1.f, uint8ToFloat(128), 0.f }; }
-
-#ifdef BOOST_SERIALIZE
-    // Serialization
-    friend class boost::serialization::access;
-    template<class Archive>
-    void serialize(Archive & ar, const unsigned int version)
-    {
-        ar & r;
-        ar & g;
-        ar & b;
-        ar & a;
-    }
-#endif
 };
 
 // Represents a RGBA color with values 0-255
@@ -167,6 +152,8 @@ struct ColorRGBAi
     ColorRGBAi(uint8_t rv, uint8_t gv, uint8_t bv) :
         ColorRGBAi(rv, gv, bv, 255) { }
 
+    ColorRGBAi(const ColorRGBAf& cf) : r{floatToUint8(cf.r)}, g{floatToUint8(cf.g)}, b{floatToUint8(cf.b)}, a{floatToUint8(cf.a)} {  }
+
     uint8_t r;
     uint8_t g;
     uint8_t b;
@@ -177,6 +164,7 @@ struct ColorRGBi
 {
     ColorRGBi(uint8_t rv, uint8_t gv, uint8_t bv) : r{ rv }, g{ gv }, b{ bv } { }
     ColorRGBi(ColorRGBAi c4) : ColorRGBi(c4.r, c4.g, c4.b) { }
+    ColorRGBi() : r{ 0 }, g{ 0 }, b{ 0 } { }
 
     uint8_t r;
     uint8_t g;
@@ -185,25 +173,23 @@ struct ColorRGBi
     operator ColorRGBAi() { return ColorRGBAi(r, g, b); }
 };
 
-/// Shapes
-
+template<typename T = float>
 struct Rect
 {
-    Vector2f position;
-    Vector2f size;
+    T x, y, width, height;
 
-    Rect(Vector2f positionv, Vector2f sizev) : position{ positionv }, size{ sizev } { }
-
-    Rect(float xpos, float ypos, float xwidth, float ywidth) :
-        Rect(Vector2f(xpos, ypos), Vector2f(xwidth, ywidth)) { }
-
+    Rect(Vector2<T> pos, Vector2<T> size) : x{ pos.x }, y{ pos.y }, width{ size.x }, height{ size.y } { }
+    Rect(T x, T y, T width, T height) : x{ x }, y{ y }, width{ width }, height{ height } { }
     Rect() { }
 
-    bool contains(const Vector2f& pos) const
+    bool contains(const T& x, const T& y) const
     {
-        Vector2f topLeft = position;
-        Vector2f bottomRight = position + size;
+        Vector2<T> topLeft = {x, y};
+        Vector2<T> bottomRight = Vector2<T>{ x, y } + Vector2<T>{ width, height };
 
-        return topLeft.x < pos.x && pos.x < bottomRight.x && topLeft.y < pos.y && pos.y < bottomRight.y;
+        return topLeft.x < x && x < bottomRight.x && topLeft.y < y && y < bottomRight.y;
     }
 };
+
+using Rectf = Rect<float>;
+using Recti = Rect<int>;
