@@ -7,10 +7,44 @@
 #include "SysQuery.hpp"
 #include <format>
 
+/* Usage example:
+
+#include <Media/GameTemplate.hpp>
+
+GameTemplate game;
+
+struct PlayState : GameState
+{
+    void input(InputEvent& e) override
+    {
+
+    }
+
+    void update(float delta) override
+    {
+
+    }
+
+    void draw(float delta) override
+    {
+
+    }
+};
+
+int main()
+{
+    game.create();
+    PlayState playState;
+    game.start(playState);
+}
+
+*/
+
 struct GameState : State
 {
-    virtual void updatedraw(float delta) {}
-    virtual void input(Event& e) {}
+    virtual void input(InputEvent& e) { }
+    virtual void update(float delta) { }
+    virtual void draw(float delta) { }
 };
 using GameStateMan = StateMan<GameState>;
 
@@ -22,27 +56,29 @@ struct GameTemplate
     FPSLimit fpslimit{60};
     GameStateMan stateMan;
     Timer deltaTimer;
+    ColorRGBAi clearColor = { 0, 0, 0 };
     bool showDebug;
     bool running;
 
-    void create(const char* winName = "Window", int winx = 1280, int winy = 720)
+    void create(const char* winName = "Window", int winx = 1280, int winy = 720, bool useLinearFiltering = false, int renderScaleQuality = 2)
     {
         window.create(winName, winx, winy);
-        renderer.create(window);
+        renderer.create(window, useLinearFiltering, renderScaleQuality);
         imgui.create(window, renderer);
     }
 
     void start(GameState& gameState, bool showDebug = true)
     {
         if (renderer._renderer == nullptr) { create(); }
-        
         this->showDebug = showDebug;
+
         stateMan.pushState(&gameState);
 
         running = true;
         while (running)
         {
-            Event e;
+            Input::update();
+            InputEvent e;
             while (SDL_PollEvent(&e))
             {
                 if (e.type == SDL_QUIT) { running = false; }
@@ -50,12 +86,12 @@ struct GameTemplate
                 stateMan.getState()->input(e);
             }
 
+            renderer.clear(clearColor);
             imgui.newFrame();
-            renderer.clear();
 
             float delta = deltaTimer.restart().asSeconds();
-            stateMan.getState()->updatedraw(delta);
-
+            stateMan.getState()->update(delta);
+            stateMan.getState()->draw(delta);
             if (showDebug)
             {
                 const auto meminfo = sysq::getGlobalMemInfo();

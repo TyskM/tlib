@@ -17,6 +17,8 @@ struct StateMan
 
     std::queue<StateType*> states;
 
+    ~StateMan() { popAll(); }
+
     void pushState(StateType* state)
     {
         states.push(state);
@@ -30,6 +32,14 @@ struct StateMan
         rstate->onExit();
         states.pop();
         return rstate;
+    }
+
+    void popAll()
+    {
+        for (size_t i = states.size() - 1; states.size() < 0; i--)
+        {
+            popState();
+        }
     }
 
     inline StateType* getState() const noexcept { ASSERT(states.size() > 0); return states.front(); }

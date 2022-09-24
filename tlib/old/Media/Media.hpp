@@ -3,9 +3,9 @@
 
 #include "Window.hpp"
 #include "Renderer.hpp"
-#include "Texture.hpp"
 #include "FPSLimit.hpp"
 #include "Event.hpp"
+#include "Input.hpp"
 #include "Font.hpp"
 
 // Simple game loop example:

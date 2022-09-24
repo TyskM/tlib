@@ -5,8 +5,9 @@
 #pragma once
 
 #include <SDL2/SDL.h>
-#include <imgui_impl_sdl.h>
-#include <imgui_impl_sdlrenderer.h>
+#include <SDL2/SDL_opengl.h>
+#include "../thirdparty/imgui_impl_sdl.h"
+#include "../thirdparty/imgui_impl_sdlrenderer.h"
 #include "../NonAssignable.hpp"
 
 #if !SDL_VERSION_ATLEAST(2,0,17)

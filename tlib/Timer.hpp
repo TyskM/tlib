@@ -39,17 +39,32 @@ public:
     using minutes      = std::chrono::minutes;
     using hours        = std::chrono::hours;
 
-    Time getElapsedTime() const noexcept
+    Timer()
     {
-        const auto endTime = std::chrono::steady_clock::now();
-        return Time(endTime - _startTime);
+        restart();
     }
 
-    Time restart() noexcept
+    inline Time getElapsedTime() const noexcept
+    {
+        TimePoint endTime;
+        if (_paused)
+        { return Time(_pausedTime - _startTime); }
+        else
+        { return Time(std::chrono::steady_clock::now() - _startTime); }
+    }
+
+    inline Time restart() noexcept
     {
         auto t = getElapsedTime();
         _startTime = now();
         return t;
+    }
+
+    inline void setPaused(bool v = true) noexcept
+    {
+        if (v == _paused) { return; }
+        _paused = v;
+        if (v) { _pausedTime = now(); }
     }
 
     static inline TimePoint now() noexcept
@@ -58,5 +73,7 @@ public:
     inline const TimePoint getStartTime() const noexcept
     { return _startTime; }
 
+    bool _paused = false;
+    TimePoint _pausedTime;
     TimePoint _startTime;
 };

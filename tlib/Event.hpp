@@ -1,12 +1,5 @@
 #pragma once
 
-#include <typeinfo>
-#include <functional>
-#include <stdexcept>
-#include <memory>
-#include <atomic>
-#include <cstring>
-
 ///
 //
 // CSharp style events.
@@ -35,6 +28,15 @@
 // yourEvent(arg1, arg2);
 //
 ///
+
+#define _SILENCE_CXX20_OLD_SHARED_PTR_ATOMIC_SUPPORT_DEPRECATION_WARNING
+
+#include <typeinfo>
+#include <functional>
+#include <stdexcept>
+#include <memory>
+#include <atomic>
+#include <cstring>
 
 template <typename TFunc>
 class Event;

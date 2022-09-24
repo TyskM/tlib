@@ -26,22 +26,22 @@ struct B2DebugDraw : public b2Draw
 
     void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color)
     {
-        renderer->drawFilledPolygon(vertices, vertexCount, ColorRGBAi(ColorRGBAf{color.r, color.g, color.b, color.a}));
+         renderer->drawFilledPolygon(vertices, vertexCount, ColorRGBAi(ColorRGBAf{color.r, color.g, color.b, color.a}));
     }
 
     void DrawCircle(const b2Vec2& center, float_t radius, const b2Color& color)
     {
-
+        renderer->drawCircle(center.x, center.y, radius, ColorRGBAi(ColorRGBAf{color.r, color.g, color.b, color.a}));
     }
 
     void DrawSolidCircle(const b2Vec2& center, float_t radius, const b2Vec2& axis, const b2Color& color)
     {
-
+        renderer->drawCircleFilled(center.x, center.y, radius, ColorRGBAi(ColorRGBAf{color.r, color.g, color.b, color.a}));
     }
 
     void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color)
     {
-        renderer->drawLine(p1, p2, {color.r, color.g, color.b, color.a});
+        renderer->drawLine(p1, p2, ColorRGBAi(ColorRGBAf{color.r, color.g, color.b, color.a}));
     }
 
     void DrawTransform(const b2Transform& xf)

@@ -18,7 +18,7 @@
     <ClCompile Include="tlib.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="thirdparty\SDL_FontCache.c">
+    <ClCompile Include="thirdparty\SDL_FontCache.h">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -62,52 +62,121 @@
     <ClInclude Include="Macros.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\Renderer.hpp">
+    <ClInclude Include="old\Media\Renderer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\Window.hpp">
+    <ClInclude Include="old\Media\Window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\Texture.hpp">
+    <ClInclude Include="old\Media\FPSLimit.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\FPSLimit.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Media\Media.hpp">
+    <ClInclude Include="old\Media\Media.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StateMan.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\Event.hpp">
+    <ClInclude Include="old\Media\Event.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\Font.hpp">
+    <ClInclude Include="old\Media\Font.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="thirdparty\SDL_FontCache.h">
+    <ClInclude Include="old\Media\ImGui.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\ImGui.hpp">
+    <ClInclude Include="old\Media\Box2DDebugDraw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\Box2DDebugDraw.h">
+    <ClInclude Include="old\Media\Nuklear.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\Nuklear.hpp">
+    <ClInclude Include="old\Media\ImGuiWidgets.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\ImGuiWidgets.hpp">
+    <ClInclude Include="old\Media\GameTemplate.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\GameTemplate.hpp">
+    <ClInclude Include="old\Media\SysQuery.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\SysQuery.hpp">
+    <ClInclude Include="old\Media\ImGuiFileDialog.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Media\ImGuiFileDialog.hpp">
+    <ClInclude Include="thirdparty\imgui_impl_sdl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\imgui_impl_sdlrenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="old\Media\Input.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="old\MediaV2\Core.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="old\MediaV2\Input.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="old\MediaV2\Renderer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="old\MediaV2\Texture.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="old\MediaV2\View.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="old\MediaV2\Window.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="old\MediaV2\GameTemplate.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\Window.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\Input.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\Texture.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\ImGui.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\Renderer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\Shader.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\GLHelpers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\gltext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\Text.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\Helpers.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\FPSLimit.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\Template.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\TextureCache.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\RenderTarget.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Media3\View.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

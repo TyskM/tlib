@@ -32,6 +32,15 @@ struct Vector2
         return Vector2<T>(x * cosv - y * sinv, x * sinv + y * cosv);
     }
 
+    Vector2<T> rotated(const float& radians, Vector2<T> origin) const
+    {
+        float sinv = sin(radians);
+        float cosv = cos(radians);
+        const auto nvec = *this;
+        nvec -= origin;
+        return nvec.rotated(radians) + origin;
+    }
+
     void normalize()
     {
         *this = normalized();
@@ -39,7 +48,7 @@ struct Vector2
 
     Vector2<T> normalized()
     {
-        Vector2<T> rv;
+        Vector2<T> rv = *this;
         float len = length();
         if (rv.x != 0) rv.x /= len;
         if (rv.y != 0) rv.y /= len;
@@ -70,10 +79,15 @@ struct Vector2
     std::string toString() const
     { return this->operator std::string(); }
 
+    Vector2<T> floored() { return { floor(x), floor(y) }; }
+    Vector2<T> ceiled()  { return { ceil(x),  ceil(y)  }; }
+    Vector2<T> rounded() { return { round(x), round(y) }; }
+
     operator std::string() const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
 
     bool operator==(const Vector2<T> other) const { return x == other.x && y == other.y; }
     bool operator!=(const Vector2<T> other) const { return !(operator==(other)); }
+    Vector2<T> operator-() const { return Vector2<T>(-x, -y); }
     Vector2<T> operator+(const Vector2<T>& other) const { return Vector2<T>(x + other.x, y + other.y); }
     Vector2<T> operator-(const Vector2<T>& other) const { return Vector2<T>(x - other.x, y - other.y); }
     Vector2<T> operator*(const Vector2<T>& other) const { return Vector2<T>(x * other.x, y * other.y); }
@@ -115,6 +129,8 @@ using Vector2f = Vector2<float>;
 /// Container with 2 ints
 /// \relates Vector2
 using Vector2i = Vector2<int>;
+
+using Vector2i8 = Vector2<int8_t>;
 
 constexpr float uint8ToFloat(uint8_t value)
 { return value / 255.f; }
@@ -188,6 +204,30 @@ struct Rect
         Vector2<T> bottomRight = Vector2<T>{ x, y } + Vector2<T>{ width, height };
 
         return topLeft.x < x && x < bottomRight.x && topLeft.y < y && y < bottomRight.y;
+    }
+
+    bool intersects(const Rect<T>& otherRect)
+    {
+        Vector2<T> bottomRight = Vector2<T>{ x, y } + Vector2<T>{ width, height };
+        Vector2<T> otherBottomRight = Vector2<T>{ otherRect.x, otherRect.y } +
+                                      Vector2<T>{ otherRect.width, otherRect.height };
+
+        T x1, x2, y1, y2;
+        T ox1, ox2, oy1, oy2;
+
+        x1 = x; y1 = y;
+        x2 = x + width;
+        y2 = y + height;
+
+        ox1 = otherRect.x;
+        oy1 = otherRect.y;
+        ox2 = otherRect.x + otherRect.width;
+        oy2 = otherRect.y + otherRect.height;
+
+        return !(x1 > ox2  ||
+                 ox1 > x2  ||
+                 y1  > oy2 ||
+                 oy1 > y2);
     }
 };
 

@@ -40,6 +40,8 @@ public:
         return dist(generator);
     }
 
+    bool randBool() { return randRangeInt(0, 1) == 1; }
+
     // Returns a random object from a std::vector.
     // It will explode if the vector is empty
     template <typename T>
