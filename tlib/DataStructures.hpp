@@ -200,8 +200,8 @@ struct Rect
 
     bool contains(const T& x, const T& y) const
     {
-        Vector2<T> topLeft = {x, y};
-        Vector2<T> bottomRight = Vector2<T>{ x, y } + Vector2<T>{ width, height };
+        Vector2<T> topLeft = { this->x, this->y };
+        Vector2<T> bottomRight = topLeft + Vector2<T>{ width, height };
 
         return topLeft.x < x && x < bottomRight.x && topLeft.y < y && y < bottomRight.y;
     }

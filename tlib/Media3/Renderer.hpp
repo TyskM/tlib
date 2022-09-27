@@ -78,7 +78,6 @@ protected:
 
 public:
     Window* window = nullptr;
-    RenderTarget* target = nullptr;
 
     glm::mat4 projection;
 

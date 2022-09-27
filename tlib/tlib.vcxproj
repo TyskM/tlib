@@ -202,6 +202,7 @@
     <ClInclude Include="Media3\Input.hpp" />
     <ClInclude Include="Media3\Renderer.hpp" />
     <ClInclude Include="Media3\RenderTarget.hpp" />
+    <ClInclude Include="Media3\SFDML.hpp" />
     <ClInclude Include="Media3\Shader.hpp" />
     <ClInclude Include="Media3\Template.hpp" />
     <ClInclude Include="Media3\Text.hpp" />
@@ -209,6 +210,10 @@
     <ClInclude Include="Media3\TextureCache.hpp" />
     <ClInclude Include="Media3\View.hpp" />
     <ClInclude Include="Media3\Window.hpp" />
+    <ClInclude Include="Media4\ImGui.hpp" />
+    <ClInclude Include="Media4\Input.hpp" />
+    <ClInclude Include="Media4\SFDML.hpp" />
+    <ClInclude Include="Media4\TextureCache.hpp" />
     <ClInclude Include="old\MediaV2\GameTemplate.hpp" />
     <ClInclude Include="old\MediaV2\Input.hpp" />
     <ClInclude Include="old\MediaV2\Renderer.hpp" />
