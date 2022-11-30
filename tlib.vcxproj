@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{C2AEDD02-76B6-4075-A5D6-5E65E99AC2C8}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Utility</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <VcpkgUseStatic>true</VcpkgUseStatic>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <VcpkgUseStatic>true</VcpkgUseStatic>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <VcpkgUseStatic>true</VcpkgUseStatic>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <VcpkgUseStatic>true</VcpkgUseStatic>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="tlib.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="DataStructures.hpp" />
+    <ClInclude Include="Errors.hpp" />
+    <ClInclude Include="Event.hpp" />
+    <ClInclude Include="Files.hpp" />
+    <ClInclude Include="Logger.hpp" />
+    <ClInclude Include="Macros.hpp" />
+    <ClInclude Include="Math.hpp" />
+    <ClInclude Include="mediagl\FPSLimit.hpp" />
+    <ClInclude Include="mediagl\GameTemplate.hpp" />
+    <ClInclude Include="mediagl\GLHelpers.hpp" />
+    <ClInclude Include="MediaGL\GLState.hpp" />
+    <ClInclude Include="mediagl\Helpers.hpp" />
+    <ClInclude Include="mediagl\ImGui.hpp" />
+    <ClInclude Include="mediagl\ImGuiFileDialog.hpp" />
+    <ClInclude Include="mediagl\ImGuiWidgets.hpp" />
+    <ClInclude Include="mediagl\Input.hpp" />
+    <ClInclude Include="mediagl\MediaPlayer.hpp" />
+    <ClInclude Include="MediaGL\Misc.hpp" />
+    <ClInclude Include="MediaGL\NanoVG.hpp" />
+    <ClInclude Include="mediagl\Renderer.hpp" />
+    <ClInclude Include="mediagl\RenderTarget.hpp" />
+    <ClInclude Include="mediagl\SDLEventToStr.hpp" />
+    <ClInclude Include="mediagl\Shader.hpp" />
+    <ClInclude Include="mediagl\SysQuery.hpp" />
+    <ClInclude Include="mediagl\Texture.hpp" />
+    <ClInclude Include="mediagl\TextureManager.hpp" />
+    <ClInclude Include="MediaGL\VertexArray.hpp" />
+    <ClInclude Include="mediagl\View.hpp" />
+    <ClInclude Include="mediagl\Window.hpp" />
+    <ClInclude Include="media\Box2DDebugDraw.h" />
+    <ClInclude Include="media\Event.hpp" />
+    <ClInclude Include="media\Font.hpp" />
+    <ClInclude Include="media\FPSLimit.hpp" />
+    <ClInclude Include="media\GameTemplate.hpp" />
+    <ClInclude Include="media\ImGui.hpp" />
+    <ClInclude Include="media\ImGuiFileDialog.hpp" />
+    <ClInclude Include="media\ImGuiWidgets.hpp" />
+    <ClInclude Include="media\Input.hpp" />
+    <ClInclude Include="media\Media.hpp" />
+    <ClInclude Include="media\MediaPlayer.hpp" />
+    <ClInclude Include="media\Nuklear.hpp" />
+    <ClInclude Include="media\Packet.hpp" />
+    <ClInclude Include="media\Renderer.hpp" />
+    <ClInclude Include="media\SysQuery.hpp" />
+    <ClInclude Include="media\TextureManager.hpp" />
+    <ClInclude Include="media\Window.hpp" />
+    <ClInclude Include="Misc.hpp" />
+    <ClInclude Include="NonAssignable.hpp" />
+    <ClInclude Include="old\media bad\ImGui.hpp" />
+    <ClInclude Include="old\media bad\SFDML.hpp" />
+    <ClInclude Include="old\media bad\TextureCache.hpp" />
+    <ClInclude Include="old\media magnum\Core.hpp" />
+    <ClInclude Include="old\media magnum\GameTemplate.hpp" />
+    <ClInclude Include="old\media magnum\Input.hpp" />
+    <ClInclude Include="old\media magnum\Renderer.hpp" />
+    <ClInclude Include="old\media magnum\SDLWindowOld.hpp" />
+    <ClInclude Include="old\media magnum\Texture.hpp" />
+    <ClInclude Include="old\media magnum\View.hpp" />
+    <ClInclude Include="old\media magnum\Window.hpp" />
+    <ClInclude Include="old\pathfindexamples.hpp" />
+    <ClInclude Include="Pathfind.hpp" />
+    <ClInclude Include="RNG.hpp" />
+    <ClInclude Include="SFMLDebugDraw.hpp" />
+    <ClInclude Include="StateMan.hpp" />
+    <ClInclude Include="StringHelpers.hpp" />
+    <ClInclude Include="thirdparty\nanovg\fontstash.h" />
+    <ClInclude Include="thirdparty\nanovg\nanovg.h" />
+    <ClInclude Include="thirdparty\nanovg\nanovg_gl.h" />
+    <ClInclude Include="thirdparty\nanovg\nanovg_gl_utils.h" />
+    <ClInclude Include="thirdparty\nanovg\stb_image.h" />
+    <ClInclude Include="thirdparty\nanovg\stb_truetype.h" />
+    <ClInclude Include="thirdparty\SDL_FontCache.h" />
+    <ClInclude Include="thirdparty\vlc4\deprecated.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_dialog.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_events.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_media.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_media_discoverer.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_media_list.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_media_list_player.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_media_player.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_media_track.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_picture.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_renderer_discoverer.h" />
+    <ClInclude Include="thirdparty\vlc4\libvlc_version.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_about.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_access.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_actions.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_addons.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_ancillary.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_aout.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_aout_volume.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_arrays.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_atomic.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_avcodec.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_bits.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_block.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_block_helper.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_boxes.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_charset.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_codec.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_common.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_config.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_configuration.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_config_cat.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_cpu.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_cxx_helpers.hpp" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_decoder.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_demux.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_dialog.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_diffutil.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_epg.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_es.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_es_out.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_events.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_executor.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_filter.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_fingerprinter.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_fourcc.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_frame.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_fs.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_gcrypt.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_hash.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_http.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_httpd.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_image.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_inhibit.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_input.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_input_item.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_interface.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_interrupt.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_keystore.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_list.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_media_library.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_media_source.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_memstream.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_messages.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_meta.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_meta_fetcher.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_mime.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_modules.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_mouse.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_network.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_objects.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_opengl.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_opengl_interop.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_picture.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_picture_fifo.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_picture_pool.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_player.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_playlist.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_playlist_export.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_plugin.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_probe.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_queue.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_rand.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_renderer_discovery.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_services_discovery.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_sort.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_sout.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_spawn.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_spu.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_stream.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_stream_extractor.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_strings.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_subpicture.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_text_style.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_threads.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_thumbnailer.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_tick.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_timestamp_helper.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_tls.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_tracer.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_url.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_variables.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_vector.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_video_splitter.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_viewpoint.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_vlm.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_vout.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_vout_display.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_vout_osd.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_window.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_xlib.h" />
+    <ClInclude Include="thirdparty\vlc4\plugins\vlc_xml.h" />
+    <ClInclude Include="thirdparty\vlc4\vlc.h" />
+    <ClInclude Include="thirdparty\vlcpp\common.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\Dialog.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\Equalizer.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\EventManager.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\Instance.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\Internal.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\Media.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\MediaDiscoverer.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\MediaLibrary.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\MediaList.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\MediaListPlayer.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\MediaPlayer.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\Picture.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\RendererDiscoverer.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\structures.hpp" />
+    <ClInclude Include="thirdparty\vlcpp\vlc.hpp" />
+    <ClInclude Include="Timer.hpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
