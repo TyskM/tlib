@@ -9,6 +9,7 @@
 #include "RenderTarget.hpp"
 #include "View.hpp"
 #include "VertexArray.hpp"
+#include "VertexBuffer.hpp"
 
 #pragma region Shaders
 const char* PRIMITIVE_VERT_SHADER = R"""(
@@ -85,7 +86,7 @@ struct Renderer
     VertexArray _spriteVAO{NoCreate};
 
     VertexArray _linesVAO{NoCreate};
-    GLuint _linesVBO;
+    VertexBuffer _linesVBO{NoCreate};
 
     Renderer(Window& window) { create(window); }
     Renderer() { }
@@ -137,7 +138,7 @@ struct Renderer
 
         // Lines setup
         _linesVAO.create();
-        GL_CHECK(glGenBuffers(1, &_linesVBO));
+        _linesVBO.create();
 
         setView(getDefaultWindowView(window));
     }
@@ -202,7 +203,7 @@ struct Renderer
         // Projection set in setView()
         _primShader.setVec4f("color", color.r, color.g, color.b, color.a);
 
-        GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, _linesVBO));
+        _linesVBO.bind();
         GL_CHECK(glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vector2f), lines.data(), GL_DYNAMIC_DRAW));
 
         _linesVAO.bind();

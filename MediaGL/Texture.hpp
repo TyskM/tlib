@@ -162,10 +162,3 @@ struct Texture : NonAssignable
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, (GLint)defaultInternalFormat, 2, 2, 0, (GLenum)defaultFormat, GL_UNSIGNED_BYTE, fallbackImage));
     }
 };
-
-#undef glBindTexture;
-#undef glDeleteTextures;
-#undef glGenTextures;
-#define glBindTexture(x, y) static_assert(false, "Disabled in Texture.hpp")
-#define glDeleteTextures(x) static_assert(false, "Disabled in Texture.hpp")
-#define glGenTextures(x)    static_assert(false, "Disabled in Texture.hpp")

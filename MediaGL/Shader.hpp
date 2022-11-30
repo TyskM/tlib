@@ -119,10 +119,3 @@ struct Shader : NonAssignable
         }
     }
 };
-
-#undef glUseProgram;
-#undef glDeleteProgram;
-#undef glCreateProgram;
-#define glUseProgram(x, y) static_assert(false, "Disabled in Shader.hpp")
-#define glDeleteProgram(x) static_assert(false, "Disabled in Shader.hpp")
-#define glCreateProgram(x) static_assert(false, "Disabled in Shader.hpp")

@@ -4,7 +4,7 @@
 #include "GLState.hpp"
 #include "Misc.hpp"
 
-struct VertexArray
+struct VertexBuffer
 {
     GLuint glHandle = 0;
 
@@ -12,7 +12,7 @@ struct VertexArray
 
     void create()
     {
-        GL_CHECK(glGenVertexArrays(1, &glHandle));
+        GL_CHECK(glGenBuffers(1, &glHandle));
     }
 
     void reset()
@@ -22,21 +22,21 @@ struct VertexArray
 
     void bind()
     {
-        if (glState.boundVertexArray == this) { return; }
-        GL_CHECK(glBindVertexArray(glHandle));
-        glState.boundVertexArray = this;
+        if (glState.boundVertexBuffer == this) { return; }
+        GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, glHandle));
+        glState.boundVertexBuffer = this;
     }
 
     static void unbind()
     {
-        GL_CHECK(glBindVertexArray(0));
-        glState.boundVertexArray = nullptr;
+        GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));
+        glState.boundVertexBuffer = nullptr;
     }
 
     // Pass NoCreate to delay construction
-    VertexArray() { this->create(); }
-    VertexArray(NoCreateT) { }
-    ~VertexArray() { reset(); }
+    VertexBuffer() { this->create(); }
+    VertexBuffer(NoCreateT) { }
+    ~VertexBuffer() { reset(); }
 
     operator GLuint*() { return &glHandle; }
     operator GLuint()  { return glHandle; }
