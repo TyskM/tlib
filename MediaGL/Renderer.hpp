@@ -5,8 +5,8 @@
 #include "GLHelpers.hpp"
 #include "Window.hpp"
 #include "Texture.hpp"
+#include "Font.hpp"
 #include "Shader.hpp"
-#include "RenderTarget.hpp"
 #include "View.hpp"
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
@@ -44,11 +44,17 @@ out vec2 TexCoords;
 
 uniform mat4 model;
 uniform mat4 projection;
+uniform bool uvflipy = false;
 
 void main()
 {
-    TexCoords = vertex.zw;
-    gl_Position = projection * model * vec4(vertex.xy, 0.0, 1.0);
+    TexCoords.x = vertex.z;
+
+    if (uvflipy)
+         { TexCoords.y = 1.0 - vertex.w; }
+    else { TexCoords.y = vertex.w; }
+    
+    gl_Position = projection * model * vec4(vertex.x, vertex.y, 0.0, 1.0);
 }
 )""";
 
@@ -59,11 +65,17 @@ out vec4 color;
 
 uniform sampler2D image;
 uniform vec4 spriteColor;
+uniform bool grayscale;
 
 void main()
-{    
-    color = spriteColor * texture(image, TexCoords);
-}  
+{
+    if (grayscale == false)
+    { color = spriteColor * texture(image, TexCoords); }
+    else
+    {
+        color = vec4(spriteColor) * vec4(1.0, 1.0, 1.0, texture(image, TexCoords).r);
+    }
+}
 )""";
 #pragma endregion
 
@@ -73,20 +85,55 @@ size_t getVecSizeInBytes(const std::vector<T>& vec)
     return vec.size() * sizeof(T);
 }
 
+int SDLEventFilterCB(void* userdata, SDL_Event* event);
+
+enum class GLDrawMode
+{
+    POINTS                   = GL_POINTS,
+    LINE_STRIP               = GL_LINE_STRIP,
+    LINE_LOOP                = GL_LINE_LOOP,
+    LINES                    = GL_LINES,
+    LINE_STRIP_ADJACENCY     = GL_LINE_STRIP_ADJACENCY,
+    LINES_ADJACENCY          = GL_LINES_ADJACENCY,
+    TRIANGLE_STRIP           = GL_TRIANGLE_STRIP,
+    TRIANGLE_FAN             = GL_TRIANGLE_FAN,
+    TRIANGLES                = GL_TRIANGLES,
+    TRIANGLE_STRIP_ADJACENCY = GL_TRIANGLE_STRIP_ADJACENCY,
+    TRIANGLES_ADJACENCY      = GL_TRIANGLES_ADJACENCY,
+    PATCHES                  = GL_PATCHES
+};
+
+enum class AspectMode
+{
+    None,
+    Width,
+    Height,
+    Both
+};
+
 struct Renderer
 {
+    AspectMode aspectMode = AspectMode::Both;
+
+    // READ ONLY VARS
+
     Window* window = nullptr;
-    
-    View _view; // Read only
+
+    View _view;
     glm::mat4 _projection;
 
     ColorRGBAf _spriteShaderColorState = {1,1,1,1};
     Shader _spriteShader;
     Shader _primShader;
+    Shader _textShader;
     VertexArray _spriteVAO{NoCreate};
 
     VertexArray _linesVAO{NoCreate};
     VertexBuffer _linesVBO{NoCreate};
+    Rectf _scissor;
+
+    mutable Rectf _cachedVirtualViewport;
+    mutable bool _virtViewportDirty = true;
 
     Renderer(Window& window) { create(window); }
     Renderer() { }
@@ -96,8 +143,8 @@ struct Renderer
         this->window = &window;
 
         // Enable transparency
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         // Primitives setup
         _primShader.create(PRIMITIVE_VERT_SHADER, PRIMITIVE_FRAG_SHADER);
@@ -140,11 +187,93 @@ struct Renderer
         _linesVAO.create();
         _linesVBO.create();
 
+        // Text setup
+        _textShader.create(TEXT_VERT_SHADER, TEXT_FRAG_SHADER);
+
+        SDL_AddEventWatch(SDLEventFilterCB, this);
         setView(getDefaultWindowView(window));
+        _onWindowResized();
+    }
+
+    Rectf getVirtualViewportRect() const
+    {
+        Vector2f winSize = Vector2f(window->getSize());
+
+        if (!_virtViewportDirty) { return _cachedVirtualViewport; }
+        Rectf vp;
+
+        switch (aspectMode)
+        {
+        case AspectMode::Width:
+            break;
+        case AspectMode::Height:
+            break;
+        case AspectMode::Both:
+        {
+            float targetAspectRatio = _view.bounds.width / _view.bounds.height;
+            float width = winSize.x ;
+            float height = width / targetAspectRatio + 0.5f;
+
+            if (height > winSize.y )
+            {
+                height = winSize.y;
+                width = height * targetAspectRatio + 0.5f;
+            }
+
+            float vp_x = (winSize.x / 2) - (width  / 2);
+            float vp_y = (winSize.y / 2) - (height / 2);
+
+            vp = Rectf( vp_x, winSize.y - (vp_y + height), width, height );
+            break;
+        }
+            
+        case AspectMode::None:
+        default:
+            vp = Rectf(0, 0, _view.bounds.width, _view.bounds.height);
+            break;
+        }
+
+        _cachedVirtualViewport = vp;
+        _virtViewportDirty = false;
+        return vp;
+    }
+
+    Vector2f getMouseLocalPos()
+    {
+        int x, y;
+        SDL_GetMouseState(&x, &y);
+        return Vector2f(x, y);
+    }
+
+    Vector2f getMouseWorldPos()
+    {
+        auto virtRect = getVirtualViewportRect();
+        auto virtSize = Vector2f{ virtRect.width, virtRect.height };
+        Vector2f scale = Vector2(_view.bounds.width, _view.bounds.height) / virtSize;
+
+        auto mpos = getMouseLocalPos() - Vector2f{ virtRect.x, virtRect.y };
+        auto v = mpos * scale + Vector2f{_view.bounds.x, _view.bounds.y};
+
+        return v;
+    }
+
+    void begin()
+    {
+        _virtViewportDirty = true;
+
+        unscissor();
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT);
+        rescissor();
+
+        resetViewport();
     }
 
     void clearColor(const ColorRGBAf& color = {0.1f, 0.1f, 0.1f, 1.f})
     {
+        const auto vpRect = getVirtualViewportRect();
+        scissor(vpRect);
+
         glClearColor(color.r, color.g, color.b, color.a);
         glClear(GL_COLOR_BUFFER_BIT);
     }
@@ -159,15 +288,26 @@ struct Renderer
 
         _primShader.bind();
         _primShader.setMat4f("projection", _projection);
+
+        _textShader.bind();
+        _textShader.setMat4f("projection", _projection);
     }
 
-    void drawTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 })
+    void drawTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool uvflipy = false)
     {
         _spriteShader.bind();
+
+        if (tex.internalFormat == TexInternalFormats::RED)
+        { _spriteShader.setBool("grayscale", true); }
+        else
+        { _spriteShader.setBool("grayscale", false); }
+
+        _spriteShader.setBool("uvflipy", uvflipy);
 
         // Projection set in setView()
 
         glm::mat4 model = glm::mat4(1.0f);
+        
         model = glm::translate(model, glm::vec3(rect.x, rect.y, 0.0f));
 
         if (rot != 0)
@@ -177,7 +317,8 @@ struct Renderer
             model = glm::translate(model, glm::vec3(-0.5f * rect.width, -0.5f * rect.height, 0.0f));
         }
 
-        model = glm::scale(model, glm::vec3(rect.width, rect.height, 1.0f)); 
+        model = glm::scale(model, glm::vec3(rect.width, rect.height, 1.f));
+        
 
         _spriteShader.setMat4f("model", model); // Slow
 
@@ -193,11 +334,12 @@ struct Renderer
     }
 
     void drawLine(const Vector2f& start, const Vector2f& end, const ColorRGBAf& color, float width = 1)
-    { drawLines({ start, end }, color, width, false); }
+    { drawLines(std::vector{ start, end }, color, width); }
 
     // TODO: batch, it's super slow!!!
     // It's a line loop
-    void drawLines(const std::vector<Vector2f>& lines, const ColorRGBAf& color, float width = 1, bool loop = false)
+    template <typename Vector2fContainer>
+    void drawLines(const Vector2fContainer& lines, const ColorRGBAf& color = ColorRGBAf::white(), float width = 1, GLDrawMode mode = GLDrawMode::LINE_STRIP)
     {
         _primShader.bind();
         // Projection set in setView()
@@ -211,13 +353,13 @@ struct Renderer
         GL_CHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0));
 
         glLineWidth(width);
-        GL_CHECK(glDrawArrays(loop ? GL_LINE_LOOP : GL_LINE_STRIP, 0, lines.size()));
+        GL_CHECK(glDrawArrays((int)mode, 0, lines.size()));
     }
 
-    void drawRect(const Rectf& rect, const ColorRGBAf& color = ColorRGBAf::white())
-    { drawRect(rect.x, rect.y, rect.width, rect.height, color); }
+    void drawRect(const Rectf& rect, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false)
+    { drawRect(rect.x, rect.y, rect.width, rect.height, color, filled); }
 
-    void drawRect(float x, float y, float w, float h, const ColorRGBAf& color = ColorRGBAf::white())
+    void drawRect(float x, float y, float w, float h, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false)
     {
         std::vector<Vector2f> verts(4);
         verts[0] = Vector2f(x,     y);
@@ -225,7 +367,7 @@ struct Renderer
         verts[2] = Vector2f(x + w, y + h);
         verts[3] = Vector2f(x,     y + h);
 
-        drawLines(verts, color, 1, true);
+        drawLines(verts, color, 1, filled ? GLDrawMode::TRIANGLE_FAN : GLDrawMode::LINE_LOOP);
     }
 
     void drawGrid(const Vector2f& start, const Vector2i& gridCount, Vector2f gridSize, const ColorRGBAf& color)
@@ -254,6 +396,63 @@ struct Renderer
         }
     }
 
+    void drawCircle(const Vector2f& pos, const float rad,
+                    const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false, const size_t segmentCount = 16)
+    {
+        const float theta = 3.1415926 * 2 / float(segmentCount);
+        const float tangetial_factor = tanf(theta);
+        const float radial_factor = cosf(theta);
+
+        float x = rad;
+        float y = 0;
+
+        std::vector<Vector2f> points;
+        points.reserve(segmentCount);
+
+        for (int i = 0; i < segmentCount; i++)
+        {
+            points.push_back(Vector2f{ x + pos.x, y + pos.y });
+
+            float tx = -y;
+            float ty = x;
+
+            //add the tangential vector 
+
+            x += tx * tangetial_factor;
+            y += ty * tangetial_factor;
+
+            //correct using the radial factor 
+
+            x *= radial_factor;
+            y *= radial_factor;
+        }
+
+        drawLines(points, color, 1.f, filled ? GLDrawMode::TRIANGLE_FAN : GLDrawMode::LINE_LOOP);
+    }
+
+    // Pos will be the bottom left of the text
+    void drawText(const std::string& text, Font& font, const Vector2f& pos,
+                  const ColorRGBAf& color = ColorRGBAf::white(), float scale = 1.f)
+    {
+        Vector2f currentPos = pos;
+        for (auto& strchar : text)
+        {
+            // TODO: add default unknown character, and use that instead
+            if (!font.characters.contains(strchar))
+            { std::cout << "Font does not contain character \"" << strchar << "\"" << std::endl; continue; }
+
+            Font::Character& ch = font.characters.at(strchar);
+            float w = ch.size.x * scale;
+            float h = ch.size.y * scale;
+            float xpos = (currentPos.x + ch.bearing.x);
+            float ypos = (currentPos.y - h + (h - ch.bearing.y * scale));
+
+            drawTexture(ch.texture, { xpos, ypos, w, h }, 0.f, color);
+
+            currentPos.x += (ch.advance >> 6) * scale;
+        }
+    }
+
     static inline View getDefaultWindowView(const Window& win)
     {
         const auto winSize = win.getSize();
@@ -261,4 +460,42 @@ struct Renderer
     }
 
     bool created() { return window != nullptr; }
+
+    void rescissor()
+    {
+        glScissor(_scissor.x, _scissor.y, _scissor.width, _scissor.height);
+        glEnable(GL_SCISSOR_TEST);
+    }
+
+    void unscissor()
+    {
+        glDisable(GL_SCISSOR_TEST);
+    }
+
+    void scissor(Rectf rect)
+    {
+        _scissor = rect;
+        rescissor();
+    }
+
+    void _onWindowResized()
+    {
+        setView(_view);
+    }
+
+    void resetViewport()
+    {
+        auto rect = getVirtualViewportRect();
+
+        // OpenGL considers X=0, Y=0 the Lower left Corner of the Screen
+        glViewport(rect.x, rect.y, rect.width, rect.height);
+    }
 };
+
+int SDLEventFilterCB(void* userdata, SDL_Event* event)
+{
+    Renderer* r = (Renderer*)userdata;
+    if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+    { r->_onWindowResized(); }
+    return 1;
+}

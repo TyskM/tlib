@@ -1,7 +1,6 @@
 #pragma once
 
-#include <gl/gl3w.h>
-#include <gl/GL.h>
+#include "GLHelpers.hpp"
 #include "Texture.hpp"
 #include "View.hpp"
 #include "../DataStructures.hpp"

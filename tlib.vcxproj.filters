@@ -146,7 +146,7 @@
     <ClInclude Include="mediagl\Renderer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mediagl\RenderTarget.hpp">
+    <ClInclude Include="mediagl\FrameBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mediagl\SDLEventToStr.hpp">
@@ -627,6 +627,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MediaGL\NanoVG.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MediaGL\Font.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MediaGL\VertexBuffer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

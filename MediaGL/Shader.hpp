@@ -1,8 +1,7 @@
 #pragma once
 
 #define NOMINMAX
-#include <gl/gl3w.h>
-#include <gl/GL.h>
+#include "GLHelpers.hpp"
 #include <iostream>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>

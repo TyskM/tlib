@@ -6,8 +6,7 @@
 
 #include <iostream>
 #include <string>
-#include <gl/gl3w.h>
-#include <gl/GL.h>
+#include "GLHelpers.hpp"
 #include "../Files.hpp"
 #include "../NonAssignable.hpp"
 #include "../Macros.hpp"

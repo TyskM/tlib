@@ -3,7 +3,6 @@
 #define NOMINMAX
 
 #include <SDL2/SDL.h>
-#include <gl/gl3w.h>
 #include "GLHelpers.hpp"
 #include "../NonAssignable.hpp"
 #include "../DataStructures.hpp"

@@ -146,8 +146,8 @@ struct Input
         {
             switch (ctrl.type)
             {
-            case MOUSE:    if (isMouseJustReleased(ctrl.id)) return true; break;
-            case KEYBOARD: if (isKeyJustReleased(ctrl.id))   return true; break;
+            case MOUSE:    return isMouseJustReleased(ctrl.id); break;
+            case KEYBOARD: return isKeyJustReleased(ctrl.id);   break;
             default: return false; break;
             }
         }
@@ -168,14 +168,14 @@ struct Input
     static inline bool isMouseJustPressed (int button)
     {
         if (button >= MOUSE_WHEEL_DOWN) { return isMousePressed(button); }
-        else { return (mouse[button] && !(prevmouse[button])); }
+        else { return (mouse[button] && !prevmouse[button]); }
     }
 
     static inline bool isMouseReleased    (int button) { return !isMousePressed(button); }
     static inline bool isMouseJustReleased(int button)
     {
         if (button >= MOUSE_WHEEL_DOWN) { return isMouseReleased(button); }
-        else { return !(mouse[button] && prevmouse[button]); }
+        else { return !mouse[button] && prevmouse[button]; }
     }
 
     static inline bool _verifyAction(const Action& act)

@@ -6,8 +6,7 @@
 
 #include <iostream>
 #include <string>
-#include <gl/gl3w.h>
-#include <gl/GL.h>
+#include "GLHelpers.hpp"
 #include "../Files.hpp"
 #include "../NonAssignable.hpp"
 #include "../Macros.hpp"
@@ -15,13 +14,15 @@
 
 enum class TextureFiltering
 {
+    Unknown = -1,
     Nearest = GL_NEAREST,
-    Linear = GL_LINEAR
+    Linear  = GL_LINEAR
 };
 
 // TODO: add the rest of the formats
 enum class TexInternalFormats : int
 {
+    Unknown         = -1,
     DEPTH_COMPONENT = GL_DEPTH_COMPONENT,
     DEPTH_STENCIL   = GL_DEPTH_STENCIL,
     RED  = GL_RED,
@@ -32,6 +33,7 @@ enum class TexInternalFormats : int
 
 enum class TexPixelFormats : int
 {
+    Unknown         = -1,
     RED             = GL_RED,
     RG              = GL_RG,
     RGB             = GL_RGB,
@@ -49,7 +51,7 @@ enum class TexPixelFormats : int
     DEPTH_STENCIL   = GL_DEPTH_STENCIL
 };
 
-struct Texture : NonAssignable
+struct Texture : NonCopyable
 {
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
     static constexpr TexPixelFormats defaultFormat = TexPixelFormats::RGBA;
@@ -61,7 +63,11 @@ struct Texture : NonAssignable
     };
 
     GLuint glHandle = 0;
-    int width, height;
+    int width  = 0;
+    int height = 0;
+    TextureFiltering filtering        = TextureFiltering::Unknown;
+    TexPixelFormats format            = TexPixelFormats::Unknown;
+    TexInternalFormats internalFormat = TexInternalFormats::Unknown;
 
     Texture() { }
     Texture(const std::string& filePath, TextureFiltering texFiltering = TextureFiltering::Linear)
@@ -74,11 +80,42 @@ struct Texture : NonAssignable
         reset();
     }
 
+    Texture& operator=(Texture&& other) noexcept
+    {
+        reset();
+        glHandle       = other.glHandle;
+        other.glHandle = 0;
+        width          = other.width;
+        height         = other.height;
+        filtering      = other.filtering;
+        format         = other.format;
+        internalFormat = other.internalFormat;
+        return *this;
+    }
+
+    Texture(Texture&& other) noexcept
+    {
+        reset();
+        glHandle       = other.glHandle;
+        other.glHandle = 0;
+        width          = other.width;
+        height         = other.height;
+        filtering      = other.filtering;
+        format         = other.format;
+        internalFormat = other.internalFormat;
+    }
+
     void reset()
     {
         if (created())
         {
             GL_CHECK(glDeleteTextures(1, &glHandle));
+            glHandle       = 0;
+            width          = 0;
+            height         = 0;
+            filtering      = TextureFiltering::Unknown;
+            format         = TexPixelFormats::Unknown;
+            internalFormat = TexInternalFormats::Unknown;
         }
     }
 
@@ -118,20 +155,26 @@ struct Texture : NonAssignable
         unsigned char* data, int width, int height,
         TextureFiltering texFiltering = TextureFiltering::Linear,
         TexPixelFormats format = defaultFormat,
-        TexInternalFormats internalFormat = defaultInternalFormat)
+        TexInternalFormats internalFormat = defaultInternalFormat, bool generateMipmap = true)
     {
         if (!created()) { create(); }
 
+        this->width          = width;
+        this->height         = height;
+        this->filtering      = texFiltering;
+        this->format         = format;
+        this->internalFormat = internalFormat;
+
         bind();
-        this->width = width; this->height = height;
-        
+
         GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<int>(texFiltering)));
         GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<int>(texFiltering)));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT));
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalFormat, width, height, 0, (GLenum)format, GL_UNSIGNED_BYTE, data));
-        GL_CHECK(glGenerateMipmap(GL_TEXTURE_2D));
+        if (generateMipmap)
+        { GL_CHECK(glGenerateMipmap(GL_TEXTURE_2D)); }
         unbind();
     }
 
@@ -153,9 +196,7 @@ struct Texture : NonAssignable
 
 
     Vector2i getSize()
-    {
-        return Vector2i{ width, height };
-    }
+    { return Vector2i{ width, height }; }
 
     void loadFallbackTexture()
     {

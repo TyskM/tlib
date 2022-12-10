@@ -53,6 +53,48 @@ struct GameState : State
     virtual void draw(float delta)   { }
 };
 
+struct WindowTemplate
+{
+    Window win;
+    Timer dtTimer;
+    FPSLimit fpslimit;
+    StateMan<GameState> stateMan;
+
+    WindowTemplate()
+    {
+        fpslimit.setFPSLimit(60);
+    }
+
+    void create(const char* winTitle = "Window", Vector2i winSize = {1280, 720})
+    {
+        win.create(winTitle, winSize.x, winSize.y);
+    }
+
+    void start(GameState& state)
+    {
+        stateMan.pushState(&state);
+        dtTimer.restart();
+
+        bool running = true;
+        while (running)
+        {
+            SDL_Event e;
+            while (SDL_PollEvent(&e))
+            {
+                if (e.type == SDL_QUIT) { running = false; }
+                Input::input(e);
+                stateMan.getState()->input(e);
+            }
+            float dt = dtTimer.restart().asSeconds();
+            stateMan.getState()->update(dt);
+            stateMan.getState()->draw(dt);
+            win.swap();
+            fpslimit.wait();
+        }
+    }
+
+};
+
 struct GameTemplate
 {
     Window win;
@@ -71,7 +113,7 @@ struct GameTemplate
     {
         win.create(winTitle, winSize.x, winSize.y);
         renderer.create(win);
-        imgui.create(win);
+        imgui.create(renderer);
     }
 
     void start(GameState& state)
@@ -95,6 +137,7 @@ struct GameTemplate
                 Input::input(e);
                 stateMan.getState()->input(e);
             }
+            renderer.begin();
             imgui.newFrame();
             float dt = dtTimer.restart().asSeconds();
             stateMan.getState()->update(dt);

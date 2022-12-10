@@ -286,6 +286,9 @@ struct Rect
     Rect(T x, T y, T width, T height) : x{ x }, y{ y }, width{ width }, height{ height } { }
     Rect() { }
 
+    bool contains(Vector2<T> value) const
+    { return contains(value.x, value.y); }
+
     bool contains(const T& x, const T& y) const
     {
         Vector2<T> topLeft = { this->x, this->y };
@@ -334,7 +337,7 @@ struct Rect
         return distanceSquared <= (circle.radius * circle.radius);
     }
 
-    std::string toString()
+    std::string toString() const
     {
         return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(width) + ", " + std::to_string(height) + ")");
     }

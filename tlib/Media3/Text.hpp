@@ -3,8 +3,7 @@
 // https://github.com/vallentin/glText
 
 #define NOMINMAX
-#include <gl/gl3w.h>
-#include <gl/GL.h>
+#include "GLHelpers.hpp"
 
 #define GLT_IMPLEMENTATION
 #include "../thirdparty/gltext.h"

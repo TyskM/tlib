@@ -2,14 +2,15 @@
 
 #include "Window.hpp"
 #include "../NonAssignable.hpp"
+#include "FrameBuffer.hpp"
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
 
 struct MyGui : NonAssignable
 {
-    Window* window = nullptr;
+    Renderer* renderer = nullptr;
 
-    MyGui(Window& window) { create(window); }
+    MyGui(Renderer& window) { create(window); }
     MyGui() { }
 
     ~MyGui()
@@ -21,14 +22,14 @@ struct MyGui : NonAssignable
         }
     }
 
-    void create(Window& window)
+    void create(Renderer& renderer)
     {
-        this->window = &window;
+        this->renderer = &renderer;
 
         auto ctx = ImGui::CreateContext();
         ImGui::SetCurrentContext(ctx);
         ImGui::StyleColorsDark();
-        ImGui_ImplSDL2_InitForOpenGL(window, window.glContext);
+        ImGui_ImplSDL2_InitForOpenGL(renderer.window->window, renderer.window->glContext);
         ImGui_ImplOpenGL3_Init("#version 130");
     }
 
@@ -46,11 +47,9 @@ struct MyGui : NonAssignable
 
     void render()
     {
-        ImGuiIO& io = ImGui::GetIO();
         ImGui::Render();
-        glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
 
-    bool created() { return window != nullptr; }
+    bool created() { return renderer != nullptr; }
 };

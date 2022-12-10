@@ -145,6 +145,7 @@
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="Macros.hpp" />
     <ClInclude Include="Math.hpp" />
+    <ClInclude Include="MediaGL\Font.hpp" />
     <ClInclude Include="mediagl\FPSLimit.hpp" />
     <ClInclude Include="mediagl\GameTemplate.hpp" />
     <ClInclude Include="mediagl\GLHelpers.hpp" />
@@ -158,13 +159,14 @@
     <ClInclude Include="MediaGL\Misc.hpp" />
     <ClInclude Include="MediaGL\NanoVG.hpp" />
     <ClInclude Include="mediagl\Renderer.hpp" />
-    <ClInclude Include="mediagl\RenderTarget.hpp" />
+    <ClInclude Include="mediagl\FrameBuffer.hpp" />
     <ClInclude Include="mediagl\SDLEventToStr.hpp" />
     <ClInclude Include="mediagl\Shader.hpp" />
     <ClInclude Include="mediagl\SysQuery.hpp" />
     <ClInclude Include="mediagl\Texture.hpp" />
     <ClInclude Include="mediagl\TextureManager.hpp" />
     <ClInclude Include="MediaGL\VertexArray.hpp" />
+    <ClInclude Include="MediaGL\VertexBuffer.hpp" />
     <ClInclude Include="mediagl\View.hpp" />
     <ClInclude Include="mediagl\Window.hpp" />
     <ClInclude Include="media\Box2DDebugDraw.h" />
