@@ -233,27 +233,35 @@ struct ColorRGBAf
 // Represents a RGBA color with values 0-255
 struct ColorRGBAi
 {
-    ColorRGBAi(uint8_t rv, uint8_t gv, uint8_t bv, uint8_t av) :
-        r{ rv }, g{ gv }, b{ bv }, a{ av } { }
+    constexpr ColorRGBAi(uint8_t rv, uint8_t gv, uint8_t bv, uint8_t av) :
+                              r{ rv },    g{ gv },    b{ bv },    a{ av } { }
 
-    ColorRGBAi(uint8_t rv, uint8_t gv, uint8_t bv) :
-        ColorRGBAi(rv, gv, bv, 255) { }
+    constexpr ColorRGBAi(uint8_t rv, uint8_t gv, uint8_t bv) : ColorRGBAi(rv, gv, bv, 255) { }
 
-    ColorRGBAi(const ColorRGBAf& cf) : r{floatToUint8(cf.r)}, g{floatToUint8(cf.g)}, b{floatToUint8(cf.b)}, a{floatToUint8(cf.a)} {  }
+    constexpr ColorRGBAi(const ColorRGBAf& cf) : r{floatToUint8(cf.r)}, g{floatToUint8(cf.g)}, b{floatToUint8(cf.b)}, a{floatToUint8(cf.a)} {  }
 
-    ColorRGBAi() { }
+    constexpr ColorRGBAi() { }
 
     uint8_t r = 0;
     uint8_t g = 0;
     uint8_t b = 0;
     uint8_t a = 0;
+
+    static constexpr inline ColorRGBAi red()    { return ColorRGBAf::red();    }
+    static constexpr inline ColorRGBAi green()  { return ColorRGBAf::green();  }
+    static constexpr inline ColorRGBAi blue()   { return ColorRGBAf::blue();   }
+    static constexpr inline ColorRGBAi white()  { return ColorRGBAf::white();  }
+    static constexpr inline ColorRGBAi black()  { return ColorRGBAf::black();  }
+    static constexpr inline ColorRGBAi purple() { return ColorRGBAf::purple(); }
+    static constexpr inline ColorRGBAi yellow() { return ColorRGBAf::yellow(); }
+    static constexpr inline ColorRGBAi orange() { return ColorRGBAf::orange(); }
 };
 
 struct ColorRGBi
 {
-    ColorRGBi(uint8_t rv, uint8_t gv, uint8_t bv) : r{ rv }, g{ gv }, b{ bv } { }
-    ColorRGBi(ColorRGBAi c4) : ColorRGBi(c4.r, c4.g, c4.b) { }
-    ColorRGBi() : r{ 0 }, g{ 0 }, b{ 0 } { }
+    constexpr ColorRGBi(uint8_t rv, uint8_t gv, uint8_t bv) : r{ rv }, g{ gv }, b{ bv } { }
+    constexpr ColorRGBi(ColorRGBAi c4) : ColorRGBi(c4.r, c4.g, c4.b) { }
+    constexpr ColorRGBi() : r{ 0 }, g{ 0 }, b{ 0 } { }
 
     uint8_t r;
     uint8_t g;
@@ -280,7 +288,10 @@ using Circlef = Circle<float>;
 template<typename T = float>
 struct Rect
 {
-    T x, y, width, height;
+    T x      = 0;
+    T y      = 0;
+    T width  = 0;
+    T height = 0;
 
     Rect(Vector2<T> pos, Vector2<T> size) : x{ pos.x }, y{ pos.y }, width{ size.x }, height{ size.y } { }
     Rect(T x, T y, T width, T height) : x{ x }, y{ y }, width{ width }, height{ height } { }
