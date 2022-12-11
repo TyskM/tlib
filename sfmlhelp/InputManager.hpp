@@ -1,22 +1,31 @@
 #pragma once
 
-#include <SDL2/SDL_keyboard.h>
-#include <SDL2/SDL_mouse.h>
 
-#include <SDL2/SDL_joystick.h> // TODO: controller support
-#include <SDL2/SDL_gamecontroller.h>
-
+#include <SFML/Window/Keyboard.hpp>
+#include <SFML/Window/Mouse.hpp>
+#include <SFML/Window/Event.hpp>
 #include "../DataStructures.hpp"
 #include <string>
 #include <vector>
 
+
+/*
+This classes key / mouse / action checking methods (ie. isMouseJustPressed(), isActionReleased())
+are meant to be called in your update function.
+Calling them in your input() function probably won't work right.
+
+Be sure to call input(Event&) in your event loop,
+and call update() !AT THE END! of your update loop.
+
+TODO: readd mouse wheel support
+TODO: add examples
+*/
 struct Input
 {
     enum ActionType
     {
         MOUSE, KEYBOARD
     };
-    using AT = ActionType;
 
     struct ActionControl
     {
@@ -25,7 +34,6 @@ struct Input
         ActionType type;
         int id;
     };
-    using AC = ActionControl;
 
     struct Action
     {
@@ -54,55 +62,39 @@ struct Input
     };
     using Act = Action;
 
-    static inline const int MOUSE_LEFT         =  0;
-    static inline const int MOUSE_MIDDLE       =  1;
-    static inline const int MOUSE_RIGHT        =  2;
-    static inline const int MOUSE_X1           =  3;
-    static inline const int MOUSE_X2           =  4;
-    static inline const int MOUSE_WHEEL_DOWN   =  5;
-    static inline const int MOUSE_WHEEL_UP     =  6;
-    static inline const int MB_COUNT           =  7;
+    static inline std::array<uint8_t, sf::Keyboard::KeyCount> kb;
+    static inline std::array<uint8_t, sf::Keyboard::KeyCount> prevkb;
 
-    static inline std::vector<Uint8> kb;
-    static inline std::vector<Uint8> prevkb;
+    static inline std::array<uint8_t, sf::Mouse::ButtonCount> mouse;
+    static inline std::array<uint8_t, sf::Mouse::ButtonCount> prevmouse;
 
-    static inline std::array<Uint8, MB_COUNT> mouse;
-    static inline std::array<Uint8, MB_COUNT> prevmouse;
-
-    // Don't update mouse wheel state until update() is called
-    static inline bool wheelUpNextUpdate   = false;
-    static inline bool wheelDownNextUpdate = false;
-
-    static inline Vector2i mousePos;
-    static inline Vector2i prevMousePos;
-
-    static inline void input(const SDL_Event& e)
+    static inline void input(const sf::Event& e)
     {
-        if      (e.type == SDL_MOUSEWHEEL && e.wheel.y > 0) { wheelUpNextUpdate   = true; }
-        else if (e.type == SDL_MOUSEWHEEL && e.wheel.y < 0) { wheelDownNextUpdate = true; }
+        switch (e.type)
+        {
+            case sf::Event::KeyPressed:
+                kb[e.key.code] = 1;
+                break;
+            case sf::Event::KeyReleased:
+                kb[e.key.code] = 0;
+                break;
+            case sf::Event::MouseButtonPressed:
+                mouse[e.mouseButton.button] = 1;
+                break;
+            case sf::Event::MouseButtonReleased:
+                mouse[e.mouseButton.button] = 0;
+                break;
+            default: break;
+        }
     }
 
-    // Call before update loop
+    // THIS NEEDS TO BE CALLED AT THE END OF THE GAME LOOP
+    // NOT BEFORE, OR THE IN THE MIDDLE, YOU CALL IT AT THE END.
+    // THE END
     static inline void update()
     {
-        prevkb = kb;
-
-        int keyCount;
-        auto rawkb = SDL_GetKeyboardState(&keyCount);
-        kb = std::vector<Uint8>(rawkb, rawkb + keyCount);
-
+        prevkb    = kb;
         prevmouse = mouse;
-        prevMousePos = mousePos;
-        auto tempMouse = SDL_GetMouseState(&mousePos.x, &mousePos.y);
-        for (int i = 0; i <= MOUSE_X2; i++)
-        {
-            mouse[i] = (tempMouse & (1 << i) /* frick sdl button SDL_BUTTON(i)*/ );
-        }
-
-        mouse[MOUSE_WHEEL_UP]   = wheelUpNextUpdate;
-        mouse[MOUSE_WHEEL_DOWN] = wheelDownNextUpdate;
-        wheelUpNextUpdate   = false;
-        wheelDownNextUpdate = false;
     }
 
     static inline bool isActionPressed(const Action& action)
@@ -156,24 +148,15 @@ struct Input
         return false;
     }
 
-    static inline bool isKeyPressed     (int key) { return kb[key]; }
-    static inline bool isKeyJustPressed (int key) { return kb[key] && !prevkb[key]; }
-    static inline bool isKeyReleased    (int key) { return !isKeyPressed(key); }
-    static inline bool isKeyJustReleased(int key) { return !kb[key] && prevkb[key]; }
+    static inline bool isKeyPressed     (const int key) { return kb[key]; }
+    static inline bool isKeyJustPressed (const int key) { return kb[key] && !prevkb[key]; }
+    static inline bool isKeyReleased    (const int key) { return !isKeyPressed(key); }
+    static inline bool isKeyJustReleased(const int key) { return !kb[key] && prevkb[key]; }
 
-    static inline bool isMousePressed     (int button) { return (mouse[button]); }
-    static inline bool isMouseJustPressed (int button)
-    {
-        if (button >= MOUSE_WHEEL_DOWN) { return isMousePressed(button); }
-        else { return (mouse[button] && !prevmouse[button]); }
-    }
-
-    static inline bool isMouseReleased    (int button) { return !isMousePressed(button); }
-    static inline bool isMouseJustReleased(int button)
-    {
-        if (button >= MOUSE_WHEEL_DOWN) { return isMouseReleased(button); }
-        else { return !mouse[button] && prevmouse[button]; }
-    }
+    static inline bool isMousePressed     (const int button) { return (mouse[button]); }
+    static inline bool isMouseJustPressed (const int button) { return (mouse[button] && !prevmouse[button]); }
+    static inline bool isMouseReleased    (const int button) { return !isMousePressed(button); }
+    static inline bool isMouseJustReleased(const int button) { return !mouse[button] && prevmouse[button]; }
 
     static inline bool _verifyAction(const Action& act)
     {

@@ -6,21 +6,28 @@
 
 struct View
 {
-    Rectf bounds;
+    Rectf bounds = {0,0,500,500};
     float rot = 0.f; // degrees // not yet implemented
+    Vector2f zoom = {1.f, 1.f};
 
     View(float x, float y, float width, float height) : bounds{x, y, width, height} { }
     View() = default;
 
     glm::mat4 getMatrix() const
     {
-        const float l = bounds.x;
-        const float r = bounds.x + bounds.width;
-        const float t = bounds.y;
-        const float b = bounds.y + bounds.height;
+        Rectf tempBounds = bounds;
 
-        const auto mat = glm::ortho(l, r, b, t, -1.f, 1.f);
+        const float l = tempBounds.x;
+        const float r = tempBounds.x + tempBounds.width;
+        const float t = tempBounds.y;
+        const float b = tempBounds.y + tempBounds.height;
 
-        return mat;
+        glm::mat4 mat(1.f);
+        mat = glm::scale(mat, { zoom.x, zoom.y, 1.f });
+        
+
+        glm::mat4 orthoMat = glm::ortho(l, r, b, t, -1.f, 1.f);
+        
+        return mat * orthoMat;
     }
 };

@@ -103,17 +103,13 @@ enum class GLDrawMode
     PATCHES                  = GL_PATCHES
 };
 
-enum class AspectMode
-{
-    None,
-    Width,
-    Height,
-    Both
-};
-
 struct Renderer
 {
-    AspectMode aspectMode = AspectMode::Both;
+    // Config
+
+    // If true, renderer will use black bars to maintain views aspect ratio.
+    // Also adjusts functions for getting mouse position.
+    bool maintainAspect = false;
 
     // READ ONLY VARS
 
@@ -197,18 +193,12 @@ struct Renderer
 
     Rectf getVirtualViewportRect() const
     {
-        Vector2f winSize = Vector2f(window->getSize());
+        Vector2f winSize = Vector2f(window->getFramebufferSize());
 
         if (!_virtViewportDirty) { return _cachedVirtualViewport; }
         Rectf vp;
 
-        switch (aspectMode)
-        {
-        case AspectMode::Width:
-            break;
-        case AspectMode::Height:
-            break;
-        case AspectMode::Both:
+        if (maintainAspect)
         {
             float targetAspectRatio = _view.bounds.width / _view.bounds.height;
             float width = winSize.x ;
@@ -224,13 +214,11 @@ struct Renderer
             float vp_y = (winSize.y / 2) - (height / 2);
 
             vp = Rectf( vp_x, winSize.y - (vp_y + height), width, height );
-            break;
         }
-            
-        case AspectMode::None:
-        default:
-            vp = Rectf(0, 0, _view.bounds.width, _view.bounds.height);
-            break;
+        else
+        {
+            auto fb = window->getFramebufferSize();
+            vp = Rectf(0, 0, fb.x, fb.y);
         }
 
         _cachedVirtualViewport = vp;
@@ -247,33 +235,33 @@ struct Renderer
 
     Vector2f getMouseWorldPos()
     {
-        auto virtRect = getVirtualViewportRect();
-        auto virtSize = Vector2f{ virtRect.width, virtRect.height };
-        Vector2f scale = Vector2(_view.bounds.width, _view.bounds.height) / virtSize;
+        // Old, doesnt work with zoom/rot
+        //auto virtRect = getVirtualViewportRect();
+        //auto virtSize = Vector2f{ virtRect.width, virtRect.height };
+        //Vector2f scale = Vector2(_view.bounds.width, _view.bounds.height) / virtSize;
+        //auto mpos = getMouseLocalPos() - Vector2f{ virtRect.x, virtRect.y };
+        //auto v = mpos * scale + Vector2f{_view.bounds.x, _view.bounds.y};
+        //return v;
 
-        auto mpos = getMouseLocalPos() - Vector2f{ virtRect.x, virtRect.y };
-        auto v = mpos * scale + Vector2f{_view.bounds.x, _view.bounds.y};
+        auto rect = getVirtualViewportRect();
+        Vector2f mpos = getMouseLocalPos();
 
-        return v;
+        glm::mat4 mat = _view.getMatrix();
+        mat = glm::translate(mat, { -mpos.x / _view.zoom.x, -mpos.y / _view.zoom.y, 0.f });
+        mat = glm::inverse(mat);
+        Vector2f normalized = Vector2f(mat[3].x, mat[3].y) - (Vector2f{ _view.bounds.width, _view.bounds.height } / _view.zoom) / 2;
+
+        return normalized;
     }
 
     void begin()
     {
         _virtViewportDirty = true;
-
-        unscissor();
-        glClearColor(0, 0, 0, 1);
-        glClear(GL_COLOR_BUFFER_BIT);
-        rescissor();
-
         resetViewport();
     }
 
     void clearColor(const ColorRGBAf& color = {0.1f, 0.1f, 0.1f, 1.f})
     {
-        const auto vpRect = getVirtualViewportRect();
-        scissor(vpRect);
-
         glClearColor(color.r, color.g, color.b, color.a);
         glClear(GL_COLOR_BUFFER_BIT);
     }
@@ -455,32 +443,17 @@ struct Renderer
 
     static inline View getDefaultWindowView(const Window& win)
     {
-        const auto winSize = win.getSize();
+        const auto winSize = win.getFramebufferSize();
         return View( 0, 0, winSize.x, winSize.y );
     }
 
+    inline View getDefaultView() { return getDefaultWindowView(*window); }
+
     bool created() { return window != nullptr; }
-
-    void rescissor()
-    {
-        glScissor(_scissor.x, _scissor.y, _scissor.width, _scissor.height);
-        glEnable(GL_SCISSOR_TEST);
-    }
-
-    void unscissor()
-    {
-        glDisable(GL_SCISSOR_TEST);
-    }
-
-    void scissor(Rectf rect)
-    {
-        _scissor = rect;
-        rescissor();
-    }
 
     void _onWindowResized()
     {
-        setView(_view);
+        resetViewport();
     }
 
     void resetViewport()

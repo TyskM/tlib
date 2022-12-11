@@ -85,6 +85,7 @@ struct WindowTemplate
                 Input::input(e);
                 stateMan.getState()->input(e);
             }
+            Input::update();
             float dt = dtTimer.restart().asSeconds();
             stateMan.getState()->update(dt);
             stateMan.getState()->draw(dt);
