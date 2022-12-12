@@ -9,23 +9,40 @@
 #include "../DataStructures.hpp"
 #include <string>
 #include <vector>
+#include <map>
 
+/* Usage example
+
+Input::Action actPrimary   = { "Primary",    { ActionType::MOUSE, Input::MOUSE_LEFT } };
+Input::Action actMoveNorth = { "Move North", { ActionType::KEYBOARD, SDL_SCANCODE_W } };
+Input::Action actMoveUp    = { "Move Up",    { ActionType::KEYBOARD, SDL_SCANCODE_W, SDL_Keymod::KMOD_LSHIFT } };
+
+void update()
+{
+    if (Input::isActionJustPressed(actPrimary))
+    { shootGun(); }
+    if (Input::isActionJustPressed(actMoveUp))
+    { jump(); }
+}
+
+*/
+
+// See file for usage example
 struct Input
 {
-    enum ActionType
-    {
-        MOUSE, KEYBOARD
-    };
-    using AT = ActionType;
+    enum class ActionType
+    { MOUSE, KEYBOARD };
 
     struct ActionControl
     {
-        ActionControl(ActionType type, int id) : type{ type }, id{ id } { }
+        ActionControl(ActionType type, int id, SDL_Keymod modifier = KMOD_NONE)
+            : type{ type }, id{ id }, modifier{ modifier } { }
 
+        bool strictModChecking = true;
+        int modifier = KMOD_NONE; // See SDL_Keymod
         ActionType type;
         int id;
     };
-    using AC = ActionControl;
 
     struct Action
     {
@@ -110,10 +127,11 @@ struct Input
         if (!_verifyAction(action)) { return false; }
         for (auto& ctrl : action.controls)
         {
+            if (!_verifyControl(ctrl)) return false;
             switch (ctrl.type)
             {
-            case MOUSE:    if (isMousePressed(ctrl.id)) return true; break;
-            case KEYBOARD: if (isKeyPressed(ctrl.id))   return true; break;
+            case ActionType::MOUSE:    if (isMousePressed(ctrl.id)) return true; break;
+            case ActionType::KEYBOARD: if (isKeyPressed(ctrl.id))   return true; break;
             default: return false; break;
             }
         }
@@ -125,10 +143,11 @@ struct Input
         if (!_verifyAction(action)) { return false; }
         for (auto& ctrl : action.controls)
         {
+            if (!_verifyControl(ctrl)) return false;
             switch (ctrl.type)
             {
-            case MOUSE:    if (isMouseJustPressed(ctrl.id)) return true; break;
-            case KEYBOARD: if (isKeyJustPressed(ctrl.id))   return true; break;
+            case ActionType::MOUSE:    if (isMouseJustPressed(ctrl.id)) return true; break;
+            case ActionType::KEYBOARD: if (isKeyJustPressed(ctrl.id))   return true; break;
             default: return false; break;
             }
         }
@@ -146,10 +165,11 @@ struct Input
         if (!_verifyAction(action)) { return false; }
         for (auto& ctrl : action.controls)
         {
+            if (!_verifyControl(ctrl)) return false;
             switch (ctrl.type)
             {
-            case MOUSE:    return isMouseJustReleased(ctrl.id); break;
-            case KEYBOARD: return isKeyJustReleased(ctrl.id);   break;
+            case ActionType::MOUSE:    return isMouseJustReleased(ctrl.id); break;
+            case ActionType::KEYBOARD: return isKeyJustReleased(ctrl.id);   break;
             default: return false; break;
             }
         }
@@ -175,9 +195,86 @@ struct Input
         else { return !mouse[button] && prevmouse[button]; }
     }
 
+    // see SDL_Keymod
+    // Returns a pretty string showing the SDL_Keymod combination
+    // modToString(SDL_Keymod::KMOD_LCTRL | SDL_Keymod::KMOD_LSHIFT) -> "LShift + LCtrl"
+    static std::string modToString(int mod)
+    {
+        std::string str;
+        static const std::map<SDL_Keymod, std::string> modMap =
+        {
+            { KMOD_NONE  , "None"   },
+            { KMOD_LSHIFT, "LShift" },
+            { KMOD_RSHIFT, "RShift" },
+            { KMOD_LCTRL , "LCtrl"  },
+            { KMOD_RCTRL , "RCtrl"  },
+            { KMOD_LALT  , "LAlt"   },
+            { KMOD_RALT  , "RAlt"   },
+            { KMOD_LGUI  , "LGui"   },
+            { KMOD_RGUI  , "RGui"   },
+            { KMOD_NUM   , "Num"    },
+            { KMOD_CAPS  , "Caps"   },
+            { KMOD_MODE  , "Mode"   },
+            { KMOD_SCROLL, "Scroll" }
+        };
+
+        size_t modCount = 0;
+        for (auto& [k, v] : modMap)
+        {
+            if (k & mod)
+            {
+                if (modCount > 0)
+                { str += " + "; }
+                str += v;
+                ++modCount;
+            }
+        }
+        
+        return str;
+    }
+
+    static std::string controlToString(const ActionControl& ctrl)
+    {
+        std::string str;
+        if (ctrl.modifier != SDL_Keymod::KMOD_NONE)
+        {
+            str = modToString(ctrl.modifier) + " + ";
+        }
+        switch (ctrl.type)
+        {
+            case ActionType::MOUSE:
+                switch (ctrl.id)
+                {
+                    case MOUSE_LEFT      : str += "Mouse Left";       break;
+                    case MOUSE_MIDDLE    : str += "Mouse Middle";     break;
+                    case MOUSE_RIGHT     : str += "Mouse Right";      break;
+                    case MOUSE_X1        : str += "Mouse X1";         break;
+                    case MOUSE_X2        : str += "Mouse X2";         break;
+                    case MOUSE_WHEEL_DOWN: str += "Mouse Wheel Down"; break;
+                    case MOUSE_WHEEL_UP  : str += "Mouse Wheel Up";   break;
+                    default:               str += "Unknown";          break;
+                }
+                break;
+            case ActionType::KEYBOARD:
+                str += std::string(SDL_GetScancodeName((SDL_Scancode)ctrl.id));
+                break;
+            default: str += "Unknown"; break;
+        }
+
+        return str;
+    }
+
     static inline bool _verifyAction(const Action& act)
     {
         return act.controls.size() > 0;
+    }
+
+    static inline bool _verifyControl(const ActionControl& ctrl)
+    {
+        if (ctrl.strictModChecking)
+            return ctrl.modifier == SDL_GetModState();
+        else
+            return ctrl.modifier == KMOD_NONE || ctrl.modifier == SDL_GetModState();
     }
 }; 
 using ActionType = Input::ActionType;
