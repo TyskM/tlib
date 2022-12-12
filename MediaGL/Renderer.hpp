@@ -36,7 +36,7 @@ void main()
 }
 )""";
 
-const char* SPRITE_VERT_SHADER = R"""(
+const char* SPRITE_VERT_SHADER_OLD = R"""(
 #version 330 core
 layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
 
@@ -55,6 +55,27 @@ void main()
     else { TexCoords.y = vertex.w; }
     
     gl_Position = projection * model * vec4(vertex.x, vertex.y, 0.0, 1.0);
+}
+)""";
+
+const char* SPRITE_VERT_SHADER = R"""(
+#version 330 core
+layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
+
+out vec2 TexCoords;
+
+uniform mat4 modProj;
+uniform bool uvflipy = false;
+
+void main()
+{
+    TexCoords.x = vertex.z;
+
+    if (uvflipy)
+         { TexCoords.y = 1.0 - vertex.w; }
+    else { TexCoords.y = vertex.w; }
+    
+    gl_Position = modProj * vec4(vertex.x, vertex.y, 0.0, 1.0);
 }
 )""";
 
@@ -123,6 +144,7 @@ struct Renderer
     Shader _primShader;
     Shader _textShader;
     VertexArray _spriteVAO{NoCreate};
+    VertexBuffer _spriteVBO{NoCreate};
 
     VertexArray _linesVAO{NoCreate};
     VertexBuffer _linesVBO{NoCreate};
@@ -155,7 +177,7 @@ struct Renderer
 
         GL_CHECK(glActiveTexture(GL_TEXTURE0));
 
-        GLuint VBO;
+        
         float vertices[] = { 
             // pos      // tex
             0.0f, 1.0f, 0.0f, 1.0f,
@@ -167,16 +189,17 @@ struct Renderer
             1.0f, 0.0f, 1.0f, 0.0f
         };
 
+        
         _spriteVAO.create();
-        GL_CHECK(glGenBuffers(1, &VBO));
+        _spriteVBO.create();
 
-        GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, VBO));
+        _spriteVBO.bind();
         GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
 
         _spriteVAO.bind();
         GL_CHECK(glEnableVertexAttribArray(0));
         GL_CHECK(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0));
-        GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, 0));  
+        _spriteVBO.unbind();
         _spriteVAO.unbind();
 
         // Lines setup
@@ -319,6 +342,11 @@ struct Renderer
         tex.bind();
         _spriteVAO.bind();
         GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
+    }
+
+    void drawScrollingTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 })
+    {
+
     }
 
     void drawLine(const Vector2f& start, const Vector2f& end, const ColorRGBAf& color, float width = 1)
