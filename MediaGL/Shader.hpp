@@ -60,34 +60,62 @@ struct Shader : NonAssignable
     }
 
     void setBool(const std::string& name, bool value)
-    { GL_CHECK(glUniform1i(glGetUniformLocation(glHandle, name.c_str()), static_cast<int>(value))); }
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        GL_CHECK(glUniform1i(glGetUniformLocation(glHandle, name.c_str()), static_cast<int>(value)));
+    }
 
     void setInt(const std::string& name, int value) const
-    { GL_CHECK(glUniform1i(glGetUniformLocation(glHandle, name.c_str()), value)); }
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        GL_CHECK(glUniform1i(glGetUniformLocation(glHandle, name.c_str()), value));
+    }
 
     void setFloat(const std::string& name, float value) const
-    { GL_CHECK(glUniform1f(glGetUniformLocation(glHandle, name.c_str()), value)); }
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        GL_CHECK(glUniform1f(glGetUniformLocation(glHandle, name.c_str()), value));
+    }
     
     void setVec2f(const std::string& name, float x, float y) const
-    { GL_CHECK(glUniform2f(glGetUniformLocation(glHandle, name.c_str()), x, y)); }
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        GL_CHECK(glUniform2f(glGetUniformLocation(glHandle, name.c_str()), x, y));
+    }
 
     void setVec2f(const std::string& name, glm::vec2 value) const
-    { GL_CHECK(glUniform2f(glGetUniformLocation(glHandle, name.c_str()), value.x, value.y)); }
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        GL_CHECK(glUniform2f(glGetUniformLocation(glHandle, name.c_str()), value.x, value.y));
+    }
 
     void setVec3f(const std::string& name, float x, float y, float z) const
-    { GL_CHECK(glUniform3f(glGetUniformLocation(glHandle, name.c_str()), x, y, z)); }
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        GL_CHECK(glUniform3f(glGetUniformLocation(glHandle, name.c_str()), x, y, z));
+    }
 
     void setVec3f(const std::string& name, glm::vec3 value) const
-    { GL_CHECK(glUniform3f(glGetUniformLocation(glHandle, name.c_str()), value.x, value.y, value.z)); }
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        GL_CHECK(glUniform3f(glGetUniformLocation(glHandle, name.c_str()), value.x, value.y, value.z));
+    }
 
     void setVec4f(const std::string& name, float x, float y, float z, float w) const
-    { GL_CHECK(glUniform4f(glGetUniformLocation(glHandle, name.c_str()), x, y, z, w)); }
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        GL_CHECK(glUniform4f(glGetUniformLocation(glHandle, name.c_str()), x, y, z, w));
+    }
 
     void setVec4f(const std::string& name, glm::vec4 value) const
-    { GL_CHECK(glUniform4f(glGetUniformLocation(glHandle, name.c_str()), value.x, value.y, value.z, value.w)); }
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        GL_CHECK(glUniform4f(glGetUniformLocation(glHandle, name.c_str()), value.x, value.y, value.z, value.w));
+    }
 
     void setMat4f(const std::string& name, glm::mat4 value) const
     {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
         GL_CHECK(glUniformMatrix4fv(glGetUniformLocation(glHandle, name.c_str()), 1, false, glm::value_ptr(value)));
     }
 

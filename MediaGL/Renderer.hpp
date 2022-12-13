@@ -16,7 +16,6 @@ const char* PRIMITIVE_VERT_SHADER = R"""(
 #version 330 core
 layout (location = 0) in vec2 vertex;
 
-uniform mat4 model;
 uniform mat4 projection;
 
 void main()
@@ -138,6 +137,7 @@ struct Renderer
 
     View _view;
     glm::mat4 _projection;
+    Frustum _frustum;
 
     ColorRGBAf _spriteShaderColorState = {1,1,1,1};
     Shader _spriteShader;
@@ -152,6 +152,8 @@ struct Renderer
 
     mutable Rectf _cachedVirtualViewport;
     mutable bool _virtViewportDirty = true;
+
+    size_t _debugDrawCalls = 0;
 
     Renderer(Window& window) { create(window); }
     Renderer() { }
@@ -176,7 +178,6 @@ struct Renderer
         _spriteShader.unbind();
 
         GL_CHECK(glActiveTexture(GL_TEXTURE0));
-
         
         float vertices[] = { 
             // pos      // tex
@@ -279,6 +280,8 @@ struct Renderer
 
     void begin()
     {
+        std::cout << "Last frame draw calls: " << _debugDrawCalls << std::endl;
+        _debugDrawCalls = 0;
         _virtViewportDirty = true;
         resetViewport();
     }
@@ -293,29 +296,26 @@ struct Renderer
     {
         _view = view;
         _projection = view.getMatrix();
-
-        _spriteShader.bind();
-        _spriteShader.setMat4f("projection", _projection);
+        _frustum = Frustum(_projection);
 
         _primShader.bind();
         _primShader.setMat4f("projection", _projection);
-
         _textShader.bind();
         _textShader.setMat4f("projection", _projection);
     }
 
     void drawTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool uvflipy = false)
     {
+        if (!_frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
+
         _spriteShader.bind();
 
-        if (tex.internalFormat == TexInternalFormats::RED)
-        { _spriteShader.setBool("grayscale", true); }
-        else
-        { _spriteShader.setBool("grayscale", false); }
-
-        _spriteShader.setBool("uvflipy", uvflipy);
-
-        // Projection set in setView()
+        //if (tex.internalFormat == TexInternalFormats::RED)
+        //{ _spriteShader.setBool("grayscale", true); }
+        //else
+        //{ _spriteShader.setBool("grayscale", false); }
+        //
+        //_spriteShader.setBool("uvflipy", uvflipy);
 
         glm::mat4 model = glm::mat4(1.0f);
         
@@ -331,7 +331,7 @@ struct Renderer
         model = glm::scale(model, glm::vec3(rect.width, rect.height, 1.f));
         
 
-        _spriteShader.setMat4f("model", model); // Slow
+        _spriteShader.setMat4f("modProj", _projection * model); // Slow
 
         if (_spriteShaderColorState != color)
         {
@@ -342,11 +342,8 @@ struct Renderer
         tex.bind();
         _spriteVAO.bind();
         GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
-    }
 
-    void drawScrollingTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 })
-    {
-
+        ++_debugDrawCalls;
     }
 
     void drawLine(const Vector2f& start, const Vector2f& end, const ColorRGBAf& color, float width = 1)
@@ -370,6 +367,8 @@ struct Renderer
 
         glLineWidth(width);
         GL_CHECK(glDrawArrays((int)mode, 0, lines.size()));
+
+        ++_debugDrawCalls;
     }
 
     void drawRect(const Rectf& rect, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false)
@@ -490,6 +489,18 @@ struct Renderer
 
         // OpenGL considers X=0, Y=0 the Lower left Corner of the Screen
         glViewport(rect.x, rect.y, rect.width, rect.height);
+    }
+
+    static void printMat4(const glm::mat4& mat)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            for (int k = 0; k < 4; k++)
+            {
+                std::cout << "[" << mat[i][k] << "], ";
+            }
+            std::cout << '\n';
+        }
     }
 };
 

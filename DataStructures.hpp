@@ -308,7 +308,7 @@ struct Rect
         return topLeft.x < x && x < bottomRight.x && topLeft.y < y && y < bottomRight.y;
     }
 
-    bool intersects(const Rect<T>& otherRect)
+    bool intersects(const Rect<T>& otherRect) const
     {
         Vector2<T> bottomRight = Vector2<T>{ x, y } + Vector2<T>{ width, height };
         Vector2<T> otherBottomRight = Vector2<T>{ otherRect.x, otherRect.y } +
