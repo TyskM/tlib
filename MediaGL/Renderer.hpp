@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <glm/mat4x4.hpp>
 #include <glm/ext.hpp>
@@ -10,6 +10,10 @@
 #include "View.hpp"
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
+
+
+#define STRING_MACRO_NAME(X) #X
+#define STRING_MACRO_VALUE(X) STRING_MACRO_NAME(X)
 
 #pragma region Shaders
 const char* PRIMITIVE_VERT_SHADER = R"""(
@@ -35,47 +39,6 @@ void main()
 }
 )""";
 
-const char* SPRITE_VERT_SHADER = R"""(
-#version 330 core
-layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
-
-out vec2 TexCoords;
-
-uniform mat4 model;
-uniform mat4 projection;
-uniform bool uvflipy = false;
-
-void main()
-{
-    TexCoords.x = vertex.z;
-
-    if (uvflipy)
-         { TexCoords.y = 1.0 - vertex.w; }
-    else { TexCoords.y = vertex.w; }
-    
-    gl_Position = projection * model * vec4(vertex.x, vertex.y, 0.0, 1.0);
-}
-)""";
-
-const char* SPRITE_FRAG_SHADER = R"""(
-#version 330 core
-in vec2 TexCoords;
-out vec4 color;
-
-uniform sampler2D image;
-uniform vec4 spriteColor;
-uniform bool grayscale;
-
-void main()
-{
-    if (grayscale == false)
-    { color = spriteColor * texture(image, TexCoords); }
-    else
-    {
-        color = vec4(spriteColor) * vec4(1.0, 1.0, 1.0, texture(image, TexCoords).r);
-    }
-}
-)""";
 #pragma endregion
 
 template <typename T>
@@ -150,39 +113,7 @@ struct Renderer
         // Primitives setup
         _primShader.create(PRIMITIVE_VERT_SHADER, PRIMITIVE_FRAG_SHADER);
 
-        // Sprite setup
-        _spriteShader.create(SPRITE_VERT_SHADER, SPRITE_FRAG_SHADER);
-        _spriteShader.bind();
-        _spriteShader.setInt("image", 0);
-        _spriteShader.setVec4f("spriteColor", 1, 1, 1, 1);
-        _spriteShaderColorState = { 1, 1, 1, 1 };
-        _spriteShader.unbind();
-
-        GL_CHECK(glActiveTexture(GL_TEXTURE0));
-        
-        float vertices[] = { 
-            // pos      // tex
-            0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f, 
-
-            0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 1.0f, 0.0f
-        };
-
-        
-        _spriteVAO.create();
-        _spriteVBO.create();
-
-        _spriteVBO.bind();
-        GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
-
-        _spriteVAO.bind();
-        GL_CHECK(glEnableVertexAttribArray(0));
-        GL_CHECK(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0));
-        _spriteVBO.unbind();
-        _spriteVAO.unbind();
+        textureInit();
 
         // Lines setup
         _linesVAO.create();
@@ -212,6 +143,7 @@ struct Renderer
     {
         ASSERTMSG(begun == true, "Forgot to call begin()");
         begun = false;
+        flush();
 
         lastFrameDrawCalls = _debugDrawCalls;
         _debugDrawCalls = 0;
@@ -288,6 +220,8 @@ struct Renderer
 
         _spriteShader.bind();
         _spriteShader.setMat4f("projection", _projection);
+        _fastSpriteShader.bind();
+        _fastSpriteShader.setMat4f("projection", _projection);
         _primShader.bind();
         _primShader.setMat4f("projection", _projection);
         _textShader.bind();
@@ -321,10 +255,171 @@ struct Renderer
 
     #pragma region Texture
 
+    const char* SPRITE_VERT_SHADER = R"""(
+        #version 460 core
+        layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
+
+        out vec2 TexCoords;
+
+        uniform mat4 model;
+        uniform mat4 projection;
+        uniform bool uvflipy = false;
+
+        void main()
+        {
+            TexCoords.x = vertex.z;
+
+            if (uvflipy)
+                 { TexCoords.y = 1.0 - vertex.w; }
+            else { TexCoords.y = vertex.w; }
+    
+            gl_Position = projection * model * vec4(vertex.x, vertex.y, 0.0, 1.0);
+        } )""";
+
+    const char* SPRITE_FRAG_SHADER = R"""(
+        #version 460 core
+        in vec2 TexCoords;
+        out vec4 color;
+
+        uniform sampler2D image;
+        uniform vec4 spriteColor;
+        uniform bool grayscale;
+
+        void main()
+        {
+            if (grayscale == false)
+            { color = spriteColor * texture(image, TexCoords); }
+            else
+            {
+                color = vec4(spriteColor) * vec4(1.0, 1.0, 1.0, texture(image, TexCoords).r);
+            }
+        } )""";
+
     ColorRGBAf   _spriteShaderColorState = {1,1,1,1};
     Shader       _spriteShader;
     VertexArray  _spriteVAO{NoCreate};
     VertexBuffer _spriteVBO{NoCreate};
+
+    // Batched textures
+    #ifndef MAX_SPRITE_BATCH_SIZE
+    #define MAX_SPRITE_BATCH_SIZE 1024 * 8
+    #endif
+
+    struct
+    {
+        // glm::mat4 model[MAX_SPRITE_BATCH_SIZE];
+        std::array<glm::mat4, MAX_SPRITE_BATCH_SIZE> model;
+        static_assert( sizeof(glm::mat4) * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::mat4, MAX_SPRITE_BATCH_SIZE>) );
+
+        // glm::vec2 texCoords[6 * MAX_SPRITE_BATCH_SIZE];
+        std::array<glm::vec2, 6 * MAX_SPRITE_BATCH_SIZE> texCoords;
+        static_assert( sizeof(glm::vec2) * 6 * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::vec2, 6 * MAX_SPRITE_BATCH_SIZE>) );
+    } _texBatchData;
+    
+    int _currentSpriteBatchIndex = 0;
+    Shader _fastSpriteShader;
+    GLuint ssbo = 0;
+    Texture* _currentTexture = nullptr;
+
+    void textureInit()
+    {
+        #pragma region slow sprites
+        // Sprite setup
+        _spriteShader.create(SPRITE_VERT_SHADER, SPRITE_FRAG_SHADER);
+        _spriteShader.bind();
+        _spriteShader.setInt("image", 0);
+        _spriteShader.setVec4f("spriteColor", 1, 1, 1, 1);
+        _spriteShaderColorState = { 1, 1, 1, 1 };
+        _spriteShader.unbind();
+
+        GL_CHECK(glActiveTexture(GL_TEXTURE0));
+
+        float vertices[] = { 
+            // pos      // tex
+            0.0f, 1.0f, 0.0f, 1.0f,
+            1.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 0.0f, 
+
+            0.0f, 1.0f, 0.0f, 1.0f,
+            1.0f, 1.0f, 1.0f, 1.0f,
+            1.0f, 0.0f, 1.0f, 0.0f
+        };
+
+        _spriteVAO.create();
+        _spriteVBO.create();
+
+        _spriteVBO.bind();
+        GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
+
+        _spriteVAO.bind();
+        GL_CHECK(glEnableVertexAttribArray(0));
+        GL_CHECK(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0));
+        _spriteVBO.unbind();
+        _spriteVAO.unbind();
+
+        #pragma endregion
+
+        // Fast sprite setup
+        #pragma region Shader Source
+        _fastSpriteShader.create(
+            // VERTEX
+            R"(
+            #version 460 core
+
+            vec2 pos[6] = vec2[6](vec2(0.0f, 1.0f),
+                                  vec2(1.0f, 0.0f),
+                                  vec2(0.0f, 0.0f),
+                                  vec2(0.0f, 1.0f),
+                                  vec2(1.0f, 1.0f),
+                                  vec2(1.0f, 0.0f));
+
+            layout(std430, binding = 0) buffer data
+            {
+                mat4 model[)" STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
+                vec2 texCoords[6 * )" STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
+            };
+
+            out vec2 TexCoords;
+
+            uniform mat4 projection;
+
+            void main()
+            {
+                // gl_VertexID % 6
+                TexCoords.x = texCoords[gl_VertexID].x;
+                TexCoords.y = texCoords[gl_VertexID].y;
+    
+                gl_Position = projection * model[gl_VertexID / 6] * vec4(pos[gl_VertexID % 6], 0.0, 1.0);
+            }
+            )",
+            // FRAG
+            R"(
+            #version 460 core
+            in vec2 TexCoords;
+            out vec4 color;
+
+            uniform sampler2D image;
+            uniform vec4 spriteColor;
+
+            void main()
+            {
+                color = spriteColor * texture(image, TexCoords);
+             // color = vec4(1, 0, 1, 1);
+            }
+            )"
+        );
+        #pragma endregion
+
+        _fastSpriteShader.bind();
+        _fastSpriteShader.setInt("image", 0);
+        _fastSpriteShader.setVec4f("spriteColor", 1, 1, 1, 1);
+        _fastSpriteShader.unbind();
+
+        glGenBuffers(1, &ssbo);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(_texBatchData), nullptr, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    }
 
     void drawTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool uvflipy = false)
     {
@@ -365,7 +460,63 @@ struct Renderer
         _spriteVAO.bind();
         GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
 
+
         ++_debugDrawCalls;
+    }
+
+    // https://bitnenfer.com/blog/2016/04/28/ldEngine-Part-1.html
+    void drawTextureFast(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 })
+    {
+        if (frustumCullingEnabled && !_frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
+        if (&tex != _currentTexture) { flush(); }
+
+        _texBatchData.model[_currentSpriteBatchIndex] = glm::mat4(1.0f);
+
+        _texBatchData.model[_currentSpriteBatchIndex] = glm::translate(_texBatchData.model[_currentSpriteBatchIndex], glm::vec3(rect.x, rect.y, 0.0f));
+
+        if (rot != 0)
+        {
+            _texBatchData.model[_currentSpriteBatchIndex] =
+                glm::translate(_texBatchData.model[_currentSpriteBatchIndex], glm::vec3(0.5f * rect.width, 0.5f * rect.height, 0.0f));
+            _texBatchData.model[_currentSpriteBatchIndex] =
+                glm::rotate(   _texBatchData.model[_currentSpriteBatchIndex], glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
+            _texBatchData.model[_currentSpriteBatchIndex] =
+                glm::translate(_texBatchData.model[_currentSpriteBatchIndex], glm::vec3(-0.5f * rect.width, -0.5f * rect.height, 0.0f));
+        }
+
+        _texBatchData.model[_currentSpriteBatchIndex] = glm::scale(_texBatchData.model[_currentSpriteBatchIndex], glm::vec3(rect.width, rect.height, 1.f));
+        
+
+        _texBatchData.texCoords[0 + _currentSpriteBatchIndex * 6] = { 0.0f, 1.0f };
+        _texBatchData.texCoords[1 + _currentSpriteBatchIndex * 6] = { 1.0f, 0.0f };
+        _texBatchData.texCoords[2 + _currentSpriteBatchIndex * 6] = { 0.0f, 0.0f };
+        _texBatchData.texCoords[3 + _currentSpriteBatchIndex * 6] = { 0.0f, 1.0f };
+        _texBatchData.texCoords[4 + _currentSpriteBatchIndex * 6] = { 1.0f, 1.0f };
+        _texBatchData.texCoords[5 + _currentSpriteBatchIndex * 6] = { 1.0f, 0.0f };
+
+        ++_currentSpriteBatchIndex;
+        _currentTexture = &tex;
+
+        if (_currentSpriteBatchIndex == MAX_SPRITE_BATCH_SIZE) { flush(); }
+    }
+
+    void flush()
+    {
+        if (_currentTexture == nullptr || _currentSpriteBatchIndex == 0) { return; }
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(_texBatchData), &_texBatchData, GL_DYNAMIC_DRAW);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+
+        _fastSpriteShader.bind();
+        _currentTexture->bind();
+        VertexArray::unbind();
+        GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6 * _currentSpriteBatchIndex));
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        ++_debugDrawCalls;
+        _currentSpriteBatchIndex = 0;
     }
 
     #pragma endregion
