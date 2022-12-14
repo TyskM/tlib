@@ -11,26 +11,28 @@ void debugCamera(Renderer& r)
     static float maxZoom  = 5.f;
     static float zoomIncr = 0.15f;
 
+    auto view = r.getView();
+
     // Dragging
     if (Input::isMousePressed(Input::MOUSE_MIDDLE))
     {
-        r._view.bounds.x -= Input::mouseDelta.x / r._view.zoom.x;
-        r._view.bounds.y -= Input::mouseDelta.y / r._view.zoom.y;
+        view.bounds.x -= Input::mouseDelta.x / view.zoom.x;
+        view.bounds.y -= Input::mouseDelta.y / view.zoom.y;
     }
 
     // Zooming
     if (Input::isMouseJustPressed(Input::MOUSE_WHEEL_DOWN))
     {
-        r._view.zoom.x -= zoomIncr * r._view.zoom.x;
-        r._view.zoom.y -= zoomIncr * r._view.zoom.y;
+        view.zoom.x -= zoomIncr * view.zoom.x;
+        view.zoom.y -= zoomIncr * view.zoom.y;
     }
     else if (Input::isMouseJustPressed(Input::MOUSE_WHEEL_UP))
     {
-        r._view.zoom.x += zoomIncr * r._view.zoom.x;
-        r._view.zoom.y += zoomIncr * r._view.zoom.y;
+        view.zoom.x += zoomIncr * view.zoom.x;
+        view.zoom.y += zoomIncr * view.zoom.y;
     }
-    r._view.zoom.x = std::clamp(r._view.zoom.x, minZoom, maxZoom);
-    r._view.zoom.y = std::clamp(r._view.zoom.y, minZoom, maxZoom);
+    view.zoom.x = std::clamp(view.zoom.x, minZoom, maxZoom);
+    view.zoom.y = std::clamp(view.zoom.y, minZoom, maxZoom);
 
-    r.setView(r._view);
+    r.setView(view);
 }

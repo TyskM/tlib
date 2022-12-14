@@ -145,4 +145,10 @@ struct View
         
         return mat * orthoMat;
     }
+
+	bool operator==(const View& other)
+	{ return (bounds == other.bounds && rot == other.rot && zoom == other.zoom); }
+
+	bool operator!=(const View& other)
+	{ return !(operator==(other)); }
 };

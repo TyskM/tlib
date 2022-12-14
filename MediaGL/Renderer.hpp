@@ -280,6 +280,8 @@ struct Renderer
 
     void setView(const View& view)
     {
+        if (view == _view) { return; }
+
         _view = view;
         _projection = view.getMatrix();
         _frustum = Frustum(_projection);
@@ -291,6 +293,8 @@ struct Renderer
         _textShader.bind();
         _textShader.setMat4f("projection", _projection);
     }
+
+    View getView() const { return _view; }
 
     static inline View getDefaultWindowView(const Window& win)
     {

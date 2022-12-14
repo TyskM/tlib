@@ -352,6 +352,12 @@ struct Rect
     {
         return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(width) + ", " + std::to_string(height) + ")");
     }
+
+    bool operator==(const Rect<T>& other)
+    { return (x == other.x && y == other.y && width == other.width && height == other.height); }
+
+    bool operator!=(const Rect<T>& other)
+    { return !(operator==(other)); }
 };
 
 using Rectf = Rect<float>;
