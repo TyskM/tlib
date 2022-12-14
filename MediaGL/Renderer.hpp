@@ -35,7 +35,7 @@ void main()
 }
 )""";
 
-const char* SPRITE_VERT_SHADER_OLD = R"""(
+const char* SPRITE_VERT_SHADER = R"""(
 #version 330 core
 layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
 
@@ -54,27 +54,6 @@ void main()
     else { TexCoords.y = vertex.w; }
     
     gl_Position = projection * model * vec4(vertex.x, vertex.y, 0.0, 1.0);
-}
-)""";
-
-const char* SPRITE_VERT_SHADER = R"""(
-#version 330 core
-layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
-
-out vec2 TexCoords;
-
-uniform mat4 modProj;
-uniform bool uvflipy = false;
-
-void main()
-{
-    TexCoords.x = vertex.z;
-
-    if (uvflipy)
-         { TexCoords.y = 1.0 - vertex.w; }
-    else { TexCoords.y = vertex.w; }
-    
-    gl_Position = modProj * vec4(vertex.x, vertex.y, 0.0, 1.0);
 }
 )""";
 
@@ -130,25 +109,25 @@ struct Renderer
     // If true, renderer will use black bars to maintain views aspect ratio.
     // Also adjusts functions for getting mouse position.
     bool maintainAspect = false;
+    bool frustumCullingEnabled = true;
 
-    // READ ONLY VARS
+    // Read-only
 
     Window* window = nullptr;
+    size_t lastFrameDrawCalls = 0;
 
+    // Private
+
+    bool begun = false;
     View _view;
     glm::mat4 _projection;
     Frustum _frustum;
 
-    ColorRGBAf _spriteShaderColorState = {1,1,1,1};
-    Shader _spriteShader;
     Shader _primShader;
     Shader _textShader;
-    VertexArray _spriteVAO{NoCreate};
-    VertexBuffer _spriteVBO{NoCreate};
 
     VertexArray _linesVAO{NoCreate};
     VertexBuffer _linesVBO{NoCreate};
-    Rectf _scissor;
 
     mutable Rectf _cachedVirtualViewport;
     mutable bool _virtViewportDirty = true;
@@ -157,6 +136,8 @@ struct Renderer
 
     Renderer(Window& window) { create(window); }
     Renderer() { }
+
+    #pragma region Misc
 
     void create(Window& window)
     {
@@ -215,6 +196,27 @@ struct Renderer
         _onWindowResized();
     }
 
+    bool created() { return window != nullptr; }
+
+    void begin()
+    {
+        ASSERTMSG(begun == false, "Forgot to call render()");
+        begun = true;
+
+        _debugDrawCalls = 0;
+        _virtViewportDirty = true;
+        resetViewport();
+    }
+
+    void render()
+    {
+        ASSERTMSG(begun == true, "Forgot to call begin()");
+        begun = false;
+
+        lastFrameDrawCalls = _debugDrawCalls;
+        _debugDrawCalls = 0;
+    }
+
     Rectf getVirtualViewportRect() const
     {
         Vector2f winSize = Vector2f(window->getFramebufferSize());
@@ -259,14 +261,6 @@ struct Renderer
 
     Vector2f getMouseWorldPos()
     {
-        // Old, doesnt work with zoom/rot
-        //auto virtRect = getVirtualViewportRect();
-        //auto virtSize = Vector2f{ virtRect.width, virtRect.height };
-        //Vector2f scale = Vector2(_view.bounds.width, _view.bounds.height) / virtSize;
-        //auto mpos = getMouseLocalPos() - Vector2f{ virtRect.x, virtRect.y };
-        //auto v = mpos * scale + Vector2f{_view.bounds.x, _view.bounds.y};
-        //return v;
-
         auto rect = getVirtualViewportRect();
         Vector2f mpos = getMouseLocalPos();
 
@@ -276,14 +270,6 @@ struct Renderer
         Vector2f normalized = Vector2f(mat[3].x, mat[3].y) - (Vector2f{ _view.bounds.width, _view.bounds.height } / _view.zoom) / 2;
 
         return normalized;
-    }
-
-    void begin()
-    {
-        std::cout << "Last frame draw calls: " << _debugDrawCalls << std::endl;
-        _debugDrawCalls = 0;
-        _virtViewportDirty = true;
-        resetViewport();
     }
 
     void clearColor(const ColorRGBAf& color = {0.1f, 0.1f, 0.1f, 1.f})
@@ -298,15 +284,47 @@ struct Renderer
         _projection = view.getMatrix();
         _frustum = Frustum(_projection);
 
+        _spriteShader.bind();
+        _spriteShader.setMat4f("projection", _projection);
         _primShader.bind();
         _primShader.setMat4f("projection", _projection);
         _textShader.bind();
         _textShader.setMat4f("projection", _projection);
     }
 
+    static inline View getDefaultWindowView(const Window& win)
+    {
+        const auto winSize = win.getFramebufferSize();
+        return View( 0, 0, winSize.x, winSize.y );
+    }
+
+    inline View getDefaultView() { return getDefaultWindowView(*window); }
+
+    void resetViewport()
+    {
+        auto rect = getVirtualViewportRect();
+
+        // OpenGL considers X=0, Y=0 the Lower left Corner of the Screen
+        glViewport(rect.x, rect.y, rect.width, rect.height);
+    }
+
+    void _onWindowResized()
+    {
+        resetViewport();
+    }
+
+    #pragma endregion
+
+    #pragma region Texture
+
+    ColorRGBAf   _spriteShaderColorState = {1,1,1,1};
+    Shader       _spriteShader;
+    VertexArray  _spriteVAO{NoCreate};
+    VertexBuffer _spriteVBO{NoCreate};
+
     void drawTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool uvflipy = false)
     {
-        if (!_frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
+        if (frustumCullingEnabled && !_frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
 
         _spriteShader.bind();
 
@@ -331,7 +349,7 @@ struct Renderer
         model = glm::scale(model, glm::vec3(rect.width, rect.height, 1.f));
         
 
-        _spriteShader.setMat4f("modProj", _projection * model); // Slow
+        _spriteShader.setMat4f("model", model); // Slow
 
         if (_spriteShaderColorState != color)
         {
@@ -345,6 +363,10 @@ struct Renderer
 
         ++_debugDrawCalls;
     }
+
+    #pragma endregion
+
+    #pragma region Primitives
 
     void drawLine(const Vector2f& start, const Vector2f& end, const ColorRGBAf& color, float width = 1)
     { drawLines(std::vector{ start, end }, color, width); }
@@ -446,6 +468,7 @@ struct Renderer
     }
 
     // Pos will be the bottom left of the text
+    // Don't use
     void drawText(const std::string& text, Font& font, const Vector2f& pos,
                   const ColorRGBAf& color = ColorRGBAf::white(), float scale = 1.f)
     {
@@ -468,40 +491,7 @@ struct Renderer
         }
     }
 
-    static inline View getDefaultWindowView(const Window& win)
-    {
-        const auto winSize = win.getFramebufferSize();
-        return View( 0, 0, winSize.x, winSize.y );
-    }
-
-    inline View getDefaultView() { return getDefaultWindowView(*window); }
-
-    bool created() { return window != nullptr; }
-
-    void _onWindowResized()
-    {
-        resetViewport();
-    }
-
-    void resetViewport()
-    {
-        auto rect = getVirtualViewportRect();
-
-        // OpenGL considers X=0, Y=0 the Lower left Corner of the Screen
-        glViewport(rect.x, rect.y, rect.width, rect.height);
-    }
-
-    static void printMat4(const glm::mat4& mat)
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            for (int k = 0; k < 4; k++)
-            {
-                std::cout << "[" << mat[i][k] << "], ";
-            }
-            std::cout << '\n';
-        }
-    }
+    #pragma endregion
 };
 
 int SDLEventFilterCB(void* userdata, SDL_Event* event)

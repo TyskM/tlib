@@ -203,3 +203,4 @@ struct Texture : NonCopyable
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, (GLint)defaultInternalFormat, 2, 2, 0, (GLenum)defaultFormat, GL_UNSIGNED_BYTE, fallbackImage));
     }
 };
+

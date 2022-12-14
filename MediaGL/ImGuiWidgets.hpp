@@ -10,9 +10,22 @@ void drawDiagWidget(float delta)
     const auto meminfo = sysq::getGlobalMemInfo();
     const auto meminfop = sysq::getThisProcessMemUsage();
 
-    ImGui::Begin("Diagnostics##7");
+    static float snapFPS = 1.f / delta;
+
+    static float snapTimeSecs = 0.66f;
+    static float snapTimeCurr = 0.f;
+
+    snapTimeCurr += delta;
+    if (snapTimeCurr > snapTimeSecs)
+    {
+        snapFPS = 1.f / delta;
+        snapTimeCurr = 0.f;
+    }
+
+    ImGui::Begin("Diagnostics");
 
     ImGui::Text("Delta: %f", delta);
+    ImGui::Text(std::format("FPS: {}", snapFPS).c_str());
     ImGui::Text(std::format("CPU Usage: {}%", sysq::getThisProcessCPUUsage()).c_str());
     ImGui::Text(std::format("Phys Ram Used: {} MB", sysq::bytesToMb(meminfop.workingSetSize)).c_str());
     ImGui::Text(std::format("Virt Ram Used: {} MB", sysq::bytesToMb(meminfop.privateUsage)).c_str());

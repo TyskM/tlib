@@ -92,6 +92,7 @@ struct Input
 
     static inline Vector2i mousePos;
     static inline Vector2i prevMousePos;
+    static inline Vector2i mouseDelta;
 
     static inline void input(const SDL_Event& e)
     {
@@ -116,6 +117,7 @@ struct Input
             mouse[i] = (tempMouse & (1 << i) /* frick sdl button SDL_BUTTON(i)*/ );
         }
 
+        mouseDelta = mousePos - prevMousePos;
         mouse[MOUSE_WHEEL_UP]   = wheelUpNextUpdate;
         mouse[MOUSE_WHEEL_DOWN] = wheelDownNextUpdate;
         wheelUpNextUpdate   = false;

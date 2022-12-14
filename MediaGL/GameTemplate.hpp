@@ -98,11 +98,11 @@ struct WindowTemplate
 
 struct GameTemplate
 {
-    Window win;
-    Renderer renderer;
-    MyGui imgui;
-    Timer dtTimer;
-    FPSLimit fpslimit;
+    Window              win;
+    Renderer            renderer;
+    MyGui               imgui;
+    Timer               dtTimer;
+    FPSLimit            fpslimit;
     StateMan<GameState> stateMan;
 
     GameTemplate()
@@ -138,13 +138,10 @@ struct GameTemplate
                 Input::input(e);
                 stateMan.getState()->input(e);
             }
-            renderer.begin();
-            imgui.newFrame();
             float dt = dtTimer.restart().asSeconds();
             stateMan.getState()->update(dt);
             stateMan.getState()->draw(dt);
             glState.reset();
-            imgui.render();
             win.swap();
             fpslimit.wait();
         }
