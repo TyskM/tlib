@@ -5,6 +5,7 @@ struct Texture;
 struct VertexArray;
 struct VertexBuffer;
 struct ElementBuffer;
+struct SSBO;
 
 struct GLState
 {
@@ -13,6 +14,7 @@ struct GLState
     VertexArray*   boundVertexArray   = nullptr;
     VertexBuffer*  boundVertexBuffer  = nullptr;
     ElementBuffer* boundElementBuffer = nullptr;
+    SSBO*          boundSSBO          = nullptr;
 
     void reset() { *this = GLState(); }
 };

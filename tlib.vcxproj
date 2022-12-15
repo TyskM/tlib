@@ -145,6 +145,7 @@
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="Macros.hpp" />
     <ClInclude Include="Math.hpp" />
+    <ClInclude Include="MediaGL\Debug.hpp" />
     <ClInclude Include="MediaGL\Font.hpp" />
     <ClInclude Include="mediagl\FPSLimit.hpp" />
     <ClInclude Include="mediagl\GameTemplate.hpp" />
@@ -162,6 +163,7 @@
     <ClInclude Include="mediagl\FrameBuffer.hpp" />
     <ClInclude Include="mediagl\SDLEventToStr.hpp" />
     <ClInclude Include="mediagl\Shader.hpp" />
+    <ClInclude Include="MediaGL\SSBO.hpp" />
     <ClInclude Include="mediagl\SysQuery.hpp" />
     <ClInclude Include="mediagl\Texture.hpp" />
     <ClInclude Include="mediagl\TextureManager.hpp" />

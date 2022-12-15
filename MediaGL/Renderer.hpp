@@ -10,6 +10,7 @@
 #include "View.hpp"
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
+#include "SSBO.hpp"
 
 
 #define STRING_MACRO_NAME(X) #X
@@ -143,7 +144,7 @@ struct Renderer
     {
         ASSERTMSG(begun == true, "Forgot to call begin()");
         begun = false;
-        flush();
+        flushTextureBatch();
 
         lastFrameDrawCalls = _debugDrawCalls;
         _debugDrawCalls = 0;
@@ -255,8 +256,48 @@ struct Renderer
 
     #pragma region Texture
 
-    const char* SPRITE_VERT_SHADER = R"""(
-        #version 460 core
+    ColorRGBAf   _spriteShaderColorState = {1,1,1,1};
+    Shader       _spriteShader;
+    VertexArray  _spriteVAO{NoCreate};
+    VertexBuffer _spriteVBO{NoCreate};
+
+    // Batched textures
+
+    #ifndef MAX_SPRITE_BATCH_SIZE
+    #define MAX_SPRITE_BATCH_SIZE 1024 * 8
+    #endif
+
+    struct
+    {
+        // Index per instance arrays like this : arr[gl_VertexID / vertCount]
+        // Index per vertex array like this    : arr[gl_VertexID % vertCount]
+
+        // PER INSTANCE
+        std::array<glm::mat4, MAX_SPRITE_BATCH_SIZE> model;
+        static_assert( sizeof(glm::mat4) * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::mat4, MAX_SPRITE_BATCH_SIZE>) );
+
+        // PER VERTEX
+        std::array<glm::vec2, 6 * MAX_SPRITE_BATCH_SIZE> texCoords;
+        static_assert( sizeof(glm::vec2) * 6 * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::vec2, 6 * MAX_SPRITE_BATCH_SIZE>) );
+
+        // PER INSTANCE
+        std::array<glm::vec4, MAX_SPRITE_BATCH_SIZE> color;
+        static_assert( sizeof(glm::vec4) * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::vec4, MAX_SPRITE_BATCH_SIZE>) );
+
+    } _texBatchData;
+    
+    int _currentSpriteBatchIndex = 0;
+    Shader _fastSpriteShader;
+    SSBO _texBatchDataSSBO;
+    Texture* _currentTexture = nullptr;
+
+    void textureInit()
+    {
+        #pragma region slow sprites
+        // Sprite setup
+        _spriteShader.create(
+        // VERT
+  R"""( #version 460 core
         layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
 
         out vec2 TexCoords;
@@ -274,9 +315,9 @@ struct Renderer
             else { TexCoords.y = vertex.w; }
     
             gl_Position = projection * model * vec4(vertex.x, vertex.y, 0.0, 1.0);
-        } )""";
-
-    const char* SPRITE_FRAG_SHADER = R"""(
+        } )""", 
+        // FRAG
+        R"""(
         #version 460 core
         in vec2 TexCoords;
         out vec4 color;
@@ -293,39 +334,7 @@ struct Renderer
             {
                 color = vec4(spriteColor) * vec4(1.0, 1.0, 1.0, texture(image, TexCoords).r);
             }
-        } )""";
-
-    ColorRGBAf   _spriteShaderColorState = {1,1,1,1};
-    Shader       _spriteShader;
-    VertexArray  _spriteVAO{NoCreate};
-    VertexBuffer _spriteVBO{NoCreate};
-
-    // Batched textures
-    #ifndef MAX_SPRITE_BATCH_SIZE
-    #define MAX_SPRITE_BATCH_SIZE 1024 * 8
-    #endif
-
-    struct
-    {
-        // glm::mat4 model[MAX_SPRITE_BATCH_SIZE];
-        std::array<glm::mat4, MAX_SPRITE_BATCH_SIZE> model;
-        static_assert( sizeof(glm::mat4) * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::mat4, MAX_SPRITE_BATCH_SIZE>) );
-
-        // glm::vec2 texCoords[6 * MAX_SPRITE_BATCH_SIZE];
-        std::array<glm::vec2, 6 * MAX_SPRITE_BATCH_SIZE> texCoords;
-        static_assert( sizeof(glm::vec2) * 6 * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::vec2, 6 * MAX_SPRITE_BATCH_SIZE>) );
-    } _texBatchData;
-    
-    int _currentSpriteBatchIndex = 0;
-    Shader _fastSpriteShader;
-    GLuint ssbo = 0;
-    Texture* _currentTexture = nullptr;
-
-    void textureInit()
-    {
-        #pragma region slow sprites
-        // Sprite setup
-        _spriteShader.create(SPRITE_VERT_SHADER, SPRITE_FRAG_SHADER);
+        } )""");
         _spriteShader.bind();
         _spriteShader.setInt("image", 0);
         _spriteShader.setVec4f("spriteColor", 1, 1, 1, 1);
@@ -375,19 +384,22 @@ struct Renderer
 
             layout(std430, binding = 0) buffer data
             {
-                mat4 model[)" STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
+                mat4 model    [)"     STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
                 vec2 texCoords[6 * )" STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
+                vec4 color    [)"     STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
             };
 
-            out vec2 TexCoords;
+            out vec2 fragTexCoords;
+            out vec4 fragColor;
 
             uniform mat4 projection;
 
             void main()
             {
                 // gl_VertexID % 6
-                TexCoords.x = texCoords[gl_VertexID].x;
-                TexCoords.y = texCoords[gl_VertexID].y;
+                fragTexCoords.x = texCoords[gl_VertexID].x;
+                fragTexCoords.y = texCoords[gl_VertexID].y;
+                fragColor = color[gl_VertexID / 6];
     
                 gl_Position = projection * model[gl_VertexID / 6] * vec4(pos[gl_VertexID % 6], 0.0, 1.0);
             }
@@ -395,16 +407,16 @@ struct Renderer
             // FRAG
             R"(
             #version 460 core
-            in vec2 TexCoords;
+            in vec2 fragTexCoords;
+            in vec4 fragColor;
             out vec4 color;
 
             uniform sampler2D image;
-            uniform vec4 spriteColor;
 
             void main()
             {
-                color = spriteColor * texture(image, TexCoords);
-             // color = vec4(1, 0, 1, 1);
+                color = fragColor * texture(image, fragTexCoords);
+                //color = vec4(1, 0, 1, 1);
             }
             )"
         );
@@ -412,18 +424,17 @@ struct Renderer
 
         _fastSpriteShader.bind();
         _fastSpriteShader.setInt("image", 0);
-        _fastSpriteShader.setVec4f("spriteColor", 1, 1, 1, 1);
         _fastSpriteShader.unbind();
 
-        glGenBuffers(1, &ssbo);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(_texBatchData), nullptr, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        _texBatchDataSSBO.create();
+        _texBatchDataSSBO.bind();
     }
 
+    // Prefer drawTextureFast
     void drawTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool uvflipy = false)
     {
         if (frustumCullingEnabled && !_frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
+        flushTextureBatch();
 
         _spriteShader.bind();
 
@@ -464,11 +475,10 @@ struct Renderer
         ++_debugDrawCalls;
     }
 
-    // https://bitnenfer.com/blog/2016/04/28/ldEngine-Part-1.html
     void drawTextureFast(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 })
     {
         if (frustumCullingEnabled && !_frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
-        if (&tex != _currentTexture) { flush(); }
+        if (&tex != _currentTexture) { flushTextureBatch(); }
 
         _texBatchData.model[_currentSpriteBatchIndex] = glm::mat4(1.0f);
 
@@ -494,26 +504,30 @@ struct Renderer
         _texBatchData.texCoords[4 + _currentSpriteBatchIndex * 6] = { 1.0f, 1.0f };
         _texBatchData.texCoords[5 + _currentSpriteBatchIndex * 6] = { 1.0f, 0.0f };
 
+
+        _texBatchData.color[_currentSpriteBatchIndex] = { color.r, color.g, color.b, color.a };
+
         ++_currentSpriteBatchIndex;
         _currentTexture = &tex;
 
-        if (_currentSpriteBatchIndex == MAX_SPRITE_BATCH_SIZE) { flush(); }
+        if (_currentSpriteBatchIndex == MAX_SPRITE_BATCH_SIZE) { flushTextureBatch(); }
     }
 
-    void flush()
+    // Call this to draw the batched textures early
+    void flushTextureBatch()
     {
         if (_currentTexture == nullptr || _currentSpriteBatchIndex == 0) { return; }
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(_texBatchData), &_texBatchData, GL_DYNAMIC_DRAW);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+        _texBatchDataSSBO.bind();
+        _texBatchDataSSBO.bufferData(_texBatchData);
+        _texBatchDataSSBO.setBufferBase(0);
 
         _fastSpriteShader.bind();
         _currentTexture->bind();
         VertexArray::unbind();
         GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6 * _currentSpriteBatchIndex));
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        _texBatchDataSSBO.unbind();
 
         ++_debugDrawCalls;
         _currentSpriteBatchIndex = 0;
@@ -529,8 +543,11 @@ struct Renderer
     // TODO: batch, it's super slow!!!
     // It's a line loop
     template <typename Vector2fContainer>
-    void drawLines(const Vector2fContainer& lines, const ColorRGBAf& color = ColorRGBAf::white(), float width = 1, GLDrawMode mode = GLDrawMode::LINE_STRIP)
+    void drawLines(const Vector2fContainer& lines, const ColorRGBAf& color = ColorRGBAf::white(),
+                   float width = 1, GLDrawMode mode = GLDrawMode::LINE_STRIP)
     {
+        flushTextureBatch();
+
         _primShader.bind();
         // Projection set in setView()
         _primShader.setVec4f("color", color.r, color.g, color.b, color.a);
