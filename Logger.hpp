@@ -1,3 +1,6 @@
+
+// Obsolete: use Logging.hpp
+
 #pragma once
 
 #include <string>
