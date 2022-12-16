@@ -11,10 +11,7 @@
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
 #include "SSBO.hpp"
-
-
-#define STRING_MACRO_NAME(X) #X
-#define STRING_MACRO_VALUE(X) STRING_MACRO_NAME(X)
+#include "../Macros.hpp"
 
 #pragma region Shaders
 const char* PRIMITIVE_VERT_SHADER = R"""(
@@ -70,36 +67,42 @@ struct Renderer
 {
     // Config
 
+    // Read / Write
     // If true, renderer will use black bars to maintain views aspect ratio.
-    // Also adjusts functions for getting mouse position.
-    bool maintainAspect = false;
-    bool frustumCullingEnabled = true;
+    // Also adjusts getMouseWorldPos() to return accurate coords.
+    bool maintainAspect = false;       
+
+    // Read / Write
+    // Culls things drawn outside the view frustum.
+    // It's super fast!! Probably no reason to turn it off.
+    bool frustumCullingEnabled = true; 
 
     // Read-only
 
-    Window* window = nullptr;
-    size_t lastFrameDrawCalls = 0;
+    Window* window = nullptr;      // Read only
+    SDL_GLContext glContext;       // Read only
+    size_t lastFrameDrawCalls = 0; // Read only
 
     // Private
 
-    bool begun = false;
-    View _view;
-    glm::mat4 _projection;
-    Frustum _frustum;
+    bool      begun = false; // Read only
+    View      view;         // Read only
+    glm::mat4 projection;   // Read only
+    Frustum   frustum;      // Read only
 
-    Shader _primShader;
-    Shader _textShader;
+    Shader primShader; // Read only
+    Shader textShader; // Read only
 
-    VertexArray _linesVAO{NoCreate};
-    VertexBuffer _linesVBO{NoCreate};
+    VertexArray  linesVAO{NoCreate}; // Read only
+    VertexBuffer linesVBO{NoCreate}; // Read only
 
-    mutable Rectf _cachedVirtualViewport;
-    mutable bool _virtViewportDirty = true;
+    mutable Rectf cachedVirtualViewport;   // Read only
+    mutable bool virtViewportDirty = true; // Read only
 
-    size_t _debugDrawCalls = 0;
+    size_t debugDrawCalls = 0; // Private
 
-    Renderer(Window& window) { create(window); }
-    Renderer() { }
+    Renderer() = default;
+    ~Renderer() { reset(); }
 
     #pragma region Misc
 
@@ -107,21 +110,37 @@ struct Renderer
     {
         this->window = &window;
 
+        ASSERTMSG(WindowFlags::OpenGL & window.getFlags(),
+            "Your window must be created with the WindowFlags::OpenGL flag!");
+
+        glContext = SDL_GL_CreateContext(window);
+        SDL_GL_MakeCurrent(window, glContext);
+        SDL_GL_SetSwapInterval(0);
+
+        if (gl3wInit())
+        { fprintf(stderr, "failed to initialize OpenGL\n"); abort(); }
+        if (!gl3wIsSupported(3, 3))
+        { fprintf(stderr, "OpenGL 3.3 not supported\n"); abort(); }
+
+        printf("OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
+        glEnable(GL_DEBUG_OUTPUT);
+        glDebugMessageCallback( defaultGLCallback, 0 );
+
         // Enable transparency
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         // Primitives setup
-        _primShader.create(PRIMITIVE_VERT_SHADER, PRIMITIVE_FRAG_SHADER);
+        primShader.create(PRIMITIVE_VERT_SHADER, PRIMITIVE_FRAG_SHADER);
 
         textureInit();
 
         // Lines setup
-        _linesVAO.create();
-        _linesVBO.create();
+        linesVAO.create();
+        linesVBO.create();
 
         // Text setup
-        _textShader.create(TEXT_VERT_SHADER, TEXT_FRAG_SHADER);
+        textShader.create(TEXT_VERT_SHADER, TEXT_FRAG_SHADER);
 
         SDL_AddEventWatch(SDLEventFilterCB, this);
         setView(getDefaultWindowView(window));
@@ -130,13 +149,19 @@ struct Renderer
 
     bool created() { return window != nullptr; }
 
+    void reset()
+    {
+        if (!created()) return;
+        SDL_GL_DeleteContext(glContext);
+    }
+
     void begin()
     {
         ASSERTMSG(begun == false, "Forgot to call render()");
         begun = true;
 
-        _debugDrawCalls = 0;
-        _virtViewportDirty = true;
+        debugDrawCalls = 0;
+        virtViewportDirty = true;
         resetViewport();
     }
 
@@ -146,20 +171,20 @@ struct Renderer
         begun = false;
         flushTextureBatch();
 
-        lastFrameDrawCalls = _debugDrawCalls;
-        _debugDrawCalls = 0;
+        lastFrameDrawCalls = debugDrawCalls;
+        debugDrawCalls = 0;
     }
 
     Rectf getVirtualViewportRect() const
     {
         Vector2f winSize = Vector2f(window->getFramebufferSize());
 
-        if (!_virtViewportDirty) { return _cachedVirtualViewport; }
+        if (!virtViewportDirty) { return cachedVirtualViewport; }
         Rectf vp;
 
         if (maintainAspect)
         {
-            float targetAspectRatio = _view.bounds.width / _view.bounds.height;
+            float targetAspectRatio = view.bounds.width / view.bounds.height;
             float width = winSize.x ;
             float height = width / targetAspectRatio + 0.5f;
 
@@ -180,8 +205,8 @@ struct Renderer
             vp = Rectf(0, 0, fb.x, fb.y);
         }
 
-        _cachedVirtualViewport = vp;
-        _virtViewportDirty = false;
+        cachedVirtualViewport = vp;
+        virtViewportDirty = false;
         return vp;
     }
 
@@ -197,10 +222,10 @@ struct Renderer
         auto rect = getVirtualViewportRect();
         Vector2f mpos = getMouseLocalPos();
 
-        glm::mat4 mat = _view.getMatrix();
-        mat = glm::translate(mat, { -mpos.x / _view.zoom.x, -mpos.y / _view.zoom.y, 0.f });
+        glm::mat4 mat = view.getMatrix();
+        mat = glm::translate(mat, { -mpos.x / view.zoom.x, -mpos.y / view.zoom.y, 0.f });
         mat = glm::inverse(mat);
-        Vector2f normalized = Vector2f(mat[3].x, mat[3].y) - (Vector2f{ _view.bounds.width, _view.bounds.height } / _view.zoom) / 2;
+        Vector2f normalized = Vector2f(mat[3].x, mat[3].y) - (Vector2f{ view.bounds.width, view.bounds.height } / view.zoom) / 2;
 
         return normalized;
     }
@@ -211,25 +236,25 @@ struct Renderer
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    void setView(const View& view)
+    void setView(const View& newView)
     {
-        if (view == _view) { return; }
+        if (view == newView) { return; }
 
-        _view = view;
-        _projection = view.getMatrix();
-        _frustum = Frustum(_projection);
+        view = newView;
+        projection = view.getMatrix();
+        frustum = Frustum(projection);
 
-        _spriteShader.bind();
-        _spriteShader.setMat4f("projection", _projection);
-        _fastSpriteShader.bind();
-        _fastSpriteShader.setMat4f("projection", _projection);
-        _primShader.bind();
-        _primShader.setMat4f("projection", _projection);
-        _textShader.bind();
-        _textShader.setMat4f("projection", _projection);
+        spriteShader.bind();
+        spriteShader.setMat4f("projection", projection);
+        fastSpriteShader.bind();
+        fastSpriteShader.setMat4f("projection", projection);
+        primShader.bind();
+        primShader.setMat4f("projection", projection);
+        textShader.bind();
+        textShader.setMat4f("projection", projection);
     }
 
-    View getView() const { return _view; }
+    View getView() const { return view; }
 
     static inline View getDefaultWindowView(const Window& win)
     {
@@ -256,10 +281,10 @@ struct Renderer
 
     #pragma region Texture
 
-    ColorRGBAf   _spriteShaderColorState = {1,1,1,1};
-    Shader       _spriteShader;
-    VertexArray  _spriteVAO{NoCreate};
-    VertexBuffer _spriteVBO{NoCreate};
+    ColorRGBAf   spriteShaderColorState = {1,1,1,1};
+    Shader       spriteShader;
+    VertexArray  spriteVAO{NoCreate};
+    VertexBuffer spriteVBO{NoCreate};
 
     // Batched textures
 
@@ -284,18 +309,18 @@ struct Renderer
         std::array<glm::vec4, MAX_SPRITE_BATCH_SIZE> color;
         static_assert( sizeof(glm::vec4) * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::vec4, MAX_SPRITE_BATCH_SIZE>) );
 
-    } _texBatchData;
+    } texBatchData;
     
-    int _currentSpriteBatchIndex = 0;
-    Shader _fastSpriteShader;
-    SSBO _texBatchDataSSBO;
-    Texture* _currentTexture = nullptr;
+    int currentSpriteBatchIndex = 0;
+    Shader fastSpriteShader;
+    SSBO texBatchDataSSBO;
+    Texture* currentTexture = nullptr;
 
     void textureInit()
     {
         #pragma region slow sprites
         // Sprite setup
-        _spriteShader.create(
+        spriteShader.create(
         // VERT
   R"""( #version 460 core
         layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
@@ -335,11 +360,11 @@ struct Renderer
                 color = vec4(spriteColor) * vec4(1.0, 1.0, 1.0, texture(image, TexCoords).r);
             }
         } )""");
-        _spriteShader.bind();
-        _spriteShader.setInt("image", 0);
-        _spriteShader.setVec4f("spriteColor", 1, 1, 1, 1);
-        _spriteShaderColorState = { 1, 1, 1, 1 };
-        _spriteShader.unbind();
+        spriteShader.bind();
+        spriteShader.setInt("image", 0);
+        spriteShader.setVec4f("spriteColor", 1, 1, 1, 1);
+        spriteShaderColorState = { 1, 1, 1, 1 };
+        spriteShader.unbind();
 
         GL_CHECK(glActiveTexture(GL_TEXTURE0));
 
@@ -354,23 +379,23 @@ struct Renderer
             1.0f, 0.0f, 1.0f, 0.0f
         };
 
-        _spriteVAO.create();
-        _spriteVBO.create();
+        spriteVAO.create();
+        spriteVBO.create();
 
-        _spriteVBO.bind();
+        spriteVBO.bind();
         GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
 
-        _spriteVAO.bind();
+        spriteVAO.bind();
         GL_CHECK(glEnableVertexAttribArray(0));
         GL_CHECK(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0));
-        _spriteVBO.unbind();
-        _spriteVAO.unbind();
+        spriteVBO.unbind();
+        spriteVAO.unbind();
 
         #pragma endregion
 
         // Fast sprite setup
         #pragma region Shader Source
-        _fastSpriteShader.create(
+        fastSpriteShader.create(
             // VERTEX
             R"(
             #version 460 core
@@ -422,26 +447,26 @@ struct Renderer
         );
         #pragma endregion
 
-        _fastSpriteShader.bind();
-        _fastSpriteShader.setInt("image", 0);
-        _fastSpriteShader.unbind();
+        fastSpriteShader.bind();
+        fastSpriteShader.setInt("image", 0);
+        fastSpriteShader.unbind();
 
-        _texBatchDataSSBO.create();
-        _texBatchDataSSBO.bind();
+        texBatchDataSSBO.create();
+        texBatchDataSSBO.bind();
     }
 
     // Prefer drawTextureFast
     void drawTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool uvflipy = false)
     {
-        if (frustumCullingEnabled && !_frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
+        if (frustumCullingEnabled && !frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
         flushTextureBatch();
-
-        _spriteShader.bind();
+        
+        spriteShader.bind();
 
         //if (tex.internalFormat == TexInternalFormats::RED)
-        //{ _spriteShader.setBool("grayscale", true); }
+        //{ spriteShader.setBool("grayscale", true); }
         //else
-        //{ _spriteShader.setBool("grayscale", false); }
+        //{ spriteShader.setBool("grayscale", false); }
         //
         //_spriteShader.setBool("uvflipy", uvflipy);
 
@@ -459,78 +484,78 @@ struct Renderer
         model = glm::scale(model, glm::vec3(rect.width, rect.height, 1.f));
         
 
-        _spriteShader.setMat4f("model", model); // Slow
+        spriteShader.setMat4f("model", model); // Slow
 
-        if (_spriteShaderColorState != color)
+        if (spriteShaderColorState != color)
         {
-            _spriteShader.setVec4f("spriteColor", color.r, color.g, color.b, color.a);
-            _spriteShaderColorState = color;
+            spriteShader.setVec4f("spriteColor", color.r, color.g, color.b, color.a);
+            spriteShaderColorState = color;
         }
 
         tex.bind();
-        _spriteVAO.bind();
+        spriteVAO.bind();
         GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
 
 
-        ++_debugDrawCalls;
+        ++debugDrawCalls;
     }
 
     void drawTextureFast(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 })
     {
-        if (frustumCullingEnabled && !_frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
-        if (&tex != _currentTexture) { flushTextureBatch(); }
+        if (frustumCullingEnabled && !frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
+        if (&tex != currentTexture) { flushTextureBatch(); }
 
-        _texBatchData.model[_currentSpriteBatchIndex] = glm::mat4(1.0f);
+        texBatchData.model[currentSpriteBatchIndex] = glm::mat4(1.0f);
 
-        _texBatchData.model[_currentSpriteBatchIndex] = glm::translate(_texBatchData.model[_currentSpriteBatchIndex], glm::vec3(rect.x, rect.y, 0.0f));
+        texBatchData.model[currentSpriteBatchIndex] = glm::translate(texBatchData.model[currentSpriteBatchIndex], glm::vec3(rect.x, rect.y, 0.0f));
 
         if (rot != 0)
         {
-            _texBatchData.model[_currentSpriteBatchIndex] =
-                glm::translate(_texBatchData.model[_currentSpriteBatchIndex], glm::vec3(0.5f * rect.width, 0.5f * rect.height, 0.0f));
-            _texBatchData.model[_currentSpriteBatchIndex] =
-                glm::rotate(   _texBatchData.model[_currentSpriteBatchIndex], glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
-            _texBatchData.model[_currentSpriteBatchIndex] =
-                glm::translate(_texBatchData.model[_currentSpriteBatchIndex], glm::vec3(-0.5f * rect.width, -0.5f * rect.height, 0.0f));
+            texBatchData.model[currentSpriteBatchIndex] =
+                glm::translate(texBatchData.model[currentSpriteBatchIndex], glm::vec3(0.5f * rect.width, 0.5f * rect.height, 0.0f));
+            texBatchData.model[currentSpriteBatchIndex] =
+                glm::rotate(   texBatchData.model[currentSpriteBatchIndex], glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
+            texBatchData.model[currentSpriteBatchIndex] =
+                glm::translate(texBatchData.model[currentSpriteBatchIndex], glm::vec3(-0.5f * rect.width, -0.5f * rect.height, 0.0f));
         }
 
-        _texBatchData.model[_currentSpriteBatchIndex] = glm::scale(_texBatchData.model[_currentSpriteBatchIndex], glm::vec3(rect.width, rect.height, 1.f));
+        texBatchData.model[currentSpriteBatchIndex] = glm::scale(texBatchData.model[currentSpriteBatchIndex], glm::vec3(rect.width, rect.height, 1.f));
         
 
-        _texBatchData.texCoords[0 + _currentSpriteBatchIndex * 6] = { 0.0f, 1.0f };
-        _texBatchData.texCoords[1 + _currentSpriteBatchIndex * 6] = { 1.0f, 0.0f };
-        _texBatchData.texCoords[2 + _currentSpriteBatchIndex * 6] = { 0.0f, 0.0f };
-        _texBatchData.texCoords[3 + _currentSpriteBatchIndex * 6] = { 0.0f, 1.0f };
-        _texBatchData.texCoords[4 + _currentSpriteBatchIndex * 6] = { 1.0f, 1.0f };
-        _texBatchData.texCoords[5 + _currentSpriteBatchIndex * 6] = { 1.0f, 0.0f };
+        texBatchData.texCoords[0 + currentSpriteBatchIndex * 6] = { 0.0f, 1.0f };
+        texBatchData.texCoords[1 + currentSpriteBatchIndex * 6] = { 1.0f, 0.0f };
+        texBatchData.texCoords[2 + currentSpriteBatchIndex * 6] = { 0.0f, 0.0f };
+        texBatchData.texCoords[3 + currentSpriteBatchIndex * 6] = { 0.0f, 1.0f };
+        texBatchData.texCoords[4 + currentSpriteBatchIndex * 6] = { 1.0f, 1.0f };
+        texBatchData.texCoords[5 + currentSpriteBatchIndex * 6] = { 1.0f, 0.0f };
 
 
-        _texBatchData.color[_currentSpriteBatchIndex] = { color.r, color.g, color.b, color.a };
+        texBatchData.color[currentSpriteBatchIndex] = { color.r, color.g, color.b, color.a };
 
-        ++_currentSpriteBatchIndex;
-        _currentTexture = &tex;
+        ++currentSpriteBatchIndex;
+        currentTexture = &tex;
 
-        if (_currentSpriteBatchIndex == MAX_SPRITE_BATCH_SIZE) { flushTextureBatch(); }
+        if (currentSpriteBatchIndex == MAX_SPRITE_BATCH_SIZE) { flushTextureBatch(); }
     }
 
     // Call this to draw the batched textures early
     void flushTextureBatch()
     {
-        if (_currentTexture == nullptr || _currentSpriteBatchIndex == 0) { return; }
+        if (currentTexture == nullptr || currentSpriteBatchIndex == 0) { return; }
 
-        _texBatchDataSSBO.bind();
-        _texBatchDataSSBO.bufferData(_texBatchData);
-        _texBatchDataSSBO.setBufferBase(0);
+        texBatchDataSSBO.bind();
+        texBatchDataSSBO.bufferData(texBatchData);
+        texBatchDataSSBO.setBufferBase(0);
 
-        _fastSpriteShader.bind();
-        _currentTexture->bind();
+        fastSpriteShader.bind();
+        currentTexture->bind();
         VertexArray::unbind();
-        GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6 * _currentSpriteBatchIndex));
+        GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6 * currentSpriteBatchIndex));
 
-        _texBatchDataSSBO.unbind();
+        texBatchDataSSBO.unbind();
 
-        ++_debugDrawCalls;
-        _currentSpriteBatchIndex = 0;
+        ++debugDrawCalls;
+        currentSpriteBatchIndex = 0;
     }
 
     #pragma endregion
@@ -548,21 +573,21 @@ struct Renderer
     {
         flushTextureBatch();
 
-        _primShader.bind();
+        primShader.bind();
         // Projection set in setView()
-        _primShader.setVec4f("color", color.r, color.g, color.b, color.a);
+        primShader.setVec4f("color", color.r, color.g, color.b, color.a);
 
-        _linesVBO.bind();
+        linesVBO.bind();
         GL_CHECK(glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vector2f), lines.data(), GL_DYNAMIC_DRAW));
 
-        _linesVAO.bind();
+        linesVAO.bind();
         GL_CHECK(glEnableVertexAttribArray(0));
         GL_CHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0));
 
         glLineWidth(width);
         GL_CHECK(glDrawArrays((int)mode, 0, lines.size()));
 
-        ++_debugDrawCalls;
+        ++debugDrawCalls;
     }
 
     void drawRect(const Rectf& rect, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false)

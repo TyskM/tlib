@@ -29,7 +29,7 @@ struct MyGui : NonAssignable
         auto ctx = ImGui::CreateContext();
         ImGui::SetCurrentContext(ctx);
         ImGui::StyleColorsDark();
-        ImGui_ImplSDL2_InitForOpenGL(renderer.window->window, renderer.window->glContext);
+        ImGui_ImplSDL2_InitForOpenGL(renderer.window->window, renderer.glContext);
         ImGui_ImplOpenGL3_Init("#version 130");
     }
 

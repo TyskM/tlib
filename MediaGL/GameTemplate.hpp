@@ -65,9 +65,9 @@ struct WindowTemplate
         fpslimit.setFPSLimit(60);
     }
 
-    void create(const char* winTitle = "Window", Vector2i winSize = {1280, 720})
+    void create(const WindowCreateParams& params = WindowCreateParams())
     {
-        win.create(winTitle, winSize.x, winSize.y);
+        win.create(params);
     }
 
     void start(GameState& state)
@@ -110,9 +110,11 @@ struct GameTemplate
         fpslimit.setFPSLimit(60);
     }
 
-    void create(const char* winTitle = "Window", Vector2i winSize = {1280, 720})
+    void create(const WindowCreateParams& params = WindowCreateParams())
     {
-        win.create(winTitle, winSize.x, winSize.y);
+        WindowCreateParams p = params;
+        p.flags |= WindowFlags::OpenGL;
+        win.create(p);
         renderer.create(win);
         imgui.create(renderer);
     }
