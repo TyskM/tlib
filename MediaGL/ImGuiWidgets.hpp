@@ -5,8 +5,9 @@
 #include <format>
 #include "SysQuery.hpp"
 
-void drawDiagWidget(float delta)
+void drawDiagWidget()
 {
+    float delta = ImGui::GetIO().DeltaTime;
     const auto meminfo = sysq::getGlobalMemInfo();
     const auto meminfop = sysq::getThisProcessMemUsage();
 

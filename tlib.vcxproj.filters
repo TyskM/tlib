@@ -113,7 +113,7 @@
     <ClInclude Include="media\TextureManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="media\Window.hpp">
+    <ClInclude Include="MediaGL\Window.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mediagl\FPSLimit.hpp">
@@ -167,7 +167,7 @@
     <ClInclude Include="mediagl\View.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mediagl\Window.hpp">
+    <ClInclude Include="mediagl\WindowOld.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="old\pathfindexamples.hpp">
@@ -639,6 +639,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MediaGL\Debug.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Snippets.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

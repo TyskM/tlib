@@ -143,6 +143,7 @@
     <ClInclude Include="Event.hpp" />
     <ClInclude Include="Files.hpp" />
     <ClInclude Include="Logger.hpp" />
+    <ClInclude Include="Logging.hpp" />
     <ClInclude Include="Macros.hpp" />
     <ClInclude Include="Math.hpp" />
     <ClInclude Include="MediaGL\Debug.hpp" />
@@ -170,7 +171,7 @@
     <ClInclude Include="MediaGL\VertexArray.hpp" />
     <ClInclude Include="MediaGL\VertexBuffer.hpp" />
     <ClInclude Include="mediagl\View.hpp" />
-    <ClInclude Include="mediagl\Window.hpp" />
+    <ClInclude Include="mediagl\WindowOld.hpp" />
     <ClInclude Include="media\Box2DDebugDraw.h" />
     <ClInclude Include="media\Event.hpp" />
     <ClInclude Include="media\Font.hpp" />
@@ -187,7 +188,7 @@
     <ClInclude Include="media\Renderer.hpp" />
     <ClInclude Include="media\SysQuery.hpp" />
     <ClInclude Include="media\TextureManager.hpp" />
-    <ClInclude Include="media\Window.hpp" />
+    <ClInclude Include="MediaGL\Window.hpp" />
     <ClInclude Include="Misc.hpp" />
     <ClInclude Include="NonAssignable.hpp" />
     <ClInclude Include="old\media bad\ImGui.hpp" />
@@ -205,6 +206,7 @@
     <ClInclude Include="Pathfind.hpp" />
     <ClInclude Include="RNG.hpp" />
     <ClInclude Include="SFMLDebugDraw.hpp" />
+    <ClInclude Include="Snippets.hpp" />
     <ClInclude Include="StateMan.hpp" />
     <ClInclude Include="StringHelpers.hpp" />
     <ClInclude Include="thirdparty\nanovg\fontstash.h" />
