@@ -1,6 +1,5 @@
 #pragma once
 
-#pragma comment(lib, "OpenGL32.lib")
 #pragma comment(lib, "Setupapi.lib")
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "Version.lib")

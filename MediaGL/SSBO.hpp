@@ -14,7 +14,6 @@ struct SSBO : NonAssignable
     {
         glGenBuffers(1, &glHandle);
         bind();
-        bufferData(nullptr);
         setBufferBase(0);
         unbind();
     }
@@ -30,10 +29,18 @@ struct SSBO : NonAssignable
         }
     }
 
-    template <typename T>
-    void bufferData(const T& dataObj = nullptr, int storageType = GL_DYNAMIC_DRAW)
+    template <typename ContainerType>
+    void bufferData(const ContainerType& dataObj, int storageType = GL_DYNAMIC_DRAW)
     {
-        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(T), &dataObj, storageType);
+        using ElemType = std::remove_reference_t<decltype(*std::begin(std::declval<ContainerType&>()))>;
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ElemType) * dataObj.size(), dataObj.data(), storageType);
+    }
+
+    template <typename ContainerType>
+    void bufferData(const ContainerType& dataObj, size_t count, int storageType = GL_DYNAMIC_DRAW)
+    {
+        using ElemType = std::remove_reference_t<decltype(*std::begin(std::declval<ContainerType&>()))>;
+        glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ElemType) * count, dataObj.data(), storageType);
     }
 
     // This guy explain it good

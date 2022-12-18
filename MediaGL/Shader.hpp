@@ -121,6 +121,30 @@ struct Shader : NonAssignable
         GL_CHECK(glUniformMatrix4fv(getUniform(name.c_str()), 1, false, glm::value_ptr(value)));
     }
 
+    template <typename ContainerType>
+    void setMat4fArray(const std::string& name, const ContainerType& value, size_t count) const
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        ASSERT(value.size() > 0);
+        GL_CHECK(glUniformMatrix4fv(getUniform(name.c_str()), count, false, glm::value_ptr(value[0])));
+    }
+
+    template <typename ContainerType>
+    void setVec2fArray(const std::string& name, const ContainerType& value, size_t count) const
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        ASSERT(value.size() > 0);
+        GL_CHECK(glUniform2fv(getUniform(name.c_str()), count, glm::value_ptr(value[0])));
+    }
+
+    template <typename ContainerType>
+    void setVec4fArray(const std::string& name, const ContainerType& value, size_t count) const
+    {
+        ASSERTMSG(glState.boundShader == this, "Call bind before setting uniforms");
+        ASSERT(value.size() > 0);
+        GL_CHECK(glUniform4fv(getUniform(name.c_str()), count, glm::value_ptr(value[0])));
+    }
+
     bool created()
     { return glHandle != 0; }
 

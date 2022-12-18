@@ -1,5 +1,7 @@
 #pragma once
 
+#pragma comment(lib, "OpenGL32.lib")
+
 #define GL_GLEXT_PROTOTYPES
 #include <gl/gl3w.h>
 #include <gl/GL.h>
