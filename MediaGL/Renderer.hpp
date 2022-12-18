@@ -292,25 +292,14 @@ struct Renderer
     #define MAX_SPRITE_BATCH_SIZE 1024 * 8
     #endif
 
-    struct
+    struct FastSpriteInstance
     {
-        // Index per instance arrays like this : arr[gl_VertexID / vertCount]
-        // Index per vertex array like this    : arr[gl_VertexID % vertCount]
+        glm::mat4 model;
+        std::array<glm::vec2, 6> texCoords;
+        glm::vec4 color;
+    };
 
-        // PER INSTANCE
-        std::array<glm::mat4, MAX_SPRITE_BATCH_SIZE> model;
-        static_assert( sizeof(glm::mat4) * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::mat4, MAX_SPRITE_BATCH_SIZE>) );
-
-        // PER VERTEX
-        std::array<glm::vec2, 6 * MAX_SPRITE_BATCH_SIZE> texCoords;
-        static_assert( sizeof(glm::vec2) * 6 * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::vec2, 6 * MAX_SPRITE_BATCH_SIZE>) );
-
-        // PER INSTANCE
-        std::array<glm::vec4, MAX_SPRITE_BATCH_SIZE> color;
-        static_assert( sizeof(glm::vec4) * MAX_SPRITE_BATCH_SIZE == sizeof(std::array<glm::vec4, MAX_SPRITE_BATCH_SIZE>) );
-
-    } texBatchData;
-    
+    std::array<FastSpriteInstance, MAX_SPRITE_BATCH_SIZE> spriteBatch;
     int currentSpriteBatchIndex = 0;
     Shader fastSpriteShader;
     SSBO texBatchDataSSBO;
@@ -407,26 +396,34 @@ struct Renderer
                                   vec2(1.0f, 1.0f),
                                   vec2(1.0f, 0.0f));
 
+            struct Sprite
+            {
+                mat4 model;
+                vec2 texCoords[6];
+                vec4 color;
+            };
+
             layout(std430, binding = 0) buffer data
             {
-                mat4 model    [)"     STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
-                vec2 texCoords[6 * )" STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
-                vec4 color    [)"     STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
+                Sprite sprites    [)" STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
             };
 
             out vec2 fragTexCoords;
             out vec4 fragColor;
 
+            
             uniform mat4 projection;
 
             void main()
             {
-                // gl_VertexID % 6
-                fragTexCoords.x = texCoords[gl_VertexID].x;
-                fragTexCoords.y = texCoords[gl_VertexID].y;
-                fragColor = color[gl_VertexID / 6];
+                Sprite sprite = sprites[gl_InstanceID];
+                int vert = gl_VertexID;
+
+                fragTexCoords = sprite.texCoords[vert];
+
+                fragColor = sprite.color;
     
-                gl_Position = projection * model[gl_VertexID / 6] * vec4(pos[gl_VertexID % 6], 0.0, 1.0);
+                gl_Position = projection * sprite.model * vec4(pos[vert], 0.0, 1.0);
             }
             )",
             // FRAG
@@ -446,6 +443,8 @@ struct Renderer
             )"
         );
         #pragma endregion
+
+        spriteBatch.fill(FastSpriteInstance());
 
         fastSpriteShader.bind();
         fastSpriteShader.setInt("image", 0);
@@ -505,32 +504,31 @@ struct Renderer
         if (frustumCullingEnabled && !frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
         if (&tex != currentTexture) { flushTextureBatch(); }
 
-        texBatchData.model[currentSpriteBatchIndex] = glm::mat4(1.0f);
+        FastSpriteInstance& inst = spriteBatch[currentSpriteBatchIndex];
 
-        texBatchData.model[currentSpriteBatchIndex] = glm::translate(texBatchData.model[currentSpriteBatchIndex], glm::vec3(rect.x, rect.y, 0.0f));
+        inst.model = glm::mat4(1.0f);
+
+        inst.model = glm::translate(inst.model, glm::vec3(rect.x, rect.y, 0.0f));
 
         if (rot != 0)
         {
-            texBatchData.model[currentSpriteBatchIndex] =
-                glm::translate(texBatchData.model[currentSpriteBatchIndex], glm::vec3(0.5f * rect.width, 0.5f * rect.height, 0.0f));
-            texBatchData.model[currentSpriteBatchIndex] =
-                glm::rotate(   texBatchData.model[currentSpriteBatchIndex], glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
-            texBatchData.model[currentSpriteBatchIndex] =
-                glm::translate(texBatchData.model[currentSpriteBatchIndex], glm::vec3(-0.5f * rect.width, -0.5f * rect.height, 0.0f));
+            inst.model = glm::translate(inst.model, glm::vec3(0.5f * rect.width, 0.5f * rect.height, 0.0f));
+            inst.model = glm::rotate   (inst.model, glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
+            inst.model = glm::translate(inst.model, glm::vec3(-0.5f * rect.width, -0.5f * rect.height, 0.0f));
         }
 
-        texBatchData.model[currentSpriteBatchIndex] = glm::scale(texBatchData.model[currentSpriteBatchIndex], glm::vec3(rect.width, rect.height, 1.f));
+        inst.model = glm::scale(inst.model, glm::vec3(rect.width, rect.height, 1.f));
         
 
-        texBatchData.texCoords[0 + currentSpriteBatchIndex * 6] = { 0.0f, 1.0f };
-        texBatchData.texCoords[1 + currentSpriteBatchIndex * 6] = { 1.0f, 0.0f };
-        texBatchData.texCoords[2 + currentSpriteBatchIndex * 6] = { 0.0f, 0.0f };
-        texBatchData.texCoords[3 + currentSpriteBatchIndex * 6] = { 0.0f, 1.0f };
-        texBatchData.texCoords[4 + currentSpriteBatchIndex * 6] = { 1.0f, 1.0f };
-        texBatchData.texCoords[5 + currentSpriteBatchIndex * 6] = { 1.0f, 0.0f };
+        inst.texCoords[0] = { 0.0f, 1.0f };
+        inst.texCoords[1] = { 1.0f, 0.0f };
+        inst.texCoords[2] = { 0.0f, 0.0f };
+        inst.texCoords[3] = { 0.0f, 1.0f };
+        inst.texCoords[4] = { 1.0f, 1.0f };
+        inst.texCoords[5] = { 1.0f, 0.0f };
 
 
-        texBatchData.color[currentSpriteBatchIndex] = { color.r, color.g, color.b, color.a };
+        inst.color = { color.r, color.g, color.b, color.a };
 
         ++currentSpriteBatchIndex;
         currentTexture = &tex;
@@ -544,13 +542,13 @@ struct Renderer
         if (currentTexture == nullptr || currentSpriteBatchIndex == 0) { return; }
 
         texBatchDataSSBO.bind();
-        texBatchDataSSBO.bufferData(texBatchData);
+        texBatchDataSSBO.bufferData(spriteBatch, currentSpriteBatchIndex, GL_DYNAMIC_DRAW);
         texBatchDataSSBO.setBufferBase(0);
 
         fastSpriteShader.bind();
         currentTexture->bind();
         VertexArray::unbind();
-        GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6 * currentSpriteBatchIndex));
+        GL_CHECK(glDrawArraysInstanced(GL_TRIANGLES, 0, 6, currentSpriteBatchIndex));
 
         texBatchDataSSBO.unbind();
 
