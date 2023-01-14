@@ -11,16 +11,73 @@
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
 #include "SSBO.hpp"
+#include "FrameBuffer.hpp"
 #include "../Macros.hpp"
+#include "../Logging.hpp"
+
+#include "Input.hpp"
+
+std::shared_ptr<tlog::logger> rendlog = tlog::createConsoleLogger("Renderer");
 
 #pragma region Shaders
+const char* UBER_VERT_SHADER = R"(
+    #version 460 core
+    layout (location = 0) in vec2 vertex; // <vec2 texCoords>
+
+    vec2 pos[4] = vec2[4](vec2(0.0f, 1.0f),
+                          vec2(1.0f, 1.0f),
+                          vec2(0.0f, 0.0f),
+                          vec2(1.0f, 0.0f));
+
+    struct Sprite
+    {
+        mat4 model;
+        vec2 texCoords[4];
+        vec4 color;
+    };
+
+    layout(std430, binding = 0) buffer data
+    {
+        Sprite sprites    [)" STRING_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
+    };
+
+    uniform mat4 projection;
+    out vec2 fragTexCoords;
+    out vec4 fragColor;
+
+
+    void defaultMain()
+    {
+        TexCoords = vertex;
+        gl_Position = projection * model * vec4(pos[gl_VertexID], 0.0, 1.0);
+    }
+
+    void main() { defaultMain(); }
+)";
+
+const char* UBER_FRAG_SHADER = R"(
+    #version 460 core
+    in vec2 fragTexCoords;
+    out vec4 color;
+
+    uniform mat4 projection;
+    uniform vec4 modulate;
+
+    void defaultMain()
+    {
+        color = modulate * texture(image, fragTexCoords);
+    }
+
+    void main() { defaultMain(); }
+)";
+
 const char* PRIMITIVE_VERT_SHADER = R"""(
 #version 330 core
 layout (location = 0) in vec2 vertex;
 
 uniform mat4 projection;
 
-void main()
+void main() 
 {
     gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
 }
@@ -63,6 +120,13 @@ enum class GLDrawMode
     PATCHES                  = GL_PATCHES
 };
 
+enum class VSyncMode
+{
+    Disabled =  0,
+    Enabled  =  1,
+    Adaptive = -1
+};
+
 struct Renderer
 {
     // Config
@@ -77,29 +141,27 @@ struct Renderer
     // It's super fast!! Probably no reason to turn it off.
     bool frustumCullingEnabled = true; 
 
-    // Read-only
 
-    Window* window = nullptr;      // Read only
-    SDL_GLContext glContext;       // Read only
-    size_t lastFrameDrawCalls = 0; // Read only
+    Window*       window = nullptr;         // Read only
+    SDL_GLContext glContext;                // Read only
+    size_t        lastFrameDrawCalls = 0;   // Read only
+    bool          begun = false;            // Read only
+    View          view;                     // Read only
+    glm::mat4     projection;               // Read only
+    Frustum       frustum;                  // Read only
+    Shader        primShader;               // Read only
+    Shader        textShader;               // Read only
+    VertexArray   linesVAO{NoCreate};       // Read only
+    VertexBuffer  linesVBO{NoCreate};       // Read only
+    size_t        debugDrawCalls = 0;       // Private
 
-    // Private
+    // Caching
+    mutable Rectf cachedVirtualViewport;    // Read only
+    mutable bool  virtViewportDirty = true; // Read only
 
-    bool      begun = false; // Read only
-    View      view;         // Read only
-    glm::mat4 projection;   // Read only
-    Frustum   frustum;      // Read only
-
-    Shader primShader; // Read only
-    Shader textShader; // Read only
-
-    VertexArray  linesVAO{NoCreate}; // Read only
-    VertexBuffer linesVBO{NoCreate}; // Read only
-
-    mutable Rectf cachedVirtualViewport;   // Read only
-    mutable bool virtViewportDirty = true; // Read only
-
-    size_t debugDrawCalls = 0; // Private
+    // GPU Params
+    int maxTextureUnits = 0; // Read only
+    int maxTextureSize  = 0; // Read only
 
     Renderer() = default;
     ~Renderer() { reset(); }
@@ -118,13 +180,25 @@ struct Renderer
         SDL_GL_SetSwapInterval(0);
 
         if (gl3wInit())
-        { fprintf(stderr, "failed to initialize OpenGL\n"); abort(); }
+        { rendlog->critical("Failed to initialize OpenGL!"); ASSERT(false); }
         if (!gl3wIsSupported(3, 3))
-        { fprintf(stderr, "OpenGL 3.3 not supported\n"); abort(); }
+        { rendlog->critical("OpenGL 3.3 not supported"); ASSERT(false); }
 
-        printf("OpenGL %s, GLSL %s\n", glGetString(GL_VERSION), glGetString(GL_SHADING_LANGUAGE_VERSION));
+        rendlog->info("OpenGL {}, GLSL {}",
+                   std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION))),
+                   std::string(reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION))));
+
+        glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
+        rendlog->info("Available texture units: {}", maxTextureUnits);
+
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+        rendlog->info("Max texture size: {}", maxTextureSize);
+
         glEnable(GL_DEBUG_OUTPUT);
         glDebugMessageCallback( defaultGLCallback, 0 );
+
+        // Draw triangles in clockwise order
+        glFrontFace(GL_CW);
 
         // Enable transparency
         glEnable(GL_BLEND);
@@ -144,7 +218,6 @@ struct Renderer
 
         SDL_AddEventWatch(SDLEventFilterCB, this);
         setView(getDefaultWindowView(window));
-        _onWindowResized();
     }
 
     bool created() { return window != nullptr; }
@@ -162,6 +235,13 @@ struct Renderer
 
         debugDrawCalls = 0;
         virtViewportDirty = true;
+
+        // Draw black bars
+        auto fbSize = window->getFramebufferSize();
+        glViewport(0, 0, fbSize.x, fbSize.y);
+        glDisable(GL_SCISSOR_TEST);
+        clearColor(ColorRGBAf::black());
+
         resetViewport();
     }
 
@@ -201,8 +281,7 @@ struct Renderer
         }
         else
         {
-            auto fb = window->getFramebufferSize();
-            vp = Rectf(0, 0, fb.x, fb.y);
+            vp = Rectf(0, 0, view.bounds.width, view.bounds.height);
         }
 
         cachedVirtualViewport = vp;
@@ -221,13 +300,14 @@ struct Renderer
     {
         auto rect = getVirtualViewportRect();
         Vector2f mpos = getMouseLocalPos();
+        mpos -= { rect.x, rect.y };
 
         glm::mat4 mat = view.getMatrix();
-        mat = glm::translate(mat, { -mpos.x / view.zoom.x, -mpos.y / view.zoom.y, 0.f });
         mat = glm::inverse(mat);
-        Vector2f normalized = Vector2f(mat[3].x, mat[3].y) - (Vector2f{ view.bounds.width, view.bounds.height } / view.zoom) / 2;
+        glm::vec3 ndc = glm::vec3(mpos.x / rect.width, 1.0 - mpos.y / rect.height, 0) * 2.f - 1.f;
+        glm::vec4 worldPosition = mat * glm::vec4(ndc, 1);
 
-        return normalized;
+        return { worldPosition.x, worldPosition.y };
     }
 
     void clearColor(const ColorRGBAf& color = {0.1f, 0.1f, 0.1f, 1.f})
@@ -236,6 +316,7 @@ struct Renderer
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
+    // TODO: Use dirty flag instead
     void setView(const View& newView)
     {
         if (view == newView) { return; }
@@ -264,24 +345,29 @@ struct Renderer
 
     inline View getDefaultView() { return getDefaultWindowView(*window); }
 
+    inline void setVSync(VSyncMode mode)
+    { SDL_GL_SetSwapInterval(static_cast<int>(mode)); }
+
+    inline VSyncMode getVSync()
+    { return static_cast<VSyncMode>(SDL_GL_GetSwapInterval()); }
+
     void resetViewport()
     {
         auto rect = getVirtualViewportRect();
+        auto fb   = window->getFramebufferSize();
 
         // OpenGL considers X=0, Y=0 the Lower left Corner of the Screen
-        glViewport(rect.x, rect.y, rect.width, rect.height);
-    }
+        int fixedY = -rect.y + (fb.y - rect.height);
 
-    void _onWindowResized()
-    {
-        resetViewport();
+        glViewport(rect.x, fixedY, rect.width, rect.height);
+        glEnable(GL_SCISSOR_TEST);
+        glScissor(rect.x, fixedY, rect.width, rect.height);
     }
 
     #pragma endregion
 
     #pragma region Texture
 
-    ColorRGBAf   spriteShaderColorState = {1,1,1,1};
     Shader       spriteShader;
     VertexArray  spriteVAO{NoCreate};
     VertexBuffer spriteVBO{NoCreate};
@@ -295,10 +381,11 @@ struct Renderer
     struct FastSpriteInstance
     {
         glm::mat4 model;
-        std::array<glm::vec2, 6> texCoords;
+        std::array<glm::vec2, 4> texCoords;
         glm::vec4 color;
     };
 
+    int indices[6] = { 0, 1, 2, 2, 1, 3 };
     std::array<FastSpriteInstance, MAX_SPRITE_BATCH_SIZE> spriteBatch;
     int currentSpriteBatchIndex = 0;
     Shader fastSpriteShader;
@@ -312,24 +399,24 @@ struct Renderer
         spriteShader.create(
         // VERT
   R"""( #version 460 core
-        layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
-
+        //layout (location = 0) in vec4 vertex; // <vec2 position, vec2 texCoords>
+        layout (location = 0) in vec2 vertex; // <vec2 texCoords>
         out vec2 TexCoords;
+
+        vec2 pos[4] = vec2[4](vec2(0.0f, 1.0f),
+                              vec2(1.0f, 1.0f),
+                              vec2(0.0f, 0.0f),
+                              vec2(1.0f, 0.0f));
 
         uniform mat4 model;
         uniform mat4 projection;
-        uniform bool uvflipy = false;
 
         void main()
         {
-            TexCoords.x = vertex.z;
-
-            if (uvflipy)
-                 { TexCoords.y = 1.0 - vertex.w; }
-            else { TexCoords.y = vertex.w; }
+            TexCoords = vertex;
     
-            gl_Position = projection * model * vec4(vertex.x, vertex.y, 0.0, 1.0);
-        } )""", 
+            gl_Position = projection * model * vec4(pos[gl_VertexID], 0.0, 1.0);
+        } )""",
         // FRAG
         R"""(
         #version 460 core
@@ -337,48 +424,21 @@ struct Renderer
         out vec4 color;
 
         uniform sampler2D image;
-        uniform vec4 spriteColor;
-        uniform bool grayscale;
+        uniform vec4 modulate;
 
         void main()
         {
-            if (grayscale == false)
-            { color = spriteColor * texture(image, TexCoords); }
-            else
-            {
-                color = vec4(spriteColor) * vec4(1.0, 1.0, 1.0, texture(image, TexCoords).r);
-            }
+            color = modulate * texture(image, TexCoords);
         } )""");
         spriteShader.bind();
         spriteShader.setInt("image", 0);
-        spriteShader.setVec4f("spriteColor", 1, 1, 1, 1);
-        spriteShaderColorState = { 1, 1, 1, 1 };
+        spriteShader.setVec4f("modulate", 1, 1, 1, 1);
         spriteShader.unbind();
 
         GL_CHECK(glActiveTexture(GL_TEXTURE0));
 
-        float vertices[] = { 
-            // pos      // tex
-            0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 0.0f, 1.0f, 0.0f,
-            0.0f, 0.0f, 0.0f, 0.0f, 
-
-            0.0f, 1.0f, 0.0f, 1.0f,
-            1.0f, 1.0f, 1.0f, 1.0f,
-            1.0f, 0.0f, 1.0f, 0.0f
-        };
-
         spriteVAO.create();
         spriteVBO.create();
-
-        spriteVBO.bind();
-        GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
-
-        spriteVAO.bind();
-        GL_CHECK(glEnableVertexAttribArray(0));
-        GL_CHECK(glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0));
-        spriteVBO.unbind();
-        spriteVAO.unbind();
 
         #pragma endregion
 
@@ -389,23 +449,21 @@ struct Renderer
             R"(
             #version 460 core
 
-            vec2 pos[6] = vec2[6](vec2(0.0f, 1.0f),
-                                  vec2(1.0f, 0.0f),
-                                  vec2(0.0f, 0.0f),
-                                  vec2(0.0f, 1.0f),
+            vec2 pos[4] = vec2[4](vec2(0.0f, 1.0f),
                                   vec2(1.0f, 1.0f),
+                                  vec2(0.0f, 0.0f),
                                   vec2(1.0f, 0.0f));
 
             struct Sprite
             {
                 mat4 model;
-                vec2 texCoords[6];
+                vec2 texCoords[4];
                 vec4 color;
             };
 
             layout(std430, binding = 0) buffer data
             {
-                Sprite sprites    [)" STRING_MACRO_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
+                Sprite sprites    [)" STRING_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
             };
 
             out vec2 fragTexCoords;
@@ -454,78 +512,136 @@ struct Renderer
         texBatchDataSSBO.bind();
     }
 
-    // Prefer drawTextureFast
-    void drawTexture(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool uvflipy = false)
+    void drawTexture(Texture& tex, const Rectf& dstRect,
+                     const float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 },
+                     Shader* shader = nullptr, bool flipuvx = false, bool flipuvy = false)
     {
-        if (frustumCullingEnabled && !frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
+        drawTexture(tex, Rectf(Vector2f(0, 0), Vector2f(tex.getSize())),
+                    dstRect, rot, color, shader, flipuvx, flipuvy);
+    }
+
+    void drawTexture(Texture& tex, const Rectf& srcRect, const Rectf& dstRect,
+                     const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 },
+                     Shader* shader = nullptr, bool flipuvx = false, bool flipuvy = false)
+    {
+        if (frustumCullingEnabled && !frustum.IsBoxVisible(
+            { dstRect.x, dstRect.y, 0 },
+            { dstRect.x + dstRect.width, dstRect.y + dstRect.height, 0}))
+        { return; }
+
         flushTextureBatch();
         
-        spriteShader.bind();
-
-        //if (tex.internalFormat == TexInternalFormats::RED)
-        //{ spriteShader.setBool("grayscale", true); }
-        //else
-        //{ spriteShader.setBool("grayscale", false); }
-        //
-        //_spriteShader.setBool("uvflipy", uvflipy);
+        if (shader == nullptr) { shader = &spriteShader; }
+        shader->bind();
 
         glm::mat4 model = glm::mat4(1.0f);
         
-        model = glm::translate(model, glm::vec3(rect.x, rect.y, 0.0f));
+        model = glm::translate(model, glm::vec3(dstRect.x, dstRect.y, 0.0f));
 
         if (rot != 0)
         {
-            model = glm::translate(model, glm::vec3(0.5f * rect.width, 0.5f * rect.height, 0.0f));
+            model = glm::translate(model, glm::vec3(0.5f * dstRect.width, 0.5f * dstRect.height, 0.0f));
             model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
-            model = glm::translate(model, glm::vec3(-0.5f * rect.width, -0.5f * rect.height, 0.0f));
+            model = glm::translate(model, glm::vec3(-0.5f * dstRect.width, -0.5f * dstRect.height, 0.0f));
         }
 
-        model = glm::scale(model, glm::vec3(rect.width, rect.height, 1.f));
-        
+        model = glm::scale(model, glm::vec3(dstRect.width, dstRect.height, 1.f));
 
-        spriteShader.setMat4f("model", model); // Slow
+        shader->setMat4f("model", model);
+        shader->setVec4f("modulate", color.r, color.g, color.b, color.a);
 
-        if (spriteShaderColorState != color)
+        const Vector2f texSize(tex.getSize());
+        float uvWidth  = srcRect.width  / texSize.x;
+        float uvHeight = srcRect.height / texSize.y;
+        float uvX      = srcRect.x      / texSize.x;
+        float uvY      = srcRect.y      / texSize.y;
+
+        if (flipuvx)
         {
-            spriteShader.setVec4f("spriteColor", color.r, color.g, color.b, color.a);
-            spriteShaderColorState = color;
+            auto tmp = uvX;
+            uvX = uvWidth;
+            uvWidth = tmp;
         }
+        if (flipuvy)
+        {
+            auto tmp = uvY;
+            uvY = uvHeight;
+            uvHeight = tmp;
+        }
+
+        const float arr[] = { uvX,     uvHeight, // topleft
+                              uvWidth, uvHeight, // topright
+                              uvX,     uvY,      // bottom left
+                              uvWidth, uvY };    // bottom right
 
         tex.bind();
         spriteVAO.bind();
-        GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
-
+        spriteVBO.bind();
+        GL_CHECK(glEnableVertexAttribArray(0));
+        GL_CHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0));
+        GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(arr), arr, GL_DYNAMIC_DRAW));
+        GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices));
 
         ++debugDrawCalls;
     }
 
-    void drawTextureFast(Texture& tex, const Rectf& rect, const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 })
+    void drawTextureFast(Texture& tex, const Rectf& dstRect,
+                         const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
     {
-        if (frustumCullingEnabled && !frustum.IsBoxVisible({ rect.x, rect.y, 0 }, {rect.x + rect.width, rect.y + rect.height, 0})) { return; }
+        drawTextureFast(tex, Rectf{ Vector2f{0, 0}, Vector2f(tex.getSize()) }, dstRect, rot, color, flipuvx, flipuvy);
+    }
+
+    void drawTextureFast(SubTexture& subTex, const Rectf& dstRect,
+                         float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
+    {
+        drawTextureFast(*subTex.texture, Rectf(subTex.rect), dstRect, rot, color, flipuvx, flipuvy);
+    }
+
+    void drawTextureFast(Texture& tex, const Rectf& srcRect, const Rectf& dstRect,
+                         const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
+    {
+        if (frustumCullingEnabled && !frustum.IsBoxVisible({ dstRect.x, dstRect.y, 0 }, {dstRect.x + dstRect.width, dstRect.y + dstRect.height, 0})) { return; }
         if (&tex != currentTexture) { flushTextureBatch(); }
 
         FastSpriteInstance& inst = spriteBatch[currentSpriteBatchIndex];
 
         inst.model = glm::mat4(1.0f);
 
-        inst.model = glm::translate(inst.model, glm::vec3(rect.x, rect.y, 0.0f));
+        inst.model = glm::translate(inst.model, glm::vec3(dstRect.x, dstRect.y, 0.0f));
 
         if (rot != 0)
         {
-            inst.model = glm::translate(inst.model, glm::vec3(0.5f * rect.width, 0.5f * rect.height, 0.0f));
+            inst.model = glm::translate(inst.model, glm::vec3(0.5f * dstRect.width, 0.5f * dstRect.height, 0.0f));
             inst.model = glm::rotate   (inst.model, glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
-            inst.model = glm::translate(inst.model, glm::vec3(-0.5f * rect.width, -0.5f * rect.height, 0.0f));
+            inst.model = glm::translate(inst.model, glm::vec3(-0.5f * dstRect.width, -0.5f * dstRect.height, 0.0f));
         }
 
-        inst.model = glm::scale(inst.model, glm::vec3(rect.width, rect.height, 1.f));
+        inst.model = glm::scale(inst.model, glm::vec3(dstRect.width, dstRect.height, 1.f));
         
+        const Vector2f texSize(tex.getSize());
+        float normalWidth  = srcRect.width  / texSize.x;
+        float normalHeight = srcRect.height / texSize.y;
+        float normalX      = srcRect.x / texSize.x;
+        float normalY      = srcRect.y / texSize.y;
 
-        inst.texCoords[0] = { 0.0f, 1.0f };
-        inst.texCoords[1] = { 1.0f, 0.0f };
-        inst.texCoords[2] = { 0.0f, 0.0f };
-        inst.texCoords[3] = { 0.0f, 1.0f };
-        inst.texCoords[4] = { 1.0f, 1.0f };
-        inst.texCoords[5] = { 1.0f, 0.0f };
+        if (flipuvx)
+        {
+            auto tmp = normalX;
+            normalX = normalWidth;
+            normalWidth = tmp;
+        }
+        if (flipuvy)
+        {
+            auto tmp = normalY;
+            normalY = normalHeight;
+            normalHeight = tmp;
+        }
+
+        inst.texCoords[0] = { normalX,     normalHeight }; // topleft
+        inst.texCoords[1] = { normalWidth, normalHeight }; // topright
+        inst.texCoords[2] = { normalX,     normalY };      // bottom left
+        inst.texCoords[3] = { normalWidth, normalY };      // bottom right
+
 
 
         inst.color = { color.r, color.g, color.b, color.a };
@@ -548,12 +664,29 @@ struct Renderer
         fastSpriteShader.bind();
         currentTexture->bind();
         VertexArray::unbind();
-        GL_CHECK(glDrawArraysInstanced(GL_TRIANGLES, 0, 6, currentSpriteBatchIndex));
+        GL_CHECK(glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, currentSpriteBatchIndex));
 
         texBatchDataSSBO.unbind();
 
         ++debugDrawCalls;
         currentSpriteBatchIndex = 0;
+    }
+
+    void drawFrameBuffer(const FrameBuffer& fb, const Rectf& srcRect, const Rectf& dstRect,
+                         const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = true)
+    {
+        auto tmpView = getView();
+        setView(getDefaultWindowView(*window));
+        drawTexture(*fb.texture, srcRect, dstRect, rot, color, nullptr, flipuvx, flipuvy);
+        setView(tmpView);
+    }
+
+    void drawFrameBuffer(const FrameBuffer& fb, const Rectf& dstRect,
+                         const float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 }, bool flipuvx = false, bool flipuvy = true)
+    {
+        drawFrameBuffer(fb,
+                        Rectf(Vector2f(0, 0), Vector2f(fb.texture->getSize())),
+                        dstRect, rot, color, flipuvx, flipuvy);
     }
 
     #pragma endregion
@@ -588,16 +721,26 @@ struct Renderer
         ++debugDrawCalls;
     }
 
-    void drawRect(const Rectf& rect, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false)
-    { drawRect(rect.x, rect.y, rect.width, rect.height, color, filled); }
+    void drawRect(const Rectf& rect, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false, float rot = 0.f)
+    { drawRect(rect.x, rect.y, rect.width, rect.height, color, filled, rot); }
 
-    void drawRect(float x, float y, float w, float h, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false)
+    void drawRect(float x, float y, float w, float h, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false, float rot = 0.f)
     {
         std::vector<Vector2f> verts(4);
         verts[0] = Vector2f(x,     y);
         verts[1] = Vector2f(x + w, y);
         verts[2] = Vector2f(x + w, y + h);
         verts[3] = Vector2f(x,     y + h);
+
+        if (rot != 0)
+        {
+            for (auto& v : verts)
+            {
+                v -= {x, y};
+                v.rotate(rot);
+                v += {x, y};
+            }
+        }
 
         drawLines(verts, color, 1, filled ? GLDrawMode::TRIANGLE_FAN : GLDrawMode::LINE_LOOP);
     }
@@ -693,6 +836,6 @@ int SDLEventFilterCB(void* userdata, SDL_Event* event)
 {
     Renderer* r = (Renderer*)userdata;
     if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
-    { r->_onWindowResized(); }
+    { /*r->_onWindowResized();*/ }
     return 1;
 }
