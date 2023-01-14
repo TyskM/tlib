@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cmath>
+#include <limits>
 #include "Math.hpp"
 
 // There's always a min/max macro somewhere. Make it stop!!!
@@ -13,8 +14,10 @@
 template <typename T>
 struct Vector2
 {
+    using value_type = T;
+
     constexpr Vector2(T xv, T yv) : x{ xv }, y{ yv } { }
-    constexpr Vector2() { }
+    constexpr Vector2() = default;
 
     template <typename CT>
     constexpr explicit Vector2(const CT& other)
@@ -26,22 +29,34 @@ struct Vector2
     T x = 0;
     T y = 0;
 
-    void rotate(float radians)
+    // In radians
+    inline T angle() const
+    { return atan2(y, x); }
+
+    // In radians
+    T angleTo(const Vector2<T>& other)
+    { return atan2(cross(other), dot(other)); }
+
+    // In radians
+    T angleToRel(const Vector2<T>& other)
+    { return (other - *this).angle(); }
+
+    void rotate(T radians)
     { *this = rotated(radians); }
 
     // SIN AND COS USES RADIANS YOU DUMB IDIOT
-    Vector2<T> rotated(const float& radians) const
+    Vector2<T> rotated(const T radians) const
     {
-        float sinv = sin(radians);
-        float cosv = cos(radians);
+        T sinv = sin(radians);
+        T cosv = cos(radians);
         return Vector2<T>(x * cosv - y * sinv, x * sinv + y * cosv);
     }
 
-    Vector2<T> rotated(const float& radians, Vector2<T> origin) const
+    Vector2<T> rotated(const T radians, const Vector2<T>& origin) const
     {
-        float sinv = sin(radians);
-        float cosv = cos(radians);
-        const auto nvec = *this;
+        T sinv = sin(radians);
+        T cosv = cos(radians);
+        auto nvec = *this;
         nvec -= origin;
         return nvec.rotated(radians) + origin;
     }
@@ -54,44 +69,47 @@ struct Vector2
     Vector2<T> normalized()
     {
         Vector2<T> rv = *this;
-        float len = length();
+        T len = length();
         if (rv.x != 0) rv.x /= len;
         if (rv.y != 0) rv.y /= len;
         return rv;
     }
 
-    float dot(const Vector2<T>& other) const
+    T dot(const Vector2<T>& other) const
     { return x * other.x + y * other.y; }
 
-    float cross(const Vector2<T>& other) const
+    T cross(const Vector2<T>& other) const
     { return x * other.y - y * other.x; }
 
     Vector2<T> reflect(const Vector2<T>& normal) const
     { return (normal * 2) * dot(normal) - *this; }
 
-    float length() const
+    T length() const
     { return sqrtf(x * x + y * y); }
 
-    float lengthSquared() const
+    T lengthSquared() const
     { return x * x + y * y; }
 
     T distanceTo(const Vector2<T>& other) const
-    { return std::max( std::abs( x - other.x), std::abs( y - other.y) ); }
+    { return std::sqrt((x - other.x) * (x - other.x) + (y - other.y) * (y - other.y)); }
+
+    T distanceToSquared(const Vector2<T>& other) const
+    { return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y); }
+
+    Vector2<T> relMultiply(const Vector2<T> other, T amount)
+    { return (*this - other) * amount + other; }
 
     std::string toString() const
     { return this->operator std::string(); }
 
-    Vector2<T> relMultiply(const Vector2<T> other, T amount) { return (*this - other) * amount + other; }
-
-    Vector2<T> floored()    const { return { floor(x), floor(y) }; }
-    Vector2<T> ceiled()     const { return { ceil(x),  ceil(y)  }; }
-    Vector2<T> rounded()    const { return { round(x), round(y) }; }
-    Vector2<T> abs()        const { return { std::abs(x), std::abs(y)   }; }
-    Vector2<T> sqrt()       const { return { std::sqrt(x), std::sqrt(y) }; }
-    Vector2<T> pow(T value) const { return { std::pow(x, value), std::pow(y, value) }; }
+    Vector2<T> floored()    const { return Vector2<T>( floor(x), floor(y) ); }
+    Vector2<T> ceiled()     const { return Vector2<T>( ceil(x),  ceil(y)  ); }
+    Vector2<T> rounded()    const { return Vector2<T>( round(x), round(y) ); }
+    Vector2<T> abs()        const { return Vector2<T>( std::abs(x), std::abs(y)   ); }
+    Vector2<T> sqrt()       const { return Vector2<T>( std::sqrt(x), std::sqrt(y) ); }
+    Vector2<T> pow(T value) const { return Vector2<T>( std::pow(x, value), std::pow(y, value) ); }
 
     operator std::string() const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
-
     bool operator==(const Vector2<T> other) const { return x == other.x && y == other.y; }
     bool operator!=(const Vector2<T> other) const { return !(operator==(other)); }
     Vector2<T> operator-() const { return Vector2<T>(-x, -y); }
@@ -111,6 +129,7 @@ struct Vector2
     Vector2<T> operator/=(const int& num) { return Vector2<T>(x /= num, y /= num); }
     Vector2<T> operator*=(const float& num) { return Vector2<T>(x *= num, y *= num); }
     Vector2<T> operator/=(const float& num) { return Vector2<T>(x /= num, y /= num); }
+
 };
 
 ///\cond INTERNAL
@@ -136,6 +155,7 @@ using Vector2f = Vector2<float>;
 /// Container with 2 ints
 /// \relates Vector2
 using Vector2i = Vector2<int>;
+
 
 using Vector2i8 = Vector2<int8_t>;
 #pragma endregion
@@ -284,6 +304,7 @@ struct Circle
 };
 
 using Circlef = Circle<float>;
+using Circlei = Circle<int>;
 
 template<typename T = float>
 struct Rect
@@ -296,6 +317,15 @@ struct Rect
     Rect(Vector2<T> pos, Vector2<T> size) : x{ pos.x }, y{ pos.y }, width{ size.x }, height{ size.y } { }
     Rect(T x, T y, T width, T height) : x{ x }, y{ y }, width{ width }, height{ height } { }
     Rect() { }
+
+    template <typename CT>
+    constexpr explicit Rect(const CT& other)
+    {
+        x      = static_cast<T>(other.x);
+        y      = static_cast<T>(other.y);
+        width  = static_cast<T>(other.width);
+        height = static_cast<T>(other.height);
+    }
 
     bool contains(Vector2<T> value) const
     { return contains(value.x, value.y); }

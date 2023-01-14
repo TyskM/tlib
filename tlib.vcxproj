@@ -26,27 +26,28 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -84,12 +85,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -100,11 +102,12 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <ConformanceMode>false</ConformanceMode>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -122,6 +125,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <ConformanceMode>false</ConformanceMode>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -132,16 +137,78 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ConformanceMode>false</ConformanceMode>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="tlib.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_atomic.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_builder.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_bytecode.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_arm.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_arm64.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_mips.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_ppc.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_ppc_64.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_sh4.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_x64_gcc.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_x64_mingw.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_x64_msvc.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_x86.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_callfunc_xenon.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_compiler.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_configgroup.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_context.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_datatype.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_gc.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_generic.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_globalproperty.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_memory.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_module.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_objecttype.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_outputbuffer.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_parser.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_restore.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_scriptcode.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_scriptengine.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_scriptfunction.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_scriptnode.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_scriptobject.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_string.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_string_util.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_thread.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_tokenizer.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_typeinfo.cpp" />
+    <ClCompile Include="thirdparty\angelscript\as_variablescope.cpp" />
+    <ClCompile Include="thirdparty\angelscript\autowrapper\generator\generateheader.cpp" />
+    <ClCompile Include="thirdparty\angelscript\contextmgr\contextmgr.cpp" />
+    <ClCompile Include="thirdparty\angelscript\datetime\datetime.cpp" />
+    <ClCompile Include="thirdparty\angelscript\debugger\debugger.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptany\scriptany.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptarray\scriptarray.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptbuilder\scriptbuilder.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptdictionary\scriptdictionary.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptfile\scriptfile.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptfile\scriptfilesystem.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptgrid\scriptgrid.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scripthandle\scripthandle.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scripthelper\scripthelper.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptmath\scriptmath.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptmath\scriptmathcomplex.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptstdstring\scriptstdstring.cpp" />
+    <ClCompile Include="thirdparty\angelscript\scriptstdstring\scriptstdstring_utils.cpp" />
+    <ClCompile Include="thirdparty\angelscript\serializer\serializer.cpp" />
+    <ClCompile Include="thirdparty\angelscript\weakref\weakref.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DataStructures.hpp" />
+    <ClInclude Include="EASTL.hpp" />
     <ClInclude Include="Errors.hpp" />
     <ClInclude Include="Event.hpp" />
     <ClInclude Include="Files.hpp" />
+    <ClInclude Include="Game\GameObject.hpp" />
+    <ClInclude Include="Game\Resource.hpp" />
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="Logging.hpp" />
     <ClInclude Include="Macros.hpp" />
@@ -157,7 +224,7 @@
     <ClInclude Include="mediagl\ImGuiFileDialog.hpp" />
     <ClInclude Include="mediagl\ImGuiWidgets.hpp" />
     <ClInclude Include="mediagl\Input.hpp" />
-    <ClInclude Include="mediagl\MediaPlayer.hpp" />
+    <ClInclude Include="MediaGL\MediaPlayer.hpp" />
     <ClInclude Include="MediaGL\Misc.hpp" />
     <ClInclude Include="MediaGL\NanoVG.hpp" />
     <ClInclude Include="mediagl\Renderer.hpp" />
@@ -204,18 +271,90 @@
     <ClInclude Include="old\media magnum\Window.hpp" />
     <ClInclude Include="old\pathfindexamples.hpp" />
     <ClInclude Include="Pathfind.hpp" />
+    <ClInclude Include="Pointers.hpp" />
+    <ClInclude Include="Resolve.hpp" />
     <ClInclude Include="RNG.hpp" />
+    <ClInclude Include="Scripting\Logging.hpp" />
+    <ClInclude Include="Scripting\ScriptBuilder.hpp" />
+    <ClInclude Include="Scripting\Scripting.hpp" />
     <ClInclude Include="SFMLDebugDraw.hpp" />
     <ClInclude Include="Snippets.hpp" />
     <ClInclude Include="StateMan.hpp" />
-    <ClInclude Include="StringHelpers.hpp" />
+    <ClInclude Include="String.hpp" />
+    <ClInclude Include="thirdparty\angelscript-docgen\docgen.h" />
+    <ClInclude Include="thirdparty\angelscript\angelscript.h" />
+    <ClInclude Include="thirdparty\angelscript\as_array.h" />
+    <ClInclude Include="thirdparty\angelscript\as_atomic.h" />
+    <ClInclude Include="thirdparty\angelscript\as_builder.h" />
+    <ClInclude Include="thirdparty\angelscript\as_bytecode.h" />
+    <ClInclude Include="thirdparty\angelscript\as_callfunc.h" />
+    <ClInclude Include="thirdparty\angelscript\as_compiler.h" />
+    <ClInclude Include="thirdparty\angelscript\as_config.h" />
+    <ClInclude Include="thirdparty\angelscript\as_configgroup.h" />
+    <ClInclude Include="thirdparty\angelscript\as_context.h" />
+    <ClInclude Include="thirdparty\angelscript\as_criticalsection.h" />
+    <ClInclude Include="thirdparty\angelscript\as_datatype.h" />
+    <ClInclude Include="thirdparty\angelscript\as_debug.h" />
+    <ClInclude Include="thirdparty\angelscript\as_gc.h" />
+    <ClInclude Include="thirdparty\angelscript\as_generic.h" />
+    <ClInclude Include="thirdparty\angelscript\as_map.h" />
+    <ClInclude Include="thirdparty\angelscript\as_memory.h" />
+    <ClInclude Include="thirdparty\angelscript\as_module.h" />
+    <ClInclude Include="thirdparty\angelscript\as_namespace.h" />
+    <ClInclude Include="thirdparty\angelscript\as_objecttype.h" />
+    <ClInclude Include="thirdparty\angelscript\as_outputbuffer.h" />
+    <ClInclude Include="thirdparty\angelscript\as_parser.h" />
+    <ClInclude Include="thirdparty\angelscript\as_property.h" />
+    <ClInclude Include="thirdparty\angelscript\as_restore.h" />
+    <ClInclude Include="thirdparty\angelscript\as_scriptcode.h" />
+    <ClInclude Include="thirdparty\angelscript\as_scriptengine.h" />
+    <ClInclude Include="thirdparty\angelscript\as_scriptfunction.h" />
+    <ClInclude Include="thirdparty\angelscript\as_scriptnode.h" />
+    <ClInclude Include="thirdparty\angelscript\as_scriptobject.h" />
+    <ClInclude Include="thirdparty\angelscript\as_string.h" />
+    <ClInclude Include="thirdparty\angelscript\as_string_util.h" />
+    <ClInclude Include="thirdparty\angelscript\as_symboltable.h" />
+    <ClInclude Include="thirdparty\angelscript\as_texts.h" />
+    <ClInclude Include="thirdparty\angelscript\as_thread.h" />
+    <ClInclude Include="thirdparty\angelscript\as_tokendef.h" />
+    <ClInclude Include="thirdparty\angelscript\as_tokenizer.h" />
+    <ClInclude Include="thirdparty\angelscript\as_typeinfo.h" />
+    <ClInclude Include="thirdparty\angelscript\as_variablescope.h" />
+    <ClInclude Include="thirdparty\angelscript\autowrapper\aswrappedcall.h" />
+    <ClInclude Include="thirdparty\angelscript\contextmgr\contextmgr.h" />
+    <ClInclude Include="thirdparty\angelscript\datetime\datetime.h" />
+    <ClInclude Include="thirdparty\angelscript\debugger\debugger.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptany\scriptany.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptarray\scriptarray.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptbuilder\scriptbuilder.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptdictionary\scriptdictionary.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptfile\scriptfile.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptfile\scriptfilesystem.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptgrid\scriptgrid.h" />
+    <ClInclude Include="thirdparty\angelscript\scripthandle\scripthandle.h" />
+    <ClInclude Include="thirdparty\angelscript\scripthelper\scripthelper.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptmath\scriptmath.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptmath\scriptmathcomplex.h" />
+    <ClInclude Include="thirdparty\angelscript\scriptstdstring\scriptstdstring.h" />
+    <ClInclude Include="thirdparty\angelscript\serializer\serializer.h" />
+    <ClInclude Include="thirdparty\angelscript\weakref\weakref.h" />
+    <ClInclude Include="thirdparty\fontstash.h" />
+    <ClInclude Include="thirdparty\gl3corefontstash.h" />
+    <ClInclude Include="thirdparty\glfontstash.h" />
     <ClInclude Include="thirdparty\nanovg\fontstash.h" />
     <ClInclude Include="thirdparty\nanovg\nanovg.h" />
     <ClInclude Include="thirdparty\nanovg\nanovg_gl.h" />
     <ClInclude Include="thirdparty\nanovg\nanovg_gl_utils.h" />
     <ClInclude Include="thirdparty\nanovg\stb_image.h" />
     <ClInclude Include="thirdparty\nanovg\stb_truetype.h" />
+    <ClInclude Include="thirdparty\rectpack2d\best_bin_finder.h" />
+    <ClInclude Include="thirdparty\rectpack2d\empty_spaces.h" />
+    <ClInclude Include="thirdparty\rectpack2d\empty_space_allocators.h" />
+    <ClInclude Include="thirdparty\rectpack2d\finders_interface.h" />
+    <ClInclude Include="thirdparty\rectpack2d\insert_and_split.h" />
+    <ClInclude Include="thirdparty\rectpack2d\rect_structs.h" />
     <ClInclude Include="thirdparty\SDL_FontCache.h" />
+    <ClInclude Include="thirdparty\stb_truetype.h" />
     <ClInclude Include="thirdparty\vlc4\deprecated.h" />
     <ClInclude Include="thirdparty\vlc4\libvlc.h" />
     <ClInclude Include="thirdparty\vlc4\libvlc_dialog.h" />
@@ -346,9 +485,22 @@
     <ClInclude Include="thirdparty\vlcpp\RendererDiscoverer.hpp" />
     <ClInclude Include="thirdparty\vlcpp\structures.hpp" />
     <ClInclude Include="thirdparty\vlcpp\vlc.hpp" />
+    <ClInclude Include="Threading.hpp" />
     <ClInclude Include="Timer.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="thirdparty\angelscript\as_callfunc_arm64_msvc.asm">
+      <FileType>Document</FileType>
+    </Text>
+    <Text Include="thirdparty\angelscript\as_callfunc_arm_msvc.asm">
+      <FileType>Document</FileType>
+    </Text>
+    <MASM Include="thirdparty\angelscript\as_callfunc_x64_msvc_asm.asm">
+      <FileType>Document</FileType>
+    </MASM>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
 </Project>

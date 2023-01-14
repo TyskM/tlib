@@ -25,7 +25,8 @@ public:
     void seed() { std::random_device rd; generator.seed(rd()); }
 
     // Returns a random int between min and max, including min and max.
-    int randRangeInt(int min, int max)
+    template <typename T = int>
+    int randRangeInt(T min, T max)
     {
         std::uniform_int_distribution<> dist(min, max);
         return dist(generator);

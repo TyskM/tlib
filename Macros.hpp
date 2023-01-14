@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-
+#include <boost/preprocessor.hpp>
 
 #define OS_WINDOWS _WIN32
 #define OS_MAC     __APPLE__
@@ -58,5 +58,8 @@ inline enumName& operator|=(enumName & a, const enumName & b)                \
 inline bool operator&(enumName a, enumName b)                                \
 { return static_cast<int>(a) & static_cast<int>(b); }
 
-#define STRING_MACRO_NAME(X) #X
-#define STRING_MACRO_VALUE(X) STRING_MACRO_NAME(X)
+#define STRING_NAME(X) #X
+#define STRING_VALUE(X) STRING_NAME(X)
+
+#define COMMA_SEP(r, token, i, e) BOOST_PP_COMMA_IF(i) token(e)
+#define WRAP(token, ...) BOOST_PP_SEQ_FOR_EACH_I(COMMA_SEP, token, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))

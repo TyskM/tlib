@@ -1,4 +1,4 @@
-
+#pragma once
 // Things to copy/paste. Do not include.
 
 struct WrapperExample
