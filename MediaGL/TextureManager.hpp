@@ -12,16 +12,21 @@ struct TextureManager
 
     void clear() { textures.clear(); }
 
-    Texture& getOrLoad(const fs::path& path)
+    template <typename... Args>
+    Texture* getOrLoad(const fs::path& path, Args... args)
     {
         const auto& normalizedPath = path.lexically_normal();
         const auto& pathStr = normalizedPath.string();
         if (!textures.contains(pathStr))
         {
             std::cout << "Loading new texture: " << pathStr << std::endl;
-            textures[pathStr].loadFromFile(pathStr, TextureFiltering::Nearest);
+            if (!textures[pathStr].loadFromFile(pathStr, args...))
+            {
+                textures.erase(pathStr);
+                return nullptr;
+            }
         }
-        return textures.at(pathStr);
+        return &textures.at(pathStr);
     }
 
     std::string getTexPath(Texture* tex)

@@ -7,6 +7,33 @@ const std::string SDLEventToStr(const SDL_Event& event)
 {
     switch (event.type)
     {
+    case SDL_WINDOWEVENT:
+    {
+        switch (event.window.event)
+        {
+            case SDL_WINDOWEVENT_NONE            : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_NONE"            ; break;
+            case SDL_WINDOWEVENT_SHOWN           : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_SHOWN"           ; break;
+            case SDL_WINDOWEVENT_HIDDEN          : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_HIDDEN"          ; break;
+            case SDL_WINDOWEVENT_EXPOSED         : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_EXPOSED"         ; break;
+            case SDL_WINDOWEVENT_MOVED           : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_MOVED"           ; break;
+            case SDL_WINDOWEVENT_RESIZED         : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_RESIZED"         ; break;
+            case SDL_WINDOWEVENT_SIZE_CHANGED    : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_SIZE_CHANGED"    ; break;
+            case SDL_WINDOWEVENT_MINIMIZED       : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_MINIMIZED"       ; break;
+            case SDL_WINDOWEVENT_MAXIMIZED       : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_MAXIMIZED"       ; break;
+            case SDL_WINDOWEVENT_RESTORED        : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_RESTORED"        ; break;
+            case SDL_WINDOWEVENT_ENTER           : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_ENTER"           ; break;
+            case SDL_WINDOWEVENT_LEAVE           : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_LEAVE"           ; break;
+            case SDL_WINDOWEVENT_FOCUS_GAINED    : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_FOCUS_GAINED"    ; break;
+            case SDL_WINDOWEVENT_FOCUS_LOST      : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_FOCUS_LOST"      ; break;
+            case SDL_WINDOWEVENT_CLOSE           : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_CLOSE"           ; break;
+            case SDL_WINDOWEVENT_TAKE_FOCUS      : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_TAKE_FOCUS"      ; break;
+            case SDL_WINDOWEVENT_HIT_TEST        : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_HIT_TEST"        ; break;
+            case SDL_WINDOWEVENT_ICCPROF_CHANGED : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_ICCPROF_CHANGED" ; break;
+            case SDL_WINDOWEVENT_DISPLAY_CHANGED : return "SDL_WINDOWEVENT : SDL_WINDOWEVENT_DISPLAY_CHANGED" ; break;
+            default: return "SDL_WINDOWEVENT"; break;
+        }
+        break;
+    }
     case SDL_FIRSTEVENT:                      { return "SDL_FIRSTEVENT";                   }
     case SDL_QUIT:                            { return "SDL_QUIT";                         }
     case SDL_APP_TERMINATING:                 { return "SDL_APP_TERMINATING";              }
@@ -17,7 +44,6 @@ const std::string SDLEventToStr(const SDL_Event& event)
     case SDL_APP_DIDENTERFOREGROUND:          { return "SDL_APP_DIDENTERFOREGROUND";       }
     case SDL_LOCALECHANGED:                   { return "SDL_LOCALECHANGED";                }
     case SDL_DISPLAYEVENT:                    { return "SDL_DISPLAYEVENT";                 }
-    case SDL_WINDOWEVENT:                     { return "SDL_WINDOWEVENT";                  }
     case SDL_SYSWMEVENT:                      { return "SDL_SYSWMEVENT";                   }
     case SDL_KEYDOWN:                         { return "SDL_KEYDOWN";                      }
     case SDL_KEYUP:                           { return "SDL_KEYUP";                        }

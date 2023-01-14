@@ -4,29 +4,48 @@
 #include <string>
 #include <format>
 #include "SysQuery.hpp"
+#include "Renderer.hpp"
+#include "FPSLimit.hpp"
 
-void drawDiagWidget()
+// End with ImGui::End()
+void beginDiagWidgetExt()
+{
+    ImGui::Begin("Diagnostics");
+}
+
+void drawDiagWidget(Renderer* renderer = nullptr, FPSLimit* fpslimit = nullptr)
 {
     float delta = ImGui::GetIO().DeltaTime;
     const auto meminfo = sysq::getGlobalMemInfo();
     const auto meminfop = sysq::getThisProcessMemUsage();
 
-    static float snapFPS = 1.f / delta;
-
     static float snapTimeSecs = 0.66f;
     static float snapTimeCurr = 0.f;
 
-    snapTimeCurr += delta;
-    if (snapTimeCurr > snapTimeSecs)
+    static int fpscounter = 0;
+    static int fps = 0;
+    static Timer t;
+    if (t.getElapsedTime().asSeconds() > 1.f)
     {
-        snapFPS = 1.f / delta;
-        snapTimeCurr = 0.f;
+        fps = fpscounter;
+        fpscounter = 0;
+        t.restart();
     }
+    ++fpscounter;
 
-    ImGui::Begin("Diagnostics");
+    beginDiagWidgetExt();
 
+    if (fpslimit)
+    {
+        ImGui::Checkbox("FPS limit enabled", &fpslimit->enabled);
+    }
+    if (renderer)
+    {
+        ImGui::Checkbox("Frustum Culling", &renderer->frustumCullingEnabled);
+        ImGui::Text(std::format("Draw Calls: {}", renderer->lastFrameDrawCalls).c_str());
+    }
     ImGui::Text("Delta: %f", delta);
-    ImGui::Text(std::format("FPS: {}", snapFPS).c_str());
+    ImGui::Text(std::format("FPS: {}", fps).c_str());
     ImGui::Text(std::format("CPU Usage: {}%", sysq::getThisProcessCPUUsage()).c_str());
     ImGui::Text(std::format("Phys Ram Used: {} MB", sysq::bytesToMb(meminfop.workingSetSize)).c_str());
     ImGui::Text(std::format("Virt Ram Used: {} MB", sysq::bytesToMb(meminfop.privateUsage)).c_str());

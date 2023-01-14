@@ -12,6 +12,7 @@ struct FrameBuffer
 
     void setTexture(Texture& texture)
     {
+        if (!created()) { create(); }
         this->texture = &texture;
         bind();
         texture.bind();

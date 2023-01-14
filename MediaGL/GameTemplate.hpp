@@ -1,12 +1,14 @@
-
+//
 // Usage example:
-
+//
+//
 //#include <MediaGL/GameTemplate.hpp>
 //
-//GameTemplate game;
-//Renderer& renderer         = game.renderer;
-//Window& window             = game.win;
-//StateMan<GameState>& state = game.stateMan;
+//GameTemplate         game;
+//Renderer&            renderer = game.renderer;
+//Window&              window   = game.win;
+//StateMan<GameState>& state    = game.stateMan;
+//MyGui&               imgui    = game.imgui;
 //
 //struct PlayState : GameState
 //{
@@ -18,11 +20,16 @@
 //    void update(float delta) override
 //    {
 //
+//        imgui.newFrame();
 //    }
 //
 //    void draw(float delta) override
 //    {
+//        renderer.begin();
+//        renderer.clearColor();
 //
+//        renderer.render();
+//        imgui.render();
 //    }
 //};
 //
@@ -33,6 +40,7 @@
 //    game.start(playState);
 //    return 0;
 //}
+//
 
 #pragma once
 

@@ -5,8 +5,8 @@
 
 struct FPSLimit
 {
-    FPSmanager man;
-    bool enabled = true;
+    FPSmanager man;      // Read only
+    bool enabled = true; // Read / Write
 
     FPSLimit(uint32_t limit = 60)
     {

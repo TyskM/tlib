@@ -22,11 +22,12 @@
 #include "../DataStructures.hpp"
 #include "../Macros.hpp"
 #include "../Logging.hpp"
+#include "../String.hpp"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 
-enum class WindowFlags
+enum class WindowFlags : int
 {
     Fullscreen         = SDL_WINDOW_FULLSCREEN,              /* fullscreen window */
     OpenGL             = SDL_WINDOW_OPENGL,                  /* window usable with OpenGL context */
@@ -57,7 +58,7 @@ enum class WindowFlags
 
 struct WindowCreateParams
 {
-    std::string title = "Window";
+    String      title = "Window";
     Vector2i    size  = { 640, 480 };
     Vector2i    pos   = {SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED};
     WindowFlags flags = WindowFlags::Resizable;
@@ -74,6 +75,10 @@ struct Window : NonAssignable
 
     void create(const WindowCreateParams& params = WindowCreateParams())
     {
+        tlog::info("Creating window...");
+        if (created())
+        { return; }
+
         SDL_Init(SDL_INIT_EVERYTHING);
 
         if (params.flags & WindowFlags::OpenGL)
@@ -89,6 +94,8 @@ struct Window : NonAssignable
 
         SDL_VERSION(&wm.version);
         SDL_GetWindowWMInfo(window, &wm);
+
+        tlog::info("Window created");
     }
 
     void reset()

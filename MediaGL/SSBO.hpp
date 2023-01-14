@@ -52,6 +52,7 @@ struct SSBO : NonAssignable
 
     void bind()
     {
+        ASSERT(created());
         if (glState.boundSSBO == this) { return; }
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, glHandle);
         glState.boundSSBO = this;

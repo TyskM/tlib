@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 struct Shader;
 struct Texture;
 struct VertexArray;
@@ -9,12 +11,12 @@ struct SSBO;
 
 struct GLState
 {
-    Shader*        boundShader        = nullptr;
-    Texture*       boundTexture       = nullptr;
-    VertexArray*   boundVertexArray   = nullptr;
-    VertexBuffer*  boundVertexBuffer  = nullptr;
-    ElementBuffer* boundElementBuffer = nullptr;
-    SSBO*          boundSSBO          = nullptr;
+    std::vector<Texture*> boundTextures      = {0, 0, 0, 0, 0, 0, 0, 0};
+    Shader*               boundShader        = nullptr;
+    VertexArray*          boundVertexArray   = nullptr;
+    VertexBuffer*         boundVertexBuffer  = nullptr;
+    ElementBuffer*        boundElementBuffer = nullptr;
+    SSBO*                 boundSSBO          = nullptr;
 
     void reset() { *this = GLState(); }
 };
