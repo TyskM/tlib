@@ -512,14 +512,6 @@ struct Renderer
         texBatchDataSSBO.bind();
     }
 
-    void drawTexture(Texture& tex, const Rectf& dstRect,
-                     const float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 },
-                     Shader* shader = nullptr, bool flipuvx = false, bool flipuvy = false)
-    {
-        drawTexture(tex, Rectf(Vector2f(0, 0), Vector2f(tex.getSize())),
-                    dstRect, rot, color, shader, flipuvx, flipuvy);
-    }
-
     void drawTexture(Texture& tex, const Rectf& srcRect, const Rectf& dstRect,
                      const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 },
                      Shader* shader = nullptr, bool flipuvx = false, bool flipuvy = false)
@@ -551,8 +543,8 @@ struct Renderer
         shader->setVec4f("modulate", color.r, color.g, color.b, color.a);
 
         const Vector2f texSize(tex.getSize());
-        float uvWidth  = srcRect.width  / texSize.x;
-        float uvHeight = srcRect.height / texSize.y;
+        float uvWidth  = (srcRect.x + srcRect.width)  / texSize.x;
+        float uvHeight = (srcRect.y + srcRect.height) / texSize.y;
         float uvX      = srcRect.x      / texSize.x;
         float uvY      = srcRect.y      / texSize.y;
 
@@ -583,6 +575,14 @@ struct Renderer
         GL_CHECK(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices));
 
         ++debugDrawCalls;
+    }
+
+    void drawTexture(Texture& tex, const Rectf& dstRect,
+                     const float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 },
+                     Shader* shader = nullptr, bool flipuvx = false, bool flipuvy = false)
+    {
+        drawTexture(tex, Rectf(Vector2f(0, 0), Vector2f(tex.getSize())),
+                    dstRect, rot, color, shader, flipuvx, flipuvy);
     }
 
     void drawTextureFast(Texture& tex, const Rectf& dstRect,
@@ -619,8 +619,8 @@ struct Renderer
         inst.model = glm::scale(inst.model, glm::vec3(dstRect.width, dstRect.height, 1.f));
         
         const Vector2f texSize(tex.getSize());
-        float normalWidth  = srcRect.width  / texSize.x;
-        float normalHeight = srcRect.height / texSize.y;
+        float normalWidth  = (srcRect.x + srcRect.width)  / texSize.x;
+        float normalHeight = (srcRect.y + srcRect.height) / texSize.y;
         float normalX      = srcRect.x / texSize.x;
         float normalY      = srcRect.y / texSize.y;
 

@@ -168,7 +168,7 @@ struct Texture : NonCopyable
         GL_CHECK(glGenTextures(1, &glHandle));
     }
 
-    bool loadFromFile(std::string filePath, TextureFiltering texFiltering = defaultTexFiltering)
+    bool loadFromFile(const String& filePath, TextureFiltering texFiltering = defaultTexFiltering)
     {
         if (!created()) { create(); }
 
@@ -242,7 +242,7 @@ struct Texture : NonCopyable
         glState.boundTextures[slot] = nullptr;
     }
 
-    bool created()
+    bool created() const
     { return glHandle != 0 && SDL_GL_GetCurrentContext() != NULL; }
 
     Vector2i getSize()
