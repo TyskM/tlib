@@ -104,8 +104,9 @@ size_t getVecSizeInBytes(const std::vector<T>& vec)
 
 int SDLEventFilterCB(void* userdata, SDL_Event* event);
 
-enum class GLDrawMode
+enum class GLDrawMode : int
 {
+    Unknown                  = -1,
     POINTS                   = GL_POINTS,
     LINE_STRIP               = GL_LINE_STRIP,
     LINE_LOOP                = GL_LINE_LOOP,
@@ -250,6 +251,7 @@ struct Renderer
         ASSERTMSG(begun == true, "Forgot to call begin()");
         begun = false;
         flushTextureBatch();
+        flushLineBatch();
 
         lastFrameDrawCalls = debugDrawCalls;
         debugDrawCalls = 0;
@@ -522,6 +524,7 @@ struct Renderer
         { return; }
 
         flushTextureBatch();
+        flushLineBatch();
         
         if (shader == nullptr) { shader = &spriteShader; }
         shader->bind();
@@ -585,23 +588,14 @@ struct Renderer
                     dstRect, rot, color, shader, flipuvx, flipuvy);
     }
 
-    void drawTextureFast(Texture& tex, const Rectf& dstRect,
-                         const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
-    {
-        drawTextureFast(tex, Rectf{ Vector2f{0, 0}, Vector2f(tex.getSize()) }, dstRect, rot, color, flipuvx, flipuvy);
-    }
-
-    void drawTextureFast(SubTexture& subTex, const Rectf& dstRect,
-                         float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
-    {
-        drawTextureFast(*subTex.texture, Rectf(subTex.rect), dstRect, rot, color, flipuvx, flipuvy);
-    }
+    #pragma region drawTextureFast
 
     void drawTextureFast(Texture& tex, const Rectf& srcRect, const Rectf& dstRect,
                          const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
     {
         if (frustumCullingEnabled && !frustum.IsBoxVisible({ dstRect.x, dstRect.y, 0 }, {dstRect.x + dstRect.width, dstRect.y + dstRect.height, 0})) { return; }
         if (&tex != currentTexture) { flushTextureBatch(); }
+        flushLineBatch();
 
         FastSpriteInstance& inst = spriteBatch[currentSpriteBatchIndex];
 
@@ -642,14 +636,24 @@ struct Renderer
         inst.texCoords[2] = { normalX,     normalY };      // bottom left
         inst.texCoords[3] = { normalWidth, normalY };      // bottom right
 
-
-
         inst.color = { color.r, color.g, color.b, color.a };
 
         ++currentSpriteBatchIndex;
         currentTexture = &tex;
 
         if (currentSpriteBatchIndex == MAX_SPRITE_BATCH_SIZE) { flushTextureBatch(); }
+    }
+
+    void drawTextureFast(Texture& tex, const Rectf& dstRect,
+                         const float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
+    {
+        drawTextureFast(tex, Rectf{ Vector2f{0, 0}, Vector2f(tex.getSize()) }, dstRect, rot, color, flipuvx, flipuvy);
+    }
+
+    void drawTextureFast(SubTexture& subTex, const Rectf& dstRect,
+                         float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
+    {
+        drawTextureFast(*subTex.texture, Rectf(subTex.rect), dstRect, rot, color, flipuvx, flipuvy);
     }
 
     // Call this to draw the batched textures early
@@ -663,6 +667,7 @@ struct Renderer
 
         fastSpriteShader.bind();
         currentTexture->bind();
+        VertexBuffer::unbind();
         VertexArray::unbind();
         GL_CHECK(glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, currentSpriteBatchIndex));
 
@@ -671,6 +676,8 @@ struct Renderer
         ++debugDrawCalls;
         currentSpriteBatchIndex = 0;
     }
+
+    #pragma endregion
 
     void drawFrameBuffer(const FrameBuffer& fb, const Rectf& srcRect, const Rectf& dstRect,
                          const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = true)
@@ -693,36 +700,71 @@ struct Renderer
 
     #pragma region Primitives
 
-    void drawLine(const Vector2f& start, const Vector2f& end, const ColorRGBAf& color, float width = 1)
-    { drawLines(std::vector{ start, end }, color, width); }
+    std::vector<Vector2f> lineBatch;
+    std::vector<GLuint>    lineBatchIndices;
+    GLDrawMode lastMode  = GLDrawMode::Unknown;
+    ColorRGBAf lastColor = { 1,1,1,1 };
+    float      lastWidth = 1;
+    static constexpr GLuint restartIndex = /*0xFFFF*/ std::numeric_limits<GLuint>::max();
 
-    // TODO: batch, it's super slow!!!
-    // It's a line loop
-    template <typename Vector2fContainer>
-    void drawLines(const Vector2fContainer& lines, const ColorRGBAf& color = ColorRGBAf::white(),
-                   float width = 1, GLDrawMode mode = GLDrawMode::LINE_STRIP)
+    void flushLineBatch()
     {
-        flushTextureBatch();
+        if (lineBatch.size() == 0) { return; }
+
+        glEnable(GL_PRIMITIVE_RESTART);
+        glPrimitiveRestartIndex(restartIndex);
 
         primShader.bind();
         // Projection set in setView()
-        primShader.setVec4f("color", color.r, color.g, color.b, color.a);
+        primShader.setVec4f("color", lastColor.r, lastColor.g, lastColor.b, lastColor.a);
 
         linesVBO.bind();
-        GL_CHECK(glBufferData(GL_ARRAY_BUFFER, lines.size() * sizeof(Vector2f), lines.data(), GL_DYNAMIC_DRAW));
+        GL_CHECK(glBufferData(GL_ARRAY_BUFFER, lineBatch.size() * sizeof(glm::vec2), lineBatch.data(), GL_DYNAMIC_DRAW));
 
         linesVAO.bind();
         GL_CHECK(glEnableVertexAttribArray(0));
         GL_CHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0));
 
-        glLineWidth(width);
-        GL_CHECK(glDrawArrays((int)mode, 0, lines.size()));
+        glLineWidth(lastWidth);
+        GL_CHECK(glDrawElements(static_cast<GLenum>(lastMode), lineBatchIndices.size(), GL_UNSIGNED_INT, lineBatchIndices.data()));
+        glDisable(GL_PRIMITIVE_RESTART);
 
+        linesVBO.unbind();
+        linesVAO.unbind();
+
+        lineBatch.clear();
+        lineBatchIndices.clear();
         ++debugDrawCalls;
     }
 
-    void drawRect(const Rectf& rect, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false, float rot = 0.f)
-    { drawRect(rect.x, rect.y, rect.width, rect.height, color, filled, rot); }
+    // TODO: batch, it's super slow!!!
+    template <typename Vector2fContainer>
+    void drawLines(const Vector2fContainer& points, const ColorRGBAf& color = ColorRGBAf::white(),
+                   float width = 1, GLDrawMode mode = GLDrawMode::LINE_STRIP)
+    {
+        flushTextureBatch();
+
+        if (mode  != lastMode  ||
+            color != lastColor ||
+            width != lastWidth)
+        {
+            flushLineBatch();
+        }
+
+        lastMode  = mode;
+        lastColor = color;
+        lastWidth = width;
+
+        for (auto& point : points)
+        {
+            lineBatchIndices.push_back(lineBatch.size());
+            lineBatch.push_back(point);
+        }
+        lineBatchIndices.push_back(restartIndex);
+    }
+
+    void drawLine(const Vector2f& start, const Vector2f& end, const ColorRGBAf& color, float width = 1)
+    { drawLines(std::vector{ start, end }, color, width); }
 
     void drawRect(float x, float y, float w, float h, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false, float rot = 0.f)
     {
@@ -744,6 +786,9 @@ struct Renderer
 
         drawLines(verts, color, 1, filled ? GLDrawMode::TRIANGLE_FAN : GLDrawMode::LINE_LOOP);
     }
+
+    void drawRect(const Rectf& rect, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false, float rot = 0.f)
+    { drawRect(rect.x, rect.y, rect.width, rect.height, color, filled, rot); }
 
     void drawGrid(const Vector2f& start, const Vector2i& gridCount, Vector2f gridSize, const ColorRGBAf& color)
     {
@@ -772,7 +817,7 @@ struct Renderer
     }
 
     void drawCircle(const Vector2f& pos, const float rad,
-                    const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false, const size_t segmentCount = 16)
+                    const ColorRGBAf& color = ColorRGBAf::white(), const bool filled = false, const size_t segmentCount = 16)
     {
         const float theta = 3.1415926 * 2 / float(segmentCount);
         const float tangetial_factor = tanf(theta);
@@ -806,7 +851,6 @@ struct Renderer
     }
 
     // Pos will be the bottom left of the text
-    // Don't use
     void drawText(const std::string& text, Font& font, const Vector2f& pos,
                   const ColorRGBAf& color = ColorRGBAf::white(), float scale = 1.f)
     {

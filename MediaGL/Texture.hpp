@@ -91,18 +91,6 @@ struct TextureData : NonCopyable
     operator bool() { valid(); }
 };
 
-// SubTexture to make using parts of a texture atlas more convenient.
-// Can be passed to Renderers drawTexture() method.
-// Becomes invalid after resizing a texture.
-struct Texture;
-struct SubTexture
-{
-    Texture* const texture = nullptr;
-    Recti rect;
-
-    SubTexture(Texture& tex, const Recti& rect) : texture{ &tex }, rect{ rect } { }
-};
-
 struct Texture : NonCopyable
 {
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
@@ -263,9 +251,17 @@ struct Texture : NonCopyable
     {
         setData(fallbackImage, 2, 2, TextureFiltering::Nearest);
     }
+};
 
-    SubTexture getSubTexture(const Recti& rect)
-    {
-        return SubTexture(*this, rect);
-    }
+// SubTexture to make using parts of a texture atlas more convenient.
+// Can be passed to Renderers drawTexture() method.
+// Becomes invalid after resizing a texture.
+struct SubTexture
+{
+    Texture* texture = nullptr;
+    Recti rect;
+
+    SubTexture() { }
+    SubTexture(Texture& tex, const Recti& rect) : texture{ &tex }, rect{ rect } { }
+    SubTexture(Texture& tex) : texture{ &tex }, rect{ Vector2i{0,0}, texture->getSize() } { }
 };

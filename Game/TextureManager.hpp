@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Texture.hpp"
+#include "../MediaGL/Texture.hpp"
 #include <filesystem>
 #include <unordered_map>
 
@@ -19,7 +19,7 @@ struct TextureManager
         const auto& pathStr = normalizedPath.string();
         if (!textures.contains(pathStr))
         {
-            std::cout << "Loading new texture: " << pathStr << std::endl;
+            //std::cout << "Loading new texture: " << pathStr << std::endl;
             if (!textures[pathStr].loadFromFile(pathStr, args...))
             {
                 textures.erase(pathStr);
@@ -35,7 +35,7 @@ struct TextureManager
         {
             if (&tex2 == tex) { return str; }
         }
-        std::cerr << "!!! ERROR: Could not find path for a texture\n";
+        tlog::error("Could not find path for a texture");
         return "UNDEFINED";
     }
 };

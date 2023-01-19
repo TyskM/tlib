@@ -4,6 +4,8 @@
 #include "GLState.hpp"
 #include "Misc.hpp"
 
+// This class is not intended to be used directly.
+// See: VertexBuffer, ElementBuffer
 struct GLBuffer
 {
     GLuint glHandle = 0;

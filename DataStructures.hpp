@@ -298,9 +298,13 @@ struct Circle
     constexpr Circle(T x, T y, T radius) : x{ x }, y{ y }, radius{ radius } { }
 
     bool intersects(const Circle<T>& other)
-    {
-        return Vector2<T>(x, y).distanceTo(Vector2<T>(other.x, other.y)) < other.radius + radius;
-    }
+    { return Vector2<T>(x, y).distanceTo(Vector2<T>(other.x, other.y)) < other.radius + radius; }
+
+    bool contains(T px, T py)
+    { return std::pow(px-x, 2) + std::pow(py-y, 2) < std::pow(radius, 2); }
+
+    bool contains(const Vector2<T>& v)
+    { return contains(v.x, v.y); }
 };
 
 using Circlef = Circle<float>;
@@ -316,7 +320,7 @@ struct Rect
 
     Rect(Vector2<T> pos, Vector2<T> size) : x{ pos.x }, y{ pos.y }, width{ size.x }, height{ size.y } { }
     Rect(T x, T y, T width, T height) : x{ x }, y{ y }, width{ width }, height{ height } { }
-    Rect() { }
+    Rect() = default;
 
     template <typename CT>
     constexpr explicit Rect(const CT& other)

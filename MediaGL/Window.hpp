@@ -27,6 +27,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 
+using InputEvent = SDL_Event;
+
 enum class WindowFlags : int
 {
     Fullscreen         = SDL_WINDOW_FULLSCREEN,              /* fullscreen window */

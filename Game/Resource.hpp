@@ -19,6 +19,7 @@ struct Resource
     Resource(T min, T max) : Resource(min, max, max) { }
     Resource(T max)        : Resource(0, max, max)   { }
 
+    inline void setMaxAndValue(T v) noexcept { setMax(v); set(v); }
     inline void setMin(T v) noexcept { min = v; set(value); }
     inline void setMax(T v) noexcept { max = v; set(value); }
     inline void set   (T v) noexcept { value = std::clamp(v, min, max); }

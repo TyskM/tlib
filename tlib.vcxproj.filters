@@ -227,7 +227,7 @@
     <ClInclude Include="SFMLDebugDraw.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="StateMan.hpp">
+    <ClInclude Include="Game\StateMan.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="String.hpp">
@@ -290,9 +290,6 @@
     <ClInclude Include="mediagl\FPSLimit.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mediagl\GameTemplate.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="mediagl\GLHelpers.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -329,7 +326,7 @@
     <ClInclude Include="mediagl\Texture.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="mediagl\TextureManager.hpp">
+    <ClInclude Include="Game\TextureManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mediagl\View.hpp">
@@ -1041,6 +1038,33 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Game\GameObject.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Resource.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Engine.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Node.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Transform2D.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Node2D.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Sprite2D.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Game.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\ECS.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MediaGL\ImGuiThemes.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
