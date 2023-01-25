@@ -4,6 +4,7 @@
 #include "GLState.hpp"
 #include "Misc.hpp"
 
+// Used for storing information about a VertexBuffer
 struct VertexArray
 {
     GLuint glHandle = 0;
@@ -33,8 +34,7 @@ struct VertexArray
         glState.boundVertexArray = nullptr;
     }
 
-    // Pass NoCreate to delay construction
-    VertexArray() { this->create(); }
+    VertexArray() = default;
     VertexArray(NoCreateT) { }
     ~VertexArray() { reset(); }
 

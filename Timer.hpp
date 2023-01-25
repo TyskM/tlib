@@ -16,13 +16,13 @@ struct Time : std::chrono::duration<double>
     Time& operator=(const std::chrono::duration<double>& base) { std::chrono::duration<double>::operator=(base); return *this; }
 
     inline double asNanoseconds() const noexcept
-    { return std::chrono::duration_cast<nanoseconds>(*this).count(); }
+    { return static_cast<double>(std::chrono::duration_cast<nanoseconds>(*this).count()); }
 
     inline double asMicroseconds() const noexcept
-    { return std::chrono::duration_cast<microseconds>(*this).count(); }
+    { return static_cast<double>(std::chrono::duration_cast<microseconds>(*this).count()); }
 
     inline double asMilliseconds() const noexcept
-    { return std::chrono::duration_cast<milliseconds>(*this).count(); }
+    { return static_cast<double>(std::chrono::duration_cast<milliseconds>(*this).count()); }
 
     inline double asSeconds() const noexcept
     { return count(); }

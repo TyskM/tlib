@@ -4,7 +4,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <iostream>
 #include <string>
 #include "GLHelpers.hpp"
 #include "../Files.hpp"
@@ -91,7 +90,7 @@ struct TextureData : NonCopyable
     operator bool() { valid(); }
 };
 
-struct Texture : NonCopyable
+struct Texture : NonAssignable
 {
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
     static inline TextureFiltering   defaultTexFiltering   = TextureFiltering::Linear;
@@ -119,20 +118,6 @@ struct Texture : NonCopyable
     { loadFromFile(filePath, texFiltering); }
 
     ~Texture() { reset(); }
-
-    Texture(Texture&& other) noexcept
-    {
-        reset();
-        glHandle        = other.glHandle;
-        other.glHandle  = 0;
-        width           = other.width;
-        height          = other.height;
-        filtering       = other.filtering;
-        format          = other.format;
-        internalFormat  = other.internalFormat;
-        boundSlot       = other.boundSlot;
-        unpackAlignment = other.unpackAlignment;
-    }
 
     void reset()
     {

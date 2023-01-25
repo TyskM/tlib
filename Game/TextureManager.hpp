@@ -22,6 +22,7 @@ struct TextureManager
             //std::cout << "Loading new texture: " << pathStr << std::endl;
             if (!textures[pathStr].loadFromFile(pathStr, args...))
             {
+                rendlog->error("Failed to load texture: {}", pathStr);
                 textures.erase(pathStr);
                 return nullptr;
             }

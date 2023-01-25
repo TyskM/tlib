@@ -3,7 +3,6 @@
 /*
 
 #include <Game/Engine.hpp>
-#include <Game/ECS.hpp>
 
 using game::renderer;
 using game::imgui;
@@ -115,7 +114,7 @@ namespace game
                 Input::input(e);
                 stateMan.getState()->input(e);
             }
-            float dt = dtTimer.restart().asSeconds();
+            float dt = static_cast<float>(dtTimer.restart().asSeconds());
             stateMan.getState()->update(dt);
             stateMan.getState()->draw(dt);
             glState.reset();

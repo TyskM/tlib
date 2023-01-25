@@ -1,25 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug ASan|Win32">
-      <Configuration>Debug ASan</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug ASan|x64">
-      <Configuration>Debug ASan</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release ASan|Win32">
-      <Configuration>Release ASan</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release ASan|x64">
-      <Configuration>Release ASan</Configuration>
-      <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
@@ -35,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{C2AEDD02-76B6-4075-A5D6-5E65E99AC2C8}</ProjectGuid>
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{FC51C81D-A1F3-489E-B881-C157B972D911}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -45,18 +29,10 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <EnableASAN>true</EnableASAN>
+    <EnableFuzzer>true</EnableFuzzer>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -65,87 +41,56 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <EnableASAN>true</EnableASAN>
+    <EnableFuzzer>true</EnableFuzzer>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
-  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|Win32'">
-    <LinkIncremental>true</LinkIncremental>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|Win32'">
-    <LinkIncremental>true</LinkIncremental>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <RunCodeAnalysis>true</RunCodeAnalysis>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <VcpkgUseStatic>true</VcpkgUseStatic>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|Win32'" Label="Vcpkg">
     <VcpkgUseStatic>true</VcpkgUseStatic>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <VcpkgUseStatic>true</VcpkgUseStatic>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|Win32'" Label="Vcpkg">
-    <VcpkgUseStatic>true</VcpkgUseStatic>
-  </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <VcpkgUseStatic>true</VcpkgUseStatic>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|x64'" Label="Vcpkg">
-    <VcpkgUseStatic>true</VcpkgUseStatic>
-  </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <VcpkgUseStatic>true</VcpkgUseStatic>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|x64'" Label="Vcpkg">
     <VcpkgUseStatic>true</VcpkgUseStatic>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -157,24 +102,7 @@
       <Optimization>Disabled</Optimization>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <ConformanceMode>false</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <TargetMachine>MachineX86</TargetMachine>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Windows</SubSystem>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|Win32'">
-    <ClCompile>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <ConformanceMode>false</ConformanceMode>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -190,25 +118,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <ConformanceMode>false</ConformanceMode>
-    </ClCompile>
-    <Link>
-      <TargetMachine>MachineX86</TargetMachine>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Windows</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|Win32'">
-    <ClCompile>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <ConformanceMode>false</ConformanceMode>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -223,23 +133,11 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|x64'">
-    <ClCompile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-    </ClCompile>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <ConformanceMode>false</ConformanceMode>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug ASan|x64'">
-    <ClCompile>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <ConformanceMode>false</ConformanceMode>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -247,84 +145,18 @@
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|x64'">
-    <ClCompile>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
-    </ClCompile>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <ConformanceMode>false</ConformanceMode>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release ASan|x64'">
-    <ClCompile>
-      <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <ConformanceMode>false</ConformanceMode>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="thirdparty\angelscript\as_atomic.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_builder.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_bytecode.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_arm.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_arm64.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_mips.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_ppc.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_ppc_64.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_sh4.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_x64_gcc.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_x64_mingw.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_x64_msvc.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_x86.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_callfunc_xenon.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_compiler.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_configgroup.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_context.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_datatype.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_gc.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_generic.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_globalproperty.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_memory.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_module.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_objecttype.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_outputbuffer.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_parser.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_restore.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_scriptcode.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_scriptengine.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_scriptfunction.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_scriptnode.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_scriptobject.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_string.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_string_util.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_thread.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_tokenizer.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_typeinfo.cpp" />
-    <ClCompile Include="thirdparty\angelscript\as_variablescope.cpp" />
-    <ClCompile Include="thirdparty\angelscript\autowrapper\generator\generateheader.cpp" />
-    <ClCompile Include="thirdparty\angelscript\contextmgr\contextmgr.cpp" />
-    <ClCompile Include="thirdparty\angelscript\datetime\datetime.cpp" />
-    <ClCompile Include="thirdparty\angelscript\debugger\debugger.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptany\scriptany.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptarray\scriptarray.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptbuilder\scriptbuilder.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptdictionary\scriptdictionary.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptfile\scriptfile.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptfile\scriptfilesystem.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptgrid\scriptgrid.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scripthandle\scripthandle.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scripthelper\scripthelper.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptmath\scriptmath.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptmath\scriptmathcomplex.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptstdstring\scriptstdstring.cpp" />
-    <ClCompile Include="thirdparty\angelscript\scriptstdstring\scriptstdstring_utils.cpp" />
-    <ClCompile Include="thirdparty\angelscript\serializer\serializer.cpp" />
-    <ClCompile Include="thirdparty\angelscript\weakref\weakref.cpp" />
+    <ClCompile Include="tlib.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".vs\tlib\v17\fileList.bin" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DataStructures.hpp" />
@@ -332,144 +164,58 @@
     <ClInclude Include="Errors.hpp" />
     <ClInclude Include="Event.hpp" />
     <ClInclude Include="Files.hpp" />
-    <ClInclude Include="Game\ECS.hpp" />
-    <ClInclude Include="Game\Engine.hpp" />
-    <ClInclude Include="Game\Game.hpp" />
-    <ClInclude Include="Game\GameObject.hpp" />
-    <ClInclude Include="Game\Node.hpp" />
-    <ClInclude Include="Game\Node2D.hpp" />
-    <ClInclude Include="Game\Resource.hpp" />
-    <ClInclude Include="Game\Sprite2D.hpp" />
-    <ClInclude Include="Game\Transform2D.hpp" />
+    <ClInclude Include="game\ECS.hpp" />
+    <ClInclude Include="game\Engine.hpp" />
+    <ClInclude Include="game\Game.hpp" />
+    <ClInclude Include="game\GameObject.hpp" />
+    <ClInclude Include="game\Node.hpp" />
+    <ClInclude Include="game\Node2D.hpp" />
+    <ClInclude Include="game\Resource.hpp" />
+    <ClInclude Include="game\Sprite2D.hpp" />
+    <ClInclude Include="game\StateMan.hpp" />
+    <ClInclude Include="game\TextureManager.hpp" />
+    <ClInclude Include="game\Transform2D.hpp" />
+    <ClInclude Include="LimitedStack.hpp" />
     <ClInclude Include="Logger.hpp" />
     <ClInclude Include="Logging.hpp" />
     <ClInclude Include="Macros.hpp" />
     <ClInclude Include="Math.hpp" />
-    <ClInclude Include="MediaGL\Debug.hpp" />
-    <ClInclude Include="MediaGL\Font.hpp" />
+    <ClInclude Include="mediagl\Debug.hpp" />
+    <ClInclude Include="mediagl\Font.hpp" />
     <ClInclude Include="mediagl\FPSLimit.hpp" />
+    <ClInclude Include="mediagl\FrameBuffer.hpp" />
     <ClInclude Include="mediagl\GLHelpers.hpp" />
-    <ClInclude Include="MediaGL\GLState.hpp" />
+    <ClInclude Include="mediagl\GLState.hpp" />
     <ClInclude Include="mediagl\Helpers.hpp" />
     <ClInclude Include="mediagl\ImGui.hpp" />
     <ClInclude Include="mediagl\ImGuiFileDialog.hpp" />
-    <ClInclude Include="MediaGL\ImGuiThemes.hpp" />
+    <ClInclude Include="mediagl\ImGuiThemes.hpp" />
     <ClInclude Include="mediagl\ImGuiWidgets.hpp" />
     <ClInclude Include="mediagl\Input.hpp" />
-    <ClInclude Include="MediaGL\MediaPlayer.hpp" />
-    <ClInclude Include="MediaGL\Misc.hpp" />
-    <ClInclude Include="MediaGL\NanoVG.hpp" />
+    <ClInclude Include="mediagl\MediaPlayer.hpp" />
+    <ClInclude Include="mediagl\Misc.hpp" />
+    <ClInclude Include="mediagl\NanoVG.hpp" />
     <ClInclude Include="mediagl\Renderer.hpp" />
-    <ClInclude Include="mediagl\FrameBuffer.hpp" />
     <ClInclude Include="mediagl\SDLEventToStr.hpp" />
     <ClInclude Include="mediagl\Shader.hpp" />
-    <ClInclude Include="MediaGL\SSBO.hpp" />
+    <ClInclude Include="mediagl\SSBO.hpp" />
     <ClInclude Include="mediagl\SysQuery.hpp" />
     <ClInclude Include="mediagl\Texture.hpp" />
-    <ClInclude Include="Game\TextureManager.hpp" />
-    <ClInclude Include="MediaGL\VertexArray.hpp" />
-    <ClInclude Include="MediaGL\VertexBuffer.hpp" />
+    <ClInclude Include="mediagl\VertexArray.hpp" />
+    <ClInclude Include="mediagl\VertexBuffer.hpp" />
     <ClInclude Include="mediagl\View.hpp" />
-    <ClInclude Include="mediagl\WindowOld.hpp" />
-    <ClInclude Include="media\Box2DDebugDraw.h" />
-    <ClInclude Include="media\Event.hpp" />
-    <ClInclude Include="media\Font.hpp" />
-    <ClInclude Include="media\FPSLimit.hpp" />
-    <ClInclude Include="media\GameTemplate.hpp" />
-    <ClInclude Include="media\ImGui.hpp" />
-    <ClInclude Include="media\ImGuiFileDialog.hpp" />
-    <ClInclude Include="media\ImGuiWidgets.hpp" />
-    <ClInclude Include="media\Input.hpp" />
-    <ClInclude Include="media\Media.hpp" />
-    <ClInclude Include="media\MediaPlayer.hpp" />
-    <ClInclude Include="media\Nuklear.hpp" />
-    <ClInclude Include="media\Packet.hpp" />
-    <ClInclude Include="media\Renderer.hpp" />
-    <ClInclude Include="media\SysQuery.hpp" />
-    <ClInclude Include="media\TextureManager.hpp" />
-    <ClInclude Include="MediaGL\Window.hpp" />
+    <ClInclude Include="mediagl\Window.hpp" />
     <ClInclude Include="Misc.hpp" />
     <ClInclude Include="NonAssignable.hpp" />
-    <ClInclude Include="old\media bad\ImGui.hpp" />
-    <ClInclude Include="old\media bad\SFDML.hpp" />
-    <ClInclude Include="old\media bad\TextureCache.hpp" />
-    <ClInclude Include="old\media magnum\Core.hpp" />
-    <ClInclude Include="old\media magnum\GameTemplate.hpp" />
-    <ClInclude Include="old\media magnum\Input.hpp" />
-    <ClInclude Include="old\media magnum\Renderer.hpp" />
-    <ClInclude Include="old\media magnum\SDLWindowOld.hpp" />
-    <ClInclude Include="old\media magnum\Texture.hpp" />
-    <ClInclude Include="old\media magnum\View.hpp" />
-    <ClInclude Include="old\media magnum\Window.hpp" />
-    <ClInclude Include="old\pathfindexamples.hpp" />
-    <ClInclude Include="Pathfind.hpp" />
     <ClInclude Include="Pointers.hpp" />
     <ClInclude Include="Resolve.hpp" />
     <ClInclude Include="RNG.hpp" />
-    <ClInclude Include="Scripting\Logging.hpp" />
-    <ClInclude Include="Scripting\ScriptBuilder.hpp" />
-    <ClInclude Include="Scripting\Scripting.hpp" />
+    <ClInclude Include="scripting\Logging.hpp" />
+    <ClInclude Include="scripting\lua\LuaScripting.hpp" />
     <ClInclude Include="SFMLDebugDraw.hpp" />
+    <ClInclude Include="sfmlhelp\InputManager.hpp" />
     <ClInclude Include="Snippets.hpp" />
-    <ClInclude Include="Game\StateMan.hpp" />
     <ClInclude Include="String.hpp" />
-    <ClInclude Include="thirdparty\angelscript-docgen\docgen.h" />
-    <ClInclude Include="thirdparty\angelscript\angelscript.h" />
-    <ClInclude Include="thirdparty\angelscript\as_array.h" />
-    <ClInclude Include="thirdparty\angelscript\as_atomic.h" />
-    <ClInclude Include="thirdparty\angelscript\as_builder.h" />
-    <ClInclude Include="thirdparty\angelscript\as_bytecode.h" />
-    <ClInclude Include="thirdparty\angelscript\as_callfunc.h" />
-    <ClInclude Include="thirdparty\angelscript\as_compiler.h" />
-    <ClInclude Include="thirdparty\angelscript\as_config.h" />
-    <ClInclude Include="thirdparty\angelscript\as_configgroup.h" />
-    <ClInclude Include="thirdparty\angelscript\as_context.h" />
-    <ClInclude Include="thirdparty\angelscript\as_criticalsection.h" />
-    <ClInclude Include="thirdparty\angelscript\as_datatype.h" />
-    <ClInclude Include="thirdparty\angelscript\as_debug.h" />
-    <ClInclude Include="thirdparty\angelscript\as_gc.h" />
-    <ClInclude Include="thirdparty\angelscript\as_generic.h" />
-    <ClInclude Include="thirdparty\angelscript\as_map.h" />
-    <ClInclude Include="thirdparty\angelscript\as_memory.h" />
-    <ClInclude Include="thirdparty\angelscript\as_module.h" />
-    <ClInclude Include="thirdparty\angelscript\as_namespace.h" />
-    <ClInclude Include="thirdparty\angelscript\as_objecttype.h" />
-    <ClInclude Include="thirdparty\angelscript\as_outputbuffer.h" />
-    <ClInclude Include="thirdparty\angelscript\as_parser.h" />
-    <ClInclude Include="thirdparty\angelscript\as_property.h" />
-    <ClInclude Include="thirdparty\angelscript\as_restore.h" />
-    <ClInclude Include="thirdparty\angelscript\as_scriptcode.h" />
-    <ClInclude Include="thirdparty\angelscript\as_scriptengine.h" />
-    <ClInclude Include="thirdparty\angelscript\as_scriptfunction.h" />
-    <ClInclude Include="thirdparty\angelscript\as_scriptnode.h" />
-    <ClInclude Include="thirdparty\angelscript\as_scriptobject.h" />
-    <ClInclude Include="thirdparty\angelscript\as_string.h" />
-    <ClInclude Include="thirdparty\angelscript\as_string_util.h" />
-    <ClInclude Include="thirdparty\angelscript\as_symboltable.h" />
-    <ClInclude Include="thirdparty\angelscript\as_texts.h" />
-    <ClInclude Include="thirdparty\angelscript\as_thread.h" />
-    <ClInclude Include="thirdparty\angelscript\as_tokendef.h" />
-    <ClInclude Include="thirdparty\angelscript\as_tokenizer.h" />
-    <ClInclude Include="thirdparty\angelscript\as_typeinfo.h" />
-    <ClInclude Include="thirdparty\angelscript\as_variablescope.h" />
-    <ClInclude Include="thirdparty\angelscript\autowrapper\aswrappedcall.h" />
-    <ClInclude Include="thirdparty\angelscript\contextmgr\contextmgr.h" />
-    <ClInclude Include="thirdparty\angelscript\datetime\datetime.h" />
-    <ClInclude Include="thirdparty\angelscript\debugger\debugger.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptany\scriptany.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptarray\scriptarray.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptbuilder\scriptbuilder.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptdictionary\scriptdictionary.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptfile\scriptfile.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptfile\scriptfilesystem.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptgrid\scriptgrid.h" />
-    <ClInclude Include="thirdparty\angelscript\scripthandle\scripthandle.h" />
-    <ClInclude Include="thirdparty\angelscript\scripthelper\scripthelper.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptmath\scriptmath.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptmath\scriptmathcomplex.h" />
-    <ClInclude Include="thirdparty\angelscript\scriptstdstring\scriptstdstring.h" />
-    <ClInclude Include="thirdparty\angelscript\serializer\serializer.h" />
-    <ClInclude Include="thirdparty\angelscript\weakref\weakref.h" />
     <ClInclude Include="thirdparty\fontstash.h" />
     <ClInclude Include="thirdparty\gl3corefontstash.h" />
     <ClInclude Include="thirdparty\glfontstash.h" />
@@ -601,38 +347,10 @@
     <ClInclude Include="thirdparty\vlc4\plugins\vlc_xlib.h" />
     <ClInclude Include="thirdparty\vlc4\plugins\vlc_xml.h" />
     <ClInclude Include="thirdparty\vlc4\vlc.h" />
-    <ClInclude Include="thirdparty\vlcpp\common.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\Dialog.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\Equalizer.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\EventManager.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\Instance.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\Internal.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\Media.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\MediaDiscoverer.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\MediaLibrary.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\MediaList.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\MediaListPlayer.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\MediaPlayer.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\Picture.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\RendererDiscoverer.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\structures.hpp" />
-    <ClInclude Include="thirdparty\vlcpp\vlc.hpp" />
     <ClInclude Include="Threading.hpp" />
     <ClInclude Include="Timer.hpp" />
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="thirdparty\angelscript\as_callfunc_arm64_msvc.asm">
-      <FileType>Document</FileType>
-    </Text>
-    <Text Include="thirdparty\angelscript\as_callfunc_arm_msvc.asm">
-      <FileType>Document</FileType>
-    </Text>
-    <MASM Include="thirdparty\angelscript\as_callfunc_x64_msvc_asm.asm">
-      <FileType>Document</FileType>
-    </MASM>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
 </Project>

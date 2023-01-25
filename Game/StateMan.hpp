@@ -36,7 +36,7 @@ struct StateMan
 
     void popAll()
     {
-        for (size_t i = states.size() - 1; states.size() < 0; i--)
+        for (size_t i = states.size() - 1; states.size() <= 0; --i)
         {
             popState();
         }

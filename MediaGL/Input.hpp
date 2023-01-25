@@ -197,28 +197,51 @@ struct Input
         else { return !mouse[button] && prevmouse[button]; }
     }
 
+    static inline const std::unordered_map<int, String> mouseButtonNameMap =
+    {
+        { MOUSE_LEFT      , "Mouse Left"       },
+        { MOUSE_MIDDLE    , "Mouse Middle"     },
+        { MOUSE_RIGHT     , "Mouse Right"      },
+        { MOUSE_X1        , "Mouse X1"         },
+        { MOUSE_X2        , "Mouse X2"         },
+        { MOUSE_WHEEL_DOWN, "Mouse Wheel Down" },
+        { MOUSE_WHEEL_UP  , "Mouse Wheel Up"   }
+    };
+
+    static inline const std::unordered_map<int, String> mouseButtonNameMapShort =
+    {
+        { MOUSE_LEFT      , "LMB"       },
+        { MOUSE_MIDDLE    , "MMB"     },
+        { MOUSE_RIGHT     , "RMB"      },
+        { MOUSE_X1        , "MX1"         },
+        { MOUSE_X2        , "MX2"         },
+        { MOUSE_WHEEL_DOWN, "Wheel Down" },
+        { MOUSE_WHEEL_UP  , "Wheel Up"   }
+    };
+
+    static inline const std::map<SDL_Keymod, String> modMap =
+    {
+        { KMOD_NONE  , "None"   },
+        { KMOD_LSHIFT, "LShift" },
+        { KMOD_RSHIFT, "RShift" },
+        { KMOD_LCTRL , "LCtrl"  },
+        { KMOD_RCTRL , "RCtrl"  },
+        { KMOD_LALT  , "LAlt"   },
+        { KMOD_RALT  , "RAlt"   },
+        { KMOD_LGUI  , "LGui"   },
+        { KMOD_RGUI  , "RGui"   },
+        { KMOD_NUM   , "Num"    },
+        { KMOD_CAPS  , "Caps"   },
+        { KMOD_MODE  , "Mode"   },
+        { KMOD_SCROLL, "Scroll" }
+    };
+
     // see SDL_Keymod
     // Returns a pretty string showing the SDL_Keymod combination
     // modToString(SDL_Keymod::KMOD_LCTRL | SDL_Keymod::KMOD_LSHIFT) -> "LShift + LCtrl"
     static std::string modToString(int mod)
     {
         std::string str;
-        static const std::map<SDL_Keymod, std::string> modMap =
-        {
-            { KMOD_NONE  , "None"   },
-            { KMOD_LSHIFT, "LShift" },
-            { KMOD_RSHIFT, "RShift" },
-            { KMOD_LCTRL , "LCtrl"  },
-            { KMOD_RCTRL , "RCtrl"  },
-            { KMOD_LALT  , "LAlt"   },
-            { KMOD_RALT  , "RAlt"   },
-            { KMOD_LGUI  , "LGui"   },
-            { KMOD_RGUI  , "RGui"   },
-            { KMOD_NUM   , "Num"    },
-            { KMOD_CAPS  , "Caps"   },
-            { KMOD_MODE  , "Mode"   },
-            { KMOD_SCROLL, "Scroll" }
-        };
 
         size_t modCount = 0;
         for (auto& [k, v] : modMap)
@@ -235,9 +258,32 @@ struct Input
         return str;
     }
 
-    static std::string controlToString(const ActionControl& ctrl)
+    static String controlToStringShort(const ActionControl& ctrl)
     {
-        std::string str;
+        String str;
+        if (ctrl.modifier != SDL_Keymod::KMOD_NONE)
+        {
+            str = modToString(ctrl.modifier) + "+";
+        }
+        switch (ctrl.type)
+        {
+            case ActionType::MOUSE:
+                if (mouseButtonNameMapShort.contains(ctrl.id))
+                { str += mouseButtonNameMapShort.at(ctrl.id); }
+                else { str += "?"; }
+                break;
+            case ActionType::KEYBOARD:
+                str += std::string(SDL_GetScancodeName((SDL_Scancode)ctrl.id));
+                break;
+            default: str += "?"; break;
+        }
+
+        return str;
+    }
+
+    static String controlToString(const ActionControl& ctrl)
+    {
+        String str;
         if (ctrl.modifier != SDL_Keymod::KMOD_NONE)
         {
             str = modToString(ctrl.modifier) + " + ";
@@ -245,17 +291,9 @@ struct Input
         switch (ctrl.type)
         {
             case ActionType::MOUSE:
-                switch (ctrl.id)
-                {
-                    case MOUSE_LEFT      : str += "Mouse Left";       break;
-                    case MOUSE_MIDDLE    : str += "Mouse Middle";     break;
-                    case MOUSE_RIGHT     : str += "Mouse Right";      break;
-                    case MOUSE_X1        : str += "Mouse X1";         break;
-                    case MOUSE_X2        : str += "Mouse X2";         break;
-                    case MOUSE_WHEEL_DOWN: str += "Mouse Wheel Down"; break;
-                    case MOUSE_WHEEL_UP  : str += "Mouse Wheel Up";   break;
-                    default:               str += "Unknown";          break;
-                }
+                if (mouseButtonNameMap.contains(ctrl.id))
+                { str += mouseButtonNameMap.at(ctrl.id); }
+                else { str += "Unknown"; }
                 break;
             case ActionType::KEYBOARD:
                 str += std::string(SDL_GetScancodeName((SDL_Scancode)ctrl.id));

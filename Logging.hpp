@@ -1,16 +1,19 @@
 #pragma once
 
+// Saves 3 seconds of compile time :o
+#define SPDLOG_COMPILED_LIB
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include "String.hpp"
 
 namespace tlog
 {
 using namespace spdlog;
 
-std::shared_ptr<logger> createConsoleLogger(const char* name)
+static std::shared_ptr<logger> createConsoleLogger(const char* name, String pattern = "[%H:%M:%S] [%^%l%$] [%n] [thread %t] %v")
 {
     std::shared_ptr<logger> console = spdlog::stdout_color_mt(name);
-    console->set_pattern("[%H:%M:%S] [%^%l%$] [%n] [thread %t] %v");
+    console->set_pattern(pattern);
     return console;
 }
 

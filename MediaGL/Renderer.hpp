@@ -1,13 +1,15 @@
 ﻿#pragma once
 
+#define NOMINMAX
+
 #include <glm/mat4x4.hpp>
 #include <glm/ext.hpp>
 #include "GLHelpers.hpp"
 #include "Window.hpp"
 #include "Texture.hpp"
-#include "Font.hpp"
 #include "Shader.hpp"
 #include "View.hpp"
+#include "Font.hpp"
 #include "VertexArray.hpp"
 #include "VertexBuffer.hpp"
 #include "SSBO.hpp"
@@ -15,86 +17,7 @@
 #include "../Macros.hpp"
 #include "../Logging.hpp"
 
-#include "Input.hpp"
-
 std::shared_ptr<tlog::logger> rendlog = tlog::createConsoleLogger("Renderer");
-
-#pragma region Shaders
-const char* UBER_VERT_SHADER = R"(
-    #version 460 core
-    layout (location = 0) in vec2 vertex; // <vec2 texCoords>
-
-    vec2 pos[4] = vec2[4](vec2(0.0f, 1.0f),
-                          vec2(1.0f, 1.0f),
-                          vec2(0.0f, 0.0f),
-                          vec2(1.0f, 0.0f));
-
-    struct Sprite
-    {
-        mat4 model;
-        vec2 texCoords[4];
-        vec4 color;
-    };
-
-    layout(std430, binding = 0) buffer data
-    {
-        Sprite sprites    [)" STRING_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
-    };
-
-    uniform mat4 projection;
-    out vec2 fragTexCoords;
-    out vec4 fragColor;
-
-
-    void defaultMain()
-    {
-        TexCoords = vertex;
-        gl_Position = projection * model * vec4(pos[gl_VertexID], 0.0, 1.0);
-    }
-
-    void main() { defaultMain(); }
-)";
-
-const char* UBER_FRAG_SHADER = R"(
-    #version 460 core
-    in vec2 fragTexCoords;
-    out vec4 color;
-
-    uniform mat4 projection;
-    uniform vec4 modulate;
-
-    void defaultMain()
-    {
-        color = modulate * texture(image, fragTexCoords);
-    }
-
-    void main() { defaultMain(); }
-)";
-
-const char* PRIMITIVE_VERT_SHADER = R"""(
-#version 330 core
-layout (location = 0) in vec2 vertex;
-
-uniform mat4 projection;
-
-void main() 
-{
-    gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
-}
-)""";
-
-const char* PRIMITIVE_FRAG_SHADER = R"""(
-#version 330 core
-out vec4 FragColor;
-uniform vec4 color;
-
-void main()
-{
-   FragColor = color;
-}
-)""";
-
-#pragma endregion
 
 template <typename T>
 size_t getVecSizeInBytes(const std::vector<T>& vec)
@@ -144,14 +67,13 @@ struct Renderer
 
 
     Window*       window = nullptr;         // Read only
-    SDL_GLContext glContext;                // Read only
+    SDL_GLContext glContext = nullptr;      // Read only
     size_t        lastFrameDrawCalls = 0;   // Read only
     bool          begun = false;            // Read only
     View          view;                     // Read only
-    glm::mat4     projection;               // Read only
+    glm::mat4     projection = glm::mat4(); // Read only
     Frustum       frustum;                  // Read only
     Shader        primShader;               // Read only
-    Shader        textShader;               // Read only
     VertexArray   linesVAO{NoCreate};       // Read only
     VertexBuffer  linesVBO{NoCreate};       // Read only
     size_t        debugDrawCalls = 0;       // Private
@@ -189,33 +111,34 @@ struct Renderer
                    std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION))),
                    std::string(reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION))));
 
-        glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
+        GL_CHECK(glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits));
         rendlog->info("Available texture units: {}", maxTextureUnits);
 
-        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+        GL_CHECK(glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize));
         rendlog->info("Max texture size: {}", maxTextureSize);
 
-        glEnable(GL_DEBUG_OUTPUT);
-        glDebugMessageCallback( defaultGLCallback, 0 );
+        GL_CHECK(glEnable(GL_DEBUG_OUTPUT));
+        GL_CHECK(glDebugMessageCallback( defaultGLCallback, 0 ));
 
         // Draw triangles in clockwise order
-        glFrontFace(GL_CW);
+        GL_CHECK(glFrontFace(GL_CW));
 
         // Enable transparency
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GL_CHECK(glEnable(GL_BLEND));
+        GL_CHECK(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
+        GL_CHECK(glEnable(GL_MULTISAMPLE));
 
         // Primitives setup
         primShader.create(PRIMITIVE_VERT_SHADER, PRIMITIVE_FRAG_SHADER);
 
-        textureInit();
+        initTextures();
 
         // Lines setup
         linesVAO.create();
         linesVBO.create();
 
-        // Text setup
-        textShader.create(TEXT_VERT_SHADER, TEXT_FRAG_SHADER);
+        initText();
 
         SDL_AddEventWatch(SDLEventFilterCB, this);
         setView(getDefaultWindowView(window));
@@ -257,6 +180,8 @@ struct Renderer
         debugDrawCalls = 0;
     }
 
+    // Usually only used internally
+    // You probably want getView().bounds
     Rectf getVirtualViewportRect() const
     {
         Vector2f winSize = Vector2f(window->getFramebufferSize());
@@ -295,7 +220,7 @@ struct Renderer
     {
         int x, y;
         SDL_GetMouseState(&x, &y);
-        return Vector2f(x, y);
+        return Vector2f(static_cast<float>(x), static_cast<float>(y));
     }
 
     Vector2f getMouseWorldPos()
@@ -333,15 +258,15 @@ struct Renderer
         fastSpriteShader.setMat4f("projection", projection);
         primShader.bind();
         primShader.setMat4f("projection", projection);
-        textShader.bind();
-        textShader.setMat4f("projection", projection);
+        sdfFontShader.bind();
+        sdfFontShader.setMat4f("projection", projection);
     }
 
     View getView() const { return view; }
 
     static inline View getDefaultWindowView(const Window& win)
     {
-        const auto winSize = win.getFramebufferSize();
+        const auto winSize = Vector2f(win.getFramebufferSize());
         return View( 0, 0, winSize.x, winSize.y );
     }
 
@@ -359,44 +284,27 @@ struct Renderer
         auto fb   = window->getFramebufferSize();
 
         // OpenGL considers X=0, Y=0 the Lower left Corner of the Screen
-        int fixedY = -rect.y + (fb.y - rect.height);
+        GLsizei x = static_cast<GLsizei>(rect.x);
+        GLsizei fixedY = static_cast<GLsizei>( -rect.y + (fb.y - rect.height) );
+        GLsizei width  = static_cast<GLsizei>(rect.width);
+        GLsizei height = static_cast<GLsizei>(rect.height);
 
-        glViewport(rect.x, fixedY, rect.width, rect.height);
+        glViewport(x, fixedY, width, height);
         glEnable(GL_SCISSOR_TEST);
-        glScissor(rect.x, fixedY, rect.width, rect.height);
+        glScissor(x, fixedY, width, height);
     }
 
     #pragma endregion
 
-    #pragma region Texture
+    #pragma region Slow Textures
 
     Shader       spriteShader;
     VertexArray  spriteVAO{NoCreate};
     VertexBuffer spriteVBO{NoCreate};
 
-    // Batched textures
-
-    #ifndef MAX_SPRITE_BATCH_SIZE
-    #define MAX_SPRITE_BATCH_SIZE 1024 * 8
-    #endif
-
-    struct FastSpriteInstance
+    void initTextures()
     {
-        glm::mat4 model;
-        std::array<glm::vec2, 4> texCoords;
-        glm::vec4 color;
-    };
-
-    int indices[6] = { 0, 1, 2, 2, 1, 3 };
-    std::array<FastSpriteInstance, MAX_SPRITE_BATCH_SIZE> spriteBatch;
-    int currentSpriteBatchIndex = 0;
-    Shader fastSpriteShader;
-    SSBO texBatchDataSSBO;
-    Texture* currentTexture = nullptr;
-
-    void textureInit()
-    {
-        #pragma region slow sprites
+        #pragma region Shader Source
         // Sprite setup
         spriteShader.create(
         // VERT
@@ -432,6 +340,7 @@ struct Renderer
         {
             color = modulate * texture(image, TexCoords);
         } )""");
+        #pragma endregion
         spriteShader.bind();
         spriteShader.setInt("image", 0);
         spriteShader.setVec4f("modulate", 1, 1, 1, 1);
@@ -442,78 +351,10 @@ struct Renderer
         spriteVAO.create();
         spriteVBO.create();
 
-        #pragma endregion
-
-        // Fast sprite setup
-        #pragma region Shader Source
-        fastSpriteShader.create(
-            // VERTEX
-            R"(
-            #version 460 core
-
-            vec2 pos[4] = vec2[4](vec2(0.0f, 1.0f),
-                                  vec2(1.0f, 1.0f),
-                                  vec2(0.0f, 0.0f),
-                                  vec2(1.0f, 0.0f));
-
-            struct Sprite
-            {
-                mat4 model;
-                vec2 texCoords[4];
-                vec4 color;
-            };
-
-            layout(std430, binding = 0) buffer data
-            {
-                Sprite sprites    [)" STRING_VALUE(MAX_SPRITE_BATCH_SIZE) R"(];
-            };
-
-            out vec2 fragTexCoords;
-            out vec4 fragColor;
-
-            
-            uniform mat4 projection;
-
-            void main()
-            {
-                Sprite sprite = sprites[gl_InstanceID];
-                int vert = gl_VertexID;
-
-                fragTexCoords = sprite.texCoords[vert];
-
-                fragColor = sprite.color;
-    
-                gl_Position = projection * sprite.model * vec4(pos[vert], 0.0, 1.0);
-            }
-            )",
-            // FRAG
-            R"(
-            #version 460 core
-            in vec2 fragTexCoords;
-            in vec4 fragColor;
-            out vec4 color;
-
-            uniform sampler2D image;
-
-            void main()
-            {
-                color = fragColor * texture(image, fragTexCoords);
-                //color = vec4(1, 0, 1, 1);
-            }
-            )"
-        );
-        #pragma endregion
-
-        spriteBatch.fill(FastSpriteInstance());
-
-        fastSpriteShader.bind();
-        fastSpriteShader.setInt("image", 0);
-        fastSpriteShader.unbind();
-
-        texBatchDataSSBO.create();
-        texBatchDataSSBO.bind();
+        initFastTextures();
     }
 
+    // Rot is in radians
     void drawTexture(Texture& tex, const Rectf& srcRect, const Rectf& dstRect,
                      const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 },
                      Shader* shader = nullptr, bool flipuvx = false, bool flipuvy = false)
@@ -536,7 +377,7 @@ struct Renderer
         if (rot != 0)
         {
             model = glm::translate(model, glm::vec3(0.5f * dstRect.width, 0.5f * dstRect.height, 0.0f));
-            model = glm::rotate(model, glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
+            model = glm::rotate   (model, rot, glm::vec3(0.0f, 0.0f, 1.0f));
             model = glm::translate(model, glm::vec3(-0.5f * dstRect.width, -0.5f * dstRect.height, 0.0f));
         }
 
@@ -588,14 +429,175 @@ struct Renderer
                     dstRect, rot, color, shader, flipuvx, flipuvy);
     }
 
-    #pragma region drawTextureFast
+    #pragma endregion
 
+    #pragma region Fast Textures
+
+    #pragma region Shader
+
+    String glsl_version = "#version 460 core";
+    String default_main_body = "defaultMain();";
+
+    String uber_vert_src_unformatted = R"(
+    `glsl_version`
+
+    vec2 pos[4] = vec2[4](vec2(0.0f, 1.0f),
+                          vec2(1.0f, 1.0f),
+                          vec2(0.0f, 0.0f),
+                          vec2(1.0f, 0.0f));
+
+    struct Sprite
+    {
+        mat4 model;
+        vec2 texCoords[4];
+        vec4 color;
+    };
+
+    layout(std430, binding = 0) buffer data
+    {
+        Sprite sprites[`max_sprite_batch_size`];
+    };
+
+    out vec2 fragTexCoords;
+    out vec4 fragColor;
+
+    uniform mat4 projection;
+
+    vec2 getVert()
+    { return pos[gl_VertexID]; }
+
+    mat4 getModel()
+    { return sprites[gl_InstanceID].model; }
+
+    vec2 getTexCoord()
+    { return sprites[gl_InstanceID].texCoords[gl_VertexID]; }
+
+    vec4 getColor()
+    { return sprites[gl_InstanceID].color; }
+
+    void setDefaultColor()
+    { fragColor = getColor(); }
+
+    void setDefaultTexCoord()
+    { fragTexCoords = getTexCoord(); }
+
+    void setDefaultVertPos()
+    { gl_Position = projection * getModel() * vec4(getVert(), 0.0, 1.0); }
+
+    void main()
+    {
+        setDefaultTexCoord();
+        setDefaultColor();
+        setDefaultVertPos();
+    }
+    )";
+    
+    String uber_frag_src_unformatted = R"(
+    `glsl_version`
+    in vec2 fragTexCoords;
+    in vec4 fragColor;
+    out vec4 color;
+
+    uniform sampler2D image;
+    uniform bool grayscale = false;
+
+    vec2 getTexCoord()
+    { return fragTexCoords; }
+
+    vec4 getColor()
+    { return fragColor; }
+
+    void main()
+    {
+        if (grayscale) // GL_RED
+        { color = vec4(getColor().xyz, 1.0) * vec4(1.0, 1.0, 1.0, texture(image, getTexCoord()).r); }
+
+        else // RGBA
+        { color = getColor() * texture(image, getTexCoord()); }
+    }
+    )";
+
+    String formatShader(String str)
+    {
+        strhelp::replace(str, "{", "{{");
+        strhelp::replace(str, "}", "}}");
+
+        while (true)
+        {
+            if (strhelp::replaceFirst(str, "`", "{"))
+            { strhelp::replaceFirst(str, "`", "}"); }
+            else { break; }
+        }
+
+        auto fstr = fmt::format(fmt::runtime(str),
+                                fmt::arg("glsl_version", glsl_version),
+                                fmt::arg("max_sprite_batch_size", maxSpriteBatchSize));
+
+        //rendlog->info(fstr);
+        return fstr;
+    }
+
+    Shader initUberShader()
+    {
+        String vertSrc = formatShader(uber_vert_src_unformatted);
+        String fragSrc = formatShader(uber_frag_src_unformatted);
+        Shader retShader;
+        retShader.create(vertSrc.c_str(), fragSrc.c_str());
+        return retShader;
+    }
+
+    #pragma endregion
+
+    static constexpr int maxSpriteBatchSize = 1024 * 8;
+
+    struct FastSpriteInstance
+    {
+        glm::mat4 model;
+        std::array<glm::vec2, 4> texCoords;
+        glm::vec4 color;
+    };
+
+    int indices[6] ={ 0, 1, 2, 2, 1, 3 };
+    std::array<FastSpriteInstance, maxSpriteBatchSize> spriteBatch ={};
+    int currentSpriteBatchIndex = 0;
+    Shader fastSpriteShader;
+    SSBO texBatchDataSSBO;
+    VertexArray dummyVAO; // Some drivers require that a VAO is bound when drawing, even though we don't need one.
+    Texture* currentTexture = nullptr;
+    bool     currentGrayscale = false;
+    Shader*  currentShader = &fastSpriteShader;
+
+    void initFastTextures()
+    {
+        fastSpriteShader = initUberShader();
+
+        spriteBatch.fill(FastSpriteInstance());
+
+        fastSpriteShader.bind();
+        fastSpriteShader.setInt("image", 0);
+        fastSpriteShader.unbind();
+
+        texBatchDataSSBO.create();
+        texBatchDataSSBO.bind();
+
+        dummyVAO.create();
+    }
+
+    // Rot is in radians
     void drawTextureFast(Texture& tex, const Rectf& srcRect, const Rectf& dstRect,
-                         const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
+                         const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 },
+                         bool flipuvx = false, bool flipuvy = false, bool grayscale = false,
+                         Shader* shader = nullptr)
     {
         if (frustumCullingEnabled && !frustum.IsBoxVisible({ dstRect.x, dstRect.y, 0 }, {dstRect.x + dstRect.width, dstRect.y + dstRect.height, 0})) { return; }
-        if (&tex != currentTexture) { flushTextureBatch(); }
+        if (shader == nullptr) { shader = &fastSpriteShader; }
+        if (&tex      != currentTexture || 
+            grayscale != currentGrayscale ||
+            shader    != currentShader) { flushTextureBatch(); }
         flushLineBatch();
+
+        ASSERT(tex.created());
+        ASSERT(srcRect.x >= 0 && srcRect.y >= 0);
 
         FastSpriteInstance& inst = spriteBatch[currentSpriteBatchIndex];
 
@@ -606,7 +608,7 @@ struct Renderer
         if (rot != 0)
         {
             inst.model = glm::translate(inst.model, glm::vec3(0.5f * dstRect.width, 0.5f * dstRect.height, 0.0f));
-            inst.model = glm::rotate   (inst.model, glm::radians(rot), glm::vec3(0.0f, 0.0f, 1.0f));
+            inst.model = glm::rotate   (inst.model, rot, glm::vec3(0.0f, 0.0f, 1.0f));
             inst.model = glm::translate(inst.model, glm::vec3(-0.5f * dstRect.width, -0.5f * dstRect.height, 0.0f));
         }
 
@@ -640,20 +642,26 @@ struct Renderer
 
         ++currentSpriteBatchIndex;
         currentTexture = &tex;
+        currentGrayscale = grayscale;
+        currentShader = shader;
 
-        if (currentSpriteBatchIndex == MAX_SPRITE_BATCH_SIZE) { flushTextureBatch(); }
+        if (currentSpriteBatchIndex == maxSpriteBatchSize) { flushTextureBatch(); }
     }
 
     void drawTextureFast(Texture& tex, const Rectf& dstRect,
-                         const float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
+                         const float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 },
+                         bool flipuvx = false, bool flipuvy = false, bool grayscale = false,
+                         Shader* shader = nullptr)
     {
-        drawTextureFast(tex, Rectf{ Vector2f{0, 0}, Vector2f(tex.getSize()) }, dstRect, rot, color, flipuvx, flipuvy);
+        drawTextureFast(tex, Rectf{ Vector2f{0, 0}, Vector2f(tex.getSize()) }, dstRect, rot, color, flipuvx, flipuvy, grayscale, shader);
     }
 
     void drawTextureFast(SubTexture& subTex, const Rectf& dstRect,
-                         float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 }, bool flipuvx = false, bool flipuvy = false)
+                         float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 },
+                         bool flipuvx = false, bool flipuvy = false, bool grayscale = false,
+                         Shader* shader = nullptr)
     {
-        drawTextureFast(*subTex.texture, Rectf(subTex.rect), dstRect, rot, color, flipuvx, flipuvy);
+        drawTextureFast(*subTex.texture, Rectf(subTex.rect), dstRect, rot, color, flipuvx, flipuvy, grayscale, shader);
     }
 
     // Call this to draw the batched textures early
@@ -665,10 +673,10 @@ struct Renderer
         texBatchDataSSBO.bufferData(spriteBatch, currentSpriteBatchIndex, GL_DYNAMIC_DRAW);
         texBatchDataSSBO.setBufferBase(0);
 
-        fastSpriteShader.bind();
+        currentShader->bind();
+        //fastSpriteShader.setBool("grayscale", currentGrayscale);
         currentTexture->bind();
-        VertexBuffer::unbind();
-        VertexArray::unbind();
+        dummyVAO.bind();
         GL_CHECK(glDrawElementsInstanced(GL_TRIANGLES, 6, GL_UNSIGNED_INT, indices, currentSpriteBatchIndex));
 
         texBatchDataSSBO.unbind();
@@ -679,8 +687,10 @@ struct Renderer
 
     #pragma endregion
 
+    #pragma region Frame Buffer
+
     void drawFrameBuffer(const FrameBuffer& fb, const Rectf& srcRect, const Rectf& dstRect,
-                         const float rot = 0, const ColorRGBAf& color = { 1,1,1,1 }, bool flipuvx = false, bool flipuvy = true)
+                         const float rot = 0, const ColorRGBAf& color ={ 1,1,1,1 }, bool flipuvx = false, bool flipuvy = true)
     {
         auto tmpView = getView();
         setView(getDefaultWindowView(*window));
@@ -699,6 +709,32 @@ struct Renderer
     #pragma endregion
 
     #pragma region Primitives
+
+    #pragma region Shaders
+    const char* PRIMITIVE_VERT_SHADER = R"""(
+    #version 330 core
+    layout (location = 0) in vec2 vertex;
+
+    uniform mat4 projection;
+
+    void main() 
+    {
+        gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
+    }
+    )""";
+
+    const char* PRIMITIVE_FRAG_SHADER = R"""(
+    #version 330 core
+    out vec4 FragColor;
+    uniform vec4 color;
+
+    void main()
+    {
+       FragColor = color;
+    }
+    )""";
+
+    #pragma endregion
 
     std::vector<Vector2f> lineBatch;
     std::vector<GLuint>    lineBatchIndices;
@@ -723,10 +759,10 @@ struct Renderer
 
         linesVAO.bind();
         GL_CHECK(glEnableVertexAttribArray(0));
-        GL_CHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0));
+        GL_CHECK(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, static_cast<GLsizei>(2 * sizeof(float)), (void*)0));
 
         glLineWidth(lastWidth);
-        GL_CHECK(glDrawElements(static_cast<GLenum>(lastMode), lineBatchIndices.size(), GL_UNSIGNED_INT, lineBatchIndices.data()));
+        GL_CHECK(glDrawElements(static_cast<GLenum>(lastMode), static_cast<GLsizei>(lineBatchIndices.size()), GL_UNSIGNED_INT, lineBatchIndices.data()));
         glDisable(GL_PRIMITIVE_RESTART);
 
         linesVBO.unbind();
@@ -757,7 +793,7 @@ struct Renderer
 
         for (auto& point : points)
         {
-            lineBatchIndices.push_back(lineBatch.size());
+            lineBatchIndices.push_back(static_cast<GLuint>(lineBatch.size()));
             lineBatch.push_back(point);
         }
         lineBatchIndices.push_back(restartIndex);
@@ -817,9 +853,9 @@ struct Renderer
     }
 
     void drawCircle(const Vector2f& pos, const float rad,
-                    const ColorRGBAf& color = ColorRGBAf::white(), const bool filled = false, const size_t segmentCount = 16)
+                    const ColorRGBAf& color = ColorRGBAf::white(), const bool filled = false, const int segmentCount = 16)
     {
-        const float theta = 3.1415926 * 2 / float(segmentCount);
+        const float theta = 3.1415926f * 2.f / static_cast<float>(segmentCount);
         const float tangetial_factor = tanf(theta);
         const float radial_factor = cosf(theta);
 
@@ -850,8 +886,75 @@ struct Renderer
         drawLines(points, color, 1.f, filled ? GLDrawMode::TRIANGLE_FAN : GLDrawMode::LINE_LOOP);
     }
 
+    #pragma endregion
+
+    #pragma region Text
+
+    String sdf_font_frag_src_unformatted = R"(
+    `glsl_version`
+    in vec2 fragTexCoords;
+    in vec4 fragColor;
+    out vec4 color;
+
+    uniform sampler2D image;
+
+    vec2 getTexCoord()
+    { return fragTexCoords; }
+
+    vec4 getColor()
+    { return fragColor; }
+
+    const float width = 0.45;
+    const float edge = 0.1;
+
+    void main()
+    {
+        float distance = texture(image, getTexCoord()).r;
+        float alpha = smoothstep(width, width + edge, distance);
+
+        color = vec4(getColor().xyz, alpha);
+    }
+    )";
+
+    Shader sdfFontShader;
+
+    void initText()
+    {
+        auto vert = formatShader(uber_vert_src_unformatted);
+        auto frag = formatShader(sdf_font_frag_src_unformatted);
+        rendlog->info(vert);
+        rendlog->info(frag);
+        sdfFontShader.create(vert.c_str(), frag.c_str());
+    }
+
+    void drawTextSDF(const String& text, Font& font, const Vector2f& pos,
+                     const ColorRGBAf& color = ColorRGBAf::white(), float scale = 1.f)
+    {
+        // TODO: save, set, then reset glDepthMask
+        Vector2f currentPos = pos;
+        for (auto& strchar : text)
+        {
+            // TODO: add default unknown character, and use that instead
+            if (!font.characters.contains(strchar))
+            { std::cout << "Font does not contain character \"" << strchar << "\"" << std::endl; continue; }
+
+            Font::Character& ch = font.characters.at(strchar);
+            float w = ch.size.x * scale;
+            float h = ch.size.y * scale;
+            float xpos = (currentPos.x + ch.bearing.x);
+            float ypos = (currentPos.y - h + (h - ch.bearing.y * scale));
+
+            drawTextureFast(ch.texture, { xpos, ypos, w, h }, 0.f, color, false, false, true, &sdfFontShader);
+
+            currentPos.x += (ch.advance >> 6) * scale;
+        }
+    }
+
+    // TODO: print something on bad texture???
+    // TODO: Draw from topleft
+    // TODO: Put all glyphs into atlas
     // Pos will be the bottom left of the text
-    void drawText(const std::string& text, Font& font, const Vector2f& pos,
+    void drawText(const String& text, Font& font, const Vector2f& pos,
                   const ColorRGBAf& color = ColorRGBAf::white(), float scale = 1.f)
     {
         Vector2f currentPos = pos;
@@ -866,9 +969,9 @@ struct Renderer
             float h = ch.size.y * scale;
             float xpos = (currentPos.x + ch.bearing.x);
             float ypos = (currentPos.y - h + (h - ch.bearing.y * scale));
-
-            drawTexture(ch.texture, { xpos, ypos, w, h }, 0.f, color);
-
+    
+            drawTextureFast(ch.texture, { xpos, ypos, w, h }, 0.f, color, false, false, true);
+    
             currentPos.x += (ch.advance >> 6) * scale;
         }
     }

@@ -49,14 +49,15 @@ if( !(x) ) \
 
 #pragma endregion
 
-// Create a bitwise OR operator for enums used as flags
-#define FLAG_ENUM(enumName)                                                  \
-inline enumName operator|(enumName a, enumName b)                            \
-{ return static_cast<enumName>(static_cast<int>(a) | static_cast<int>(b)); } \
-inline enumName& operator|=(enumName & a, const enumName & b)                \
-{ return a = a | b; }                                                        \
-inline bool operator&(enumName a, enumName b)                                \
-{ return static_cast<int>(a) & static_cast<int>(b); }
+// Create operators for enums
+#define FLAG_ENUM(name)                                                                                                             \
+inline name  operator|  (name a, name b)                   { return static_cast<name>(static_cast<int>(a) | static_cast<int>(b)); } \
+inline name& operator|= (name & a, const name & b)         { return a = a | b; }                                                    \
+inline bool  operator&  (name a, name b)                   { return static_cast<int>(a) & static_cast<int>(b);  }                   \
+template <typename B> inline bool operator<  (name a, B b) { return static_cast<int>(a) <  static_cast<int>(b); }                   \
+template <typename B> inline bool operator<= (name a, B b) { return static_cast<int>(a) <= static_cast<int>(b); }                   \
+template <typename B> inline bool operator>  (name a, B b) { return static_cast<int>(a) >  static_cast<int>(b); }                   \
+template <typename B> inline bool operator>= (name a, B b) { return static_cast<int>(a) >= static_cast<int>(b); }
 
 #define STRING_NAME(X) #X
 #define STRING_VALUE(X) STRING_NAME(X)

@@ -2,7 +2,6 @@
 
 #define NOMINMAX
 #include "GLHelpers.hpp"
-#include <iostream>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
 #include <unordered_map>
@@ -11,13 +10,21 @@
 #include "../Macros.hpp"
 #include "GLState.hpp"
 
-struct Shader : NonAssignable
+struct Shader : NonCopyable
 {
     GLuint glHandle = 0;
     mutable std::unordered_map<std::string, GLint> _uniformCache;
 
     Shader() { }
     Shader(const char* vertData, const char* fragData) { create(vertData, fragData); }
+    Shader(Shader&& other) noexcept { operator=(std::move(other)); }
+    Shader& operator=(Shader&& other) noexcept
+    {
+        glHandle = other.glHandle;
+        other.glHandle = NULL;
+        _uniformCache = other._uniformCache;
+        return *this;
+    }
 
     ~Shader()
     {

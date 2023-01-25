@@ -78,13 +78,18 @@ struct Window : NonAssignable
     void create(const WindowCreateParams& params = WindowCreateParams())
     {
         tlog::info("Creating window...");
-        if (created())
-        { return; }
+        if (created()) { return; }
 
         SDL_Init(SDL_INIT_EVERYTHING);
 
         if (params.flags & WindowFlags::OpenGL)
-        { SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE); }
+        {
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
+            SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+        }
 
         window = SDL_CreateWindow(params.title.c_str(),
                                    params.pos.x, params.pos.y,

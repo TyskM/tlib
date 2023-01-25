@@ -47,15 +47,15 @@ struct Vector2
     // SIN AND COS USES RADIANS YOU DUMB IDIOT
     Vector2<T> rotated(const T radians) const
     {
-        T sinv = sin(radians);
-        T cosv = cos(radians);
+        T sinv = static_cast<T>(sin(radians));
+        T cosv = static_cast<T>(cos(radians));
         return Vector2<T>(x * cosv - y * sinv, x * sinv + y * cosv);
     }
 
     Vector2<T> rotated(const T radians, const Vector2<T>& origin) const
     {
-        T sinv = sin(radians);
-        T cosv = cos(radians);
+        T sinv = static_cast<T>(sin(radians));
+        T cosv = static_cast<T>(cos(radians));
         auto nvec = *this;
         nvec -= origin;
         return nvec.rotated(radians) + origin;
@@ -85,13 +85,13 @@ struct Vector2
     { return (normal * 2) * dot(normal) - *this; }
 
     T length() const
-    { return sqrtf(x * x + y * y); }
+    { return static_cast<T>(std::sqrt(x * x + y * y)); }
 
     T lengthSquared() const
     { return x * x + y * y; }
 
     T distanceTo(const Vector2<T>& other) const
-    { return std::sqrt((x - other.x) * (x - other.x) + (y - other.y) * (y - other.y)); }
+    { return static_cast<T>(std::sqrt((x - other.x) * (x - other.x) + (y - other.y) * (y - other.y))); }
 
     T distanceToSquared(const Vector2<T>& other) const
     { return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y); }
@@ -102,16 +102,16 @@ struct Vector2
     std::string toString() const
     { return this->operator std::string(); }
 
-    Vector2<T> floored()    const { return Vector2<T>( floor(x), floor(y) ); }
-    Vector2<T> ceiled()     const { return Vector2<T>( ceil(x),  ceil(y)  ); }
-    Vector2<T> rounded()    const { return Vector2<T>( round(x), round(y) ); }
-    Vector2<T> abs()        const { return Vector2<T>( std::abs(x), std::abs(y)   ); }
-    Vector2<T> sqrt()       const { return Vector2<T>( std::sqrt(x), std::sqrt(y) ); }
-    Vector2<T> pow(T value) const { return Vector2<T>( std::pow(x, value), std::pow(y, value) ); }
+    Vector2<T> floored()    const { return Vector2<T>( static_cast<T>(floor(x)),            static_cast<T>(floor(y))           ); }
+    Vector2<T> ceiled()     const { return Vector2<T>( static_cast<T>(ceil(x)),             static_cast<T>(ceil(y))            ); }
+    Vector2<T> rounded()    const { return Vector2<T>( static_cast<T>(round(x)),            static_cast<T>(round(y))           ); }
+    Vector2<T> abs()        const { return Vector2<T>( static_cast<T>(std::abs(x)),         static_cast<T>(std::abs(y))        ); }
+    Vector2<T> sqrt()       const { return Vector2<T>( static_cast<T>(std::sqrt(x)),        static_cast<T>(std::sqrt(y))       ); }
+    Vector2<T> pow(T value) const { return Vector2<T>( static_cast<T>(std::pow(x, value)),  static_cast<T>(std::pow(y, value)) ); }
 
     operator std::string() const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
-    bool operator==(const Vector2<T> other) const { return x == other.x && y == other.y; }
-    bool operator!=(const Vector2<T> other) const { return !(operator==(other)); }
+    bool operator==(const Vector2<T>& other) const { return x == other.x && y == other.y; }
+    bool operator!=(const Vector2<T>& other) const { return !(operator==(other)); }
     Vector2<T> operator-() const { return Vector2<T>(-x, -y); }
     Vector2<T> operator+(const Vector2<T>& other) const { return Vector2<T>(x + other.x, y + other.y); }
     Vector2<T> operator-(const Vector2<T>& other) const { return Vector2<T>(x - other.x, y - other.y); }
@@ -223,7 +223,7 @@ constexpr float uint8ToFloat(uint8_t value)
 { return value / 255.f; }
 
 constexpr uint8_t floatToUint8(float value)
-{ return value * 255.f; }
+{ return static_cast<uint8_t>(value * 255.f); }
 
 // Represents a RGBA color with values 0f-1f
 struct ColorRGBAf
@@ -370,8 +370,8 @@ struct Rect
     {
         // https://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
         // Find the closest point to the circle within the rectangle
-        float closestX = math::clamp(circle.x, x, x + width);
-        float closestY = math::clamp(circle.y, y, y + height);
+        float closestX = math::clamp<T>(circle.x, x, x + width);
+        float closestY = math::clamp<T>(circle.y, y, y + height);
 
         // Calculate the distance between the circle's center and this closest point
         float distanceX = circle.x - closestX;
