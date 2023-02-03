@@ -6,6 +6,7 @@
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/Camera2D.hpp>
 #include <TLib/Media/Frustum.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 
 struct TextureParams
 {
@@ -15,6 +16,7 @@ struct TextureParams
     Rectf      srcrect;
     ColorRGBAf color    = { 1.f, 1.f, 1.f, 1.f };
     float      rotation = 0.f;
+    Vector2f   origin  { FLT_MAX, FLT_MAX }; // Defaults to center of sprite
     bool       flipuvx  = false;
     bool       flipuvy  = false;
 
@@ -61,10 +63,11 @@ public:
 
     #pragma region Sprites
 
-    void drawTexture(const SharedPtr<Texture>& tex, const Rectf& dstrect, float rotation = 0, const ColorRGBAf color ={ 1, 1, 1, 1 })
+    void drawTexture(const SharedPtr<Texture>& tex, const Rectf& dstrect, float rotation = 0, const ColorRGBAf color = { 1, 1, 1, 1 })
     {
         TextureParams params{ tex, Rectf{ Vector2f{0,0}, Vector2f(tex->getSize()) }, dstrect };
         params.rotation = rotation;
+        params.color = color;
         drawTexture(params);
     }
 
@@ -186,12 +189,14 @@ private:
     {
         if (exception != RendererType::Primitive) { prim_flush();   }
         if (exception != RendererType::Sprite)    { sprite_flush(); }
-        if (exception != RendererType::Text)      { }
+        if (exception != RendererType::Text)      { text_flush();   }
     }
 
     void flushAll()
     {
         sprite_flush();
+        prim_flush();
+        text_flush();
     }
 
     #pragma endregion
@@ -203,31 +208,37 @@ private:
     String sprite_vertShader = R"(
         #version 330 core
 
-        layout(location = 0) in mat4 model;
-        layout(location = 4) in vec4 color;
-        layout(location = 5) in vec2 texCoords[4];
+        layout(location = 0) in vec2 vert[4];
+        layout(location = 4) in vec2 texCoords[4];
+        layout(location = 8) in vec4 color;
+        layout(location = 9) in vec3 rot; // x = rot, yz = origin
 
         out vec2 fragTexCoords;
         out vec4 fragColor;
 
         uniform mat4 projection;
 
-        vec2 pos[4] = vec2[4](vec2(0.0f,  0.0f),
-                              vec2(1.0f,  0.0f),
-                              vec2(0.0f,  1.0f),
-                              vec2(1.0f,  1.0f));
+        vec2 rotated(const vec2 vec, const float radians)
+        {
+            float sinv = sin(radians);
+            float cosv = cos(radians);
+            return vec2(vec.x * cosv - vec.y * sinv,
+                        vec.x * sinv + vec.y * cosv);
+        }
 
-
-        vec2 getVert()     { return pos[gl_VertexID]; }
-        mat4 getModel()    { return model; }
-        vec2 getTexCoord() { return texCoords[gl_VertexID].xy; }
+        vec2 getVert()     { return vert[gl_VertexID]; }
+        vec2 getTexCoord() { return texCoords[gl_VertexID]; }
         vec4 getColor()    { return color; }
 
         void main()
         {
             fragTexCoords = getTexCoord();
             fragColor     = getColor();
-            gl_Position   = projection * getModel() * vec4(getVert(), 0.0, 1.0);
+            
+            vec2 vert = getVert() - rot.yz;
+            vert      = rotated(vert, rot.x);
+            vert     += rot.yz;
+            gl_Position = projection * vec4(vert, 0.0, 1.0);
         } )";
 
     String sprite_fragShader = R"(
@@ -247,61 +258,66 @@ private:
 
     struct GLSprite
     {
-        glm::mat4 model;
-        glm::vec4 color;
+        std::array<glm::vec2, 4> verts;
         std::array<glm::vec2, 4> texCoords;
+        glm::vec4 color;
+        glm::vec3 rot; // x = rot, yz = origin
     };
 
-    const std::vector<uint32_t> sprite_indices ={ 0, 2, 1, 1, 2, 3 };
+    const std::vector<uint32_t> sprite_indices = { 0, 2, 1, 1, 2, 3 };
     Shader                      sprite_shader;
     std::vector<GLSprite>       sprite_batchBuffer;
     WeakPtr<Texture>            sprite_lastTexture;
     Mesh                        sprite_mesh;
 
-    void sprite_init(size_t maxBatchSize = 4096)
+    void sprite_init()
     {
-        tlog::info("Sprite batch size: {}", maxBatchSize);
+        rendlog->info("Initing sprites...");
 
         sprite_shader.create(sprite_vertShader, sprite_fragShader);
 
         Layout layout;
-        layout.append(Layout::Mat4f());
-        layout.append(Layout::Vec4f());
         layout.append(Layout::Vec2f(), 4);
+        layout.append(Layout::Vec2f(), 4);
+        layout.append(Layout::Vec4f());
+        layout.append(Layout::Vec3f());
         layout.setDivisor(1);
 
         sprite_mesh.setLayout(layout);
         sprite_mesh.setIndices(sprite_indices);
 
-        sprite_batchBuffer.reserve(maxBatchSize);
+        sprite_batchBuffer.reserve(1024*8);
     }
 
     void sprite_batch(const TextureParams& cmd)
     {
         flushAllExcept(RendererType::Sprite);
 
-        if (sprite_batchBuffer.size() >= sprite_batchBuffer.capacity() ||
-            cmd.texture != sprite_lastTexture.lock())
-        {
-            sprite_flush();
-        }
+        // Flush early if textures change
+        // Use texture atlas to avoid texture changes
+        if (cmd.texture != sprite_lastTexture.lock())
+        { sprite_flush(); }
 
         sprite_lastTexture = cmd.texture;
 
         sprite_batchBuffer.emplace_back();
         GLSprite& sprite = sprite_batchBuffer.back();
 
-        sprite.model = glm::mat4(1.0f);
-        sprite.model = glm::translate(sprite.model, glm::vec3(cmd.dstrect.x, cmd.dstrect.y, 0.0f));
+        float xpluswidth  = cmd.dstrect.x + cmd.dstrect.width;
+        float yplusheight = cmd.dstrect.y + cmd.dstrect.height;
 
-        if (cmd.rotation != 0)
-        {
-            sprite.model = glm::translate(sprite.model, glm::vec3(0.5f * cmd.dstrect.width, 0.5f * cmd.dstrect.height, 0.0f));
-            sprite.model = glm::rotate   (sprite.model, cmd.rotation, glm::vec3(0.0f, 0.0f, 1.0f));
-            sprite.model = glm::translate(sprite.model, glm::vec3(-0.5f * cmd.dstrect.width, -0.5f * cmd.dstrect.height, 0.0f));
+        sprite.verts[0] = { cmd.dstrect.x, cmd.dstrect.y }; // topleft
+        sprite.verts[1] = { xpluswidth,    cmd.dstrect.y }; // topright
+        sprite.verts[2] = { cmd.dstrect.x, yplusheight   }; // bottom left
+        sprite.verts[3] = { xpluswidth,    yplusheight   }; // bottom right
+
+        Vector2f origin = cmd.origin;
+        if (origin.x == FLT_MAX) {
+            origin = Vector2f(cmd.dstrect.x + cmd.dstrect.width  / 2,
+                              cmd.dstrect.y + cmd.dstrect.height / 2);
         }
 
-        sprite.model = glm::scale(sprite.model, glm::vec3(cmd.dstrect.width, cmd.dstrect.height, 1.f));
+        sprite.rot = glm::vec3(cmd.rotation, origin.x, origin.y);
 
         const Vector2f texSize(cmd.texture->getSize());
         float normalWidth  = (cmd.srcrect.x + cmd.srcrect.width)  / texSize.x;
@@ -345,6 +361,16 @@ private:
     #pragma region Text
 
     void text_init()
+    {
+        rendlog->info("Initing text...");
+    }
+
+    void text_batch()
+    {
+
+    }
+
+    void text_flush()
     {
 
     }
@@ -391,6 +417,7 @@ private:
 
     void prim_init()
     {
+        rendlog->info("Initing primitives...");
         prim_shader.create(prim_vertShader, prim_fragShader);
         prim_mesh.setLayout({ Layout::Vec2f() });
     }
