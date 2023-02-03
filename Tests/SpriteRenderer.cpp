@@ -368,8 +368,7 @@ struct TexTest : GameTest
 
     bool  rotationEnabled   = true;
     int   spriteCount       = 30;
-    float offset            = 16;
-    int   newSpriteInterval = 12;
+    float offset            = 32;
 
     void create() override
     {
@@ -378,18 +377,16 @@ struct TexTest : GameTest
 
         tex = makeShared<Texture>();
         tex->loadFromFile("assets/ship.png", TextureFiltering::Nearest);
-
-        auto size = Renderer::getFramebufferSize();
-        view.setBounds( Rectf( 0, 0, size.x, size.y) );
-        rend2d.setView(view);
     }
 
     void mainLoop(float delta) override
     {
         GameTest::mainLoop(delta);
-
+        imgui.newFrame();
         
-
+        auto bounds = view.getBounds();
+        auto size = Renderer::getFramebufferSize();
+        view.setBounds(Rectf(bounds.x, bounds.y, size.x, size.y));
         debugCamera(view);
         rend2d.setView(view);
 
@@ -397,7 +394,6 @@ struct TexTest : GameTest
 
         rend2d.begin();
         rend2d.clearColor();
-        rend2d.drawTexture(tex, Rectf{ pos.x, pos.y, 32.f, 32.f });
 
         static float time = 0.f;
         time += delta;
@@ -413,8 +409,7 @@ struct TexTest : GameTest
                 {
                     fmodf(sin(time), 1.f) * (y%16),
                     fmodf(cos(time / 2.f) * (x%12), 1.f),
-                    fmodf((time)+x+y, 1.f),
-                    1
+                    fmodf((time)+x+y, 1.f), 1
                 };
                 const Rectf rect ={ Vector2f(x, y) * offset, Vector2f(32,32) };
 
@@ -427,17 +422,15 @@ struct TexTest : GameTest
 
         rend2d.drawCircle(mwpos, 12.f);
 
-        rend2d.render();
-        renderer.render();
-
-        imgui.newFrame();
         beginDiagWidgetExt();
         ImGui::Checkbox    ("Rotation enabled", &rotationEnabled);
         ImGui::SliderInt   ("Sprite count", &spriteCount, 1, 100 * 100);
-        ImGui::SliderInt   ("New sprite interval", &newSpriteInterval, 0, 128);
         ImGui::SliderFloat ("Sprite offset", &offset, 1.f, 128.f, "%.2f");
         ImGui::End();
         drawDiagWidget(&renderer, &fpslimit);
+
+        rend2d.render();
+        renderer.render();
         imgui.render();
 
         window.swap();
