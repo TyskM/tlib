@@ -49,6 +49,7 @@ public:
     void setLayout(const Layout& layout)
     {
         rendlog->info("Setting mesh layout: Bytes={}; Size={};", layout.sizeBytes(), layout.getValues().size());
+
         if (!vao.created()) { vao.create(); }
         if (!vbo.created()) { vbo.create(); }
 
@@ -71,7 +72,8 @@ public:
 
         _layout = layout;
 
-        if (layout.getValues().size() > 0) { ASSERT(index > 0); }
+        if (layout.getValues().size() > 0)
+        { ASSERT(index > 0); }
 
         vao.unbind();
         vbo.unbind();
@@ -80,10 +82,14 @@ public:
     template <typename T>
     void setData(const std::vector<T>& data, AccessType accessType = AccessType::Static)
     {
+        // Layout must be set before setting data
+        ASSERT(validLayout());
+
+        // Layout and data size mismatch
+        ASSERT(sizeof(T) == _layout.sizeBytes()); 
+
         if (accessType == AccessType::Static)
         { rendlog->info("Setting static mesh data: Bytes={}; Size={};", sizeof(T) * data.size(), data.size()); }
-        if (!vao.created()) { vao.create(); }
-        if (!vbo.created()) { vbo.create(); }
 
         vao.bind();
         vbo.bind();
