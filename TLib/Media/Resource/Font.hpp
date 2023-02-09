@@ -9,8 +9,17 @@
 #include "../DataStructures.hpp"
 #include <map>
 
+struct FontCharacter
+{
+    Texture      texture;
+    Vector2i     size;       // Size of glyph
+    Vector2i     bearing;    // Offset from baseline to left/top of glyph
+    unsigned int advance;    // Offset to advance to next glyph
+};
+
 struct Font
 {
+private:
     static inline FT_Library _ft = nullptr;
     static void _init()
     {
@@ -19,15 +28,14 @@ struct Font
         { std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl; }
     }
 
-    struct Character
-    {
-        Texture      texture;
-        Vector2i     size;       // Size of glyph
-        Vector2i     bearing;    // Offset from baseline to left/top of glyph
-        unsigned int advance;    // Offset to advance to next glyph
-    };
+    std::map<char, FontCharacter> characters;
 
-    std::map<char, Character> characters;
+public:
+    inline FontCharacter& getChar(const char c)
+    { return characters.at(c); }
+
+    inline bool containsChar(const char c) const
+    { return characters.contains(c); }
 
     Vector2f calcTextSize(const String& text, float scale = 1.f)
     {
@@ -37,7 +45,7 @@ struct Font
             if (!characters.contains(strchar))
             { std::cout << "Font does not contain character \"" << strchar << "\"" << std::endl; continue; }
 
-            Font::Character& ch = characters.at(strchar);
+            FontCharacter& ch = characters.at(strchar);
             size.x += (ch.advance >> 6) * scale;
             if (ch.size.y * scale > size.y)
             { size.y = ch.size.y * scale; }
@@ -71,7 +79,7 @@ struct Font
 
             FT_Render_Glyph(slot, FT_RENDER_MODE_SDF);
 
-            Character& ch = characters[c];
+            FontCharacter& ch = characters[c];
             ch.texture.create();
             ch.texture.setUnpackAlignment(1);
             ch.texture.setData(
@@ -107,7 +115,7 @@ struct Font
                 continue;
             }
 
-            Character& ch = characters[c];
+            FontCharacter& ch = characters[c];
             ch.texture.create();
             ch.texture.setUnpackAlignment(1);
             ch.texture.setData(

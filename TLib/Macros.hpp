@@ -9,11 +9,11 @@
 
 #pragma region Assertions
 
-#ifndef _DEBUG
-    #define _DEBUG 0
+#ifndef NDEBUG
+    #define TLIB_DEBUG 1
 #endif
 
-#ifdef _DEBUG
+#ifdef TLIB_DEBUG
 #define ASSERT(x) \
 if( !(x) ) \
 { \
@@ -24,7 +24,7 @@ if( !(x) ) \
 #define ASSERT(x) ((void)0);
 #endif
 
-#ifdef _DEBUG
+#ifdef TLIB_DEBUG
 #define ASSERTMSG(x, str) \
 if( !(x) ) \
 { \
@@ -35,7 +35,7 @@ if( !(x) ) \
 #define ASSERTMSG(x) ((void)0);
 #endif
 
-#if defined(_DEBUG) && !defined(TLIB_DISABLE_ASSERT_WARN)
+#if defined(TLIB_DEBUG) && !defined(TLIB_DISABLE_ASSERT_WARN)
 // This assert does NOT abort the application
 #define ASSERTWARN(x, str) \
 if( !(x) ) \

@@ -75,13 +75,12 @@ public:
         if (layout.getValues().size() > 0)
         { ASSERT(index > 0); }
 
-        vao.unbind();
-        vbo.unbind();
     }
 
-    template <typename T>
-    void setData(const std::vector<T>& data, AccessType accessType = AccessType::Static)
+    template <typename ContainerType>
+    void setData(const ContainerType& data, AccessType accessType = AccessType::Static)
     {
+        using T = ContainerType::value_type;
         // Layout must be set before setting data
         ASSERT(validLayout());
 
@@ -95,12 +94,11 @@ public:
         vbo.bind();
         vbo.bufferData(data, accessType);
         _vertexCount = data.size();
-        vao.unbind();
-        vbo.unbind();
     }
 
     // Indices are not required, but they are nice :)
-    void setIndices(const std::vector<uint32_t>& indices, AccessType accessType = AccessType::Static)
+    template <typename ContainerOfuint32_tType>
+    void setIndices(const ContainerOfuint32_tType& indices, AccessType accessType = AccessType::Static)
     {
         if (accessType == AccessType::Static)
         { rendlog->info("Setting static mesh indices: Bytes={}; Size={};", indices.size() * sizeof(uint32_t), indices.size()); }
@@ -112,9 +110,6 @@ public:
 
         ebo.bufferData(indices, accessType);
         _indiceCount = indices.size();
-
-        vao.unbind();
-        ebo.unbind();
 
         ASSERT(_indiceCount > 0);
     }

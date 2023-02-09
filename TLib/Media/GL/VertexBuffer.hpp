@@ -6,9 +6,10 @@
 // You probably also want a VertexArray
 struct VertexBuffer : IBuffer
 {
-    template <typename T>
-    void bufferData(const std::vector<T>& data, AccessType accessType)
+    template <typename ContainerType>
+    void bufferData(const ContainerType& data, AccessType accessType)
     {
+        using T = ContainerType::value_type;
         bind();
         glBufferData(GL_ARRAY_BUFFER, sizeof(T) * data.size(), data.data(), static_cast<GLenum>(accessType));
     }

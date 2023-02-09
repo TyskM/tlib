@@ -35,6 +35,15 @@
       }
     },
     {
+      "name": "x64-windows-reldbg-static",
+      "displayName": "x64 Windows RelWithDebInfo Static",
+      "inherits": "x64-windows-debug-static",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static"
+      }
+    },
+    {
       "name": "x64-windows-release-static",
       "displayName": "x64 Windows Release Static",
       "inherits": "x64-windows-debug-static",
@@ -61,7 +70,7 @@
       "displayName": "x86 Windows Release Static",
       "inherits": "x86-windows-debug-static",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "VCPKG_TARGET_TRIPLET": "x86-windows-static"
       }
     }

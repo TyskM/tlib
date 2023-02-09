@@ -3,55 +3,39 @@
 
 #include <TLib/DataStructures.hpp>
 #include <TLib/Pointers.hpp>
+#include <TLib/Macros.hpp>
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/Camera2D.hpp>
 #include <TLib/Media/Frustum.hpp>
+#include <TLib/Media/Resource/Font.hpp>
+#include <TLib/EASTL.hpp>
+#include <EASTL/vector.h>
+#include <boost/container/small_vector.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
-struct TextureParams
+enum class RendererType
 {
-    SharedPtr<Texture> texture;
-    SharedPtr<Shader>  shader;
-    Rectf      dstrect;
-    Rectf      srcrect;
-    ColorRGBAf color    = { 1.f, 1.f, 1.f, 1.f };
-    float      rotation = 0.f;
-    Vector2f   origin  { FLT_MAX, FLT_MAX }; // Defaults to center of sprite
-    bool       flipuvx  = false;
-    bool       flipuvy  = false;
-
-    TextureParams(const SharedPtr<Texture>& texturev, const Rectf& srcrectv, const Rectf& dstrectv) :
-        texture{ texturev }, srcrect{ srcrectv }, dstrect{ dstrectv } { }
-};
+    Sprite    = 1 << 0,
+    Text      = 1 << 1,
+    Primitive = 1 << 2
+}; FLAG_ENUM(RendererType);
 
 struct Renderer2D
 {
 #pragma region Public
 public:
 
-    void create(Renderer& renderer)
-    {
-        this->renderer = &renderer;
-        prim_init();
-        sprite_init();
-    }
-
-    void shutdown() { }
-
-    void begin()
-    {
-
-    }
-
-    void render()
-    { flushAll(); }
+    void create(Renderer& renderer) { this->renderer = &renderer; init(); }
+    void shutdown()                 { }
+    void render()                   { flush(); }
 
     void setView(const Camera2D& camera)
     {
         auto bounds = camera.getBounds();
-        auto mat = camera.getMatrix();
-        sprite_shader.setMat4f("projection", mat);
-        prim_shader  .setMat4f("projection", mat);
+        auto mat    = camera.getMatrix();
+        defaultShader.setMat4f("projection", mat);
+        textShader   .setMat4f("projection", mat);
+
         frustum = Frustum(mat);
 
         auto fbSize = Renderer::getFramebufferSize();
@@ -61,37 +45,47 @@ public:
     void clearColor(const ColorRGBAf& color = { 0.1f, 0.1f, 0.1f, 1.f })
     { renderer->clearColor(color); }
 
-    #pragma region Sprites
-
-    void drawTexture(const SharedPtr<Texture>& tex, const Rectf& dstrect, float rotation = 0, const ColorRGBAf color = { 1, 1, 1, 1 })
+    void drawTexture(      Texture&            tex,
+                     const Rectf&              dstrect,
+                     const int                 layer    = defaultSpriteLayer,
+                     const ColorRGBAf&         color    = { 1, 1, 1, 1 },
+                     const float               rotation = 0.f,
+                     const Vector2f            origin   = originCenter)
     {
-        TextureParams params{ tex, Rectf{ Vector2f{0,0}, Vector2f(tex->getSize()) }, dstrect };
-        params.rotation = rotation;
-        params.color = color;
-        drawTexture(params);
+        sprite_batch(tex, Rectf(Vector2f{ 0.f,0.f },
+                                Vector2f(tex.getSize())), dstrect, layer, color, rotation, origin);
     }
 
-    void drawTexture(const SharedPtr<Texture>& tex, const Rectf& srcrect, const Rectf& dstrect, float rotation = 0, const ColorRGBAf color = { 1, 1, 1, 1 })
+    void drawTexture(      Texture&            tex,
+                     const Rectf&              srcrect,
+                     const Rectf&              dstrect,
+                     const int                 layer    = defaultSpriteLayer,
+                     const ColorRGBAf&         color    = { 1, 1, 1, 1 },
+                     const float               rotation = 0.f,
+                     const Vector2f            origin   = originCenter)
     {
-        TextureParams params{ tex, srcrect, dstrect };
-        params.rotation = rotation;
-        params.color = color;
-        drawTexture(params);
+        sprite_batch(tex, srcrect, dstrect, layer, color, rotation, origin);
     }
 
-    void drawTexture(const TextureParams& params)
-    { sprite_batch(params); }
-
-    #pragma endregion
-
-    #pragma region Primitives
-
-    void drawLine(const Vector2f& start, const Vector2f& end, const ColorRGBAf& color, float width = 1)
-    { prim_batch(std::vector{ start, end }, color, width); }
-
-    void drawRect(float x, float y, float w, float h, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false, float rot = 0.f)
+    void drawLine(const Vector2f&   start,
+                  const Vector2f&   end,
+                  const int         layer = defaultPrimitiveLayer,
+                  const ColorRGBAf& color = ColorRGBAf::white(),
+                  const float       width = 1)
     {
-        std::vector<Vector2f> verts(4);
+        prim_batch(Vec2fCont{ start, end }, layer, color, width);
+    }
+
+    void drawRect(float             x,
+                  float             y,
+                  float             w,
+                  float             h,
+                  const int         layer  = defaultPrimitiveLayer,
+                  const ColorRGBAf& color  = ColorRGBAf::white(),
+                  bool              filled = false,
+                  float             rot    = 0.f)
+    {
+        Vec2fCont verts(4);
         verts[0] = Vector2f(x, y);
         verts[1] = Vector2f(x + w, y);
         verts[2] = Vector2f(x + w, y + h);
@@ -107,13 +101,23 @@ public:
             }
         }
 
-        prim_batch(verts, color, 1, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop);
+        prim_batch(verts, layer, color, 1, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop);
     }
 
-    void drawRect(const Rectf& rect, const ColorRGBAf& color = ColorRGBAf::white(), bool filled = false, float rot = 0.f)
-    { drawRect(rect.x, rect.y, rect.width, rect.height, color, filled, rot); }
+    void drawRect(const Rectf&      rect,
+                  const int         layer  = defaultPrimitiveLayer,
+                  const ColorRGBAf& color  = ColorRGBAf::white(),
+                  bool              filled = false,
+                  float             rot    = 0.f)
+    {
+        drawRect(rect.x, rect.y, rect.width, rect.height, layer, color, filled, rot);
+    }
 
-    void drawGrid(const Vector2f& start, const Vector2i& gridCount, Vector2f gridSize, const ColorRGBAf& color)
+    void drawGrid(const Vector2f&   start,
+                  const Vector2i&   gridCount,
+                  Vector2f          gridSize,
+                  const int         layer     = defaultPrimitiveLayer,
+                  const ColorRGBAf& color     = ColorRGBAf::white())
     {
         const float targetX = gridCount.x * gridSize.x + start.x;
         const float targetY = gridCount.y * gridSize.y + start.y;
@@ -124,7 +128,7 @@ public:
             drawLine(
                 Vector2f{ startx * gridSize.x, 0 },
                 Vector2f{ startx * gridSize.x, targetY },
-                color
+                layer, color
             );
         }
 
@@ -134,13 +138,17 @@ public:
             drawLine(
                 Vector2f{ 0, starty * gridSize.y },
                 Vector2f{ targetX, starty * gridSize.y },
-                color
+                layer, color
             );
         }
     }
 
-    void drawCircle(const Vector2f& pos, const float rad,
-                    const ColorRGBAf& color = ColorRGBAf::white(), const bool filled = false, const int segmentCount = 16)
+    void drawCircle(const Vector2f&   pos,
+                    const float       rad,
+                    const int         layer        = defaultPrimitiveLayer,
+                    const ColorRGBAf& color        = ColorRGBAf::white(),
+                    const bool        filled       = false,
+                    const int         segmentCount = 16)
     {
         const float theta = 3.1415926f * 2.f / static_cast<float>(segmentCount);
         const float tangetial_factor = tanf(theta);
@@ -149,7 +157,7 @@ public:
         float x = rad;
         float y = 0;
 
-        std::vector<Vector2f> points;
+        Vec2fCont points;
         points.reserve(segmentCount);
 
         for (int i = 0; i < segmentCount; i++)
@@ -164,308 +172,351 @@ public:
             y *= radial_factor;
         }
 
-        prim_batch(points, color, 1.f, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop);
+        prim_batch(points, layer, color, 1.f, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop);
     }
 
-    #pragma endregion
+    void drawText(const String&     text,
+                  Font&             font,
+                  const Vector2f&   pos,
+                  const int         layer = defaultTextLayer,
+                  const ColorRGBAf& color = ColorRGBAf::white(),
+                  const float       scale = 1.f)
+    {
+        text_batch(text, font, pos, layer, color, scale);
+    }
 
 #pragma endregion
 
 #pragma region Impl
 private:
-    #pragma region Core
-
-    Renderer* renderer = nullptr;
-    Frustum frustum;
-
-    enum class RendererType
-    {
-        Sprite,
-        Text,
-        Primitive
-    };
-
-    void flushAllExcept(RendererType exception)
-    {
-        if (exception != RendererType::Primitive) { prim_flush();   }
-        if (exception != RendererType::Sprite)    { sprite_flush(); }
-        if (exception != RendererType::Text)      { text_flush();   }
-    }
-
-    void flushAll()
-    {
-        sprite_flush();
-        prim_flush();
-        text_flush();
-    }
-
-    #pragma endregion
-
-    #pragma region Sprites
 
     #pragma region Shaders
+    const char* shaderVertSrc = R"""(
+    #version 330 core
+    layout (location = 0) in vec4 vertex;
+    layout (location = 1) in vec4 color;
 
-    String sprite_vertShader = R"(
-        #version 330 core
+    out vec2 fragTexCoords;
+    out vec4 fragColor;
 
-        layout(location = 0) in vec2 vert[4];
-        layout(location = 4) in vec2 texCoords[4];
-        layout(location = 8) in vec4 color;
-        layout(location = 9) in vec3 rot; // x = rot, yz = origin
+    uniform mat4 projection;
 
-        out vec2 fragTexCoords;
-        out vec4 fragColor;
+    void main()
+    {
+        gl_Position   = projection * vec4(vertex.xy, 0.0, 1.0);
+        fragTexCoords = vertex.zw;
+        fragColor     = color;
+    }
+    )""";
 
-        uniform mat4 projection;
+    const char* shaderFragSrc = R"""(
+    #version 330 core
+    in vec2 fragTexCoords;
+    in vec4 fragColor;
+    out vec4 outColor;
 
-        vec2 rotated(const vec2 vec, const float radians)
-        {
-            float sinv = sin(radians);
-            float cosv = cos(radians);
-            return vec2(vec.x * cosv - vec.y * sinv,
-                        vec.x * sinv + vec.y * cosv);
-        }
+    uniform sampler2D image;
 
-        vec2 getVert()     { return vert[gl_VertexID]; }
-        vec2 getTexCoord() { return texCoords[gl_VertexID]; }
-        vec4 getColor()    { return color; }
+    void main()
+    {
+        outColor = fragColor * texture(image, fragTexCoords);
+    }
+    )""";
 
-        void main()
-        {
-            fragTexCoords = getTexCoord();
-            fragColor     = getColor();
-            
-            vec2 vert = getVert() - rot.yz;
-            vert      = rotated(vert, rot.x);
-            vert     += rot.yz;
-            gl_Position = projection * vec4(vert, 0.0, 1.0);
-        } )";
+    const char* textFragSrc = R"(
+    #version 330 core
+    in vec2 fragTexCoords;
+    in vec4 fragColor;
+    out vec4 outColor;
 
-    String sprite_fragShader = R"(
-        #version 330 core
-        in vec2 fragTexCoords;
-        in vec4 fragColor;
-        out vec4 outColor;
+    uniform sampler2D image;
 
-        uniform sampler2D image;
+    const float width = 0.45;
+    const float edge = 0.1;
 
-        void main()
-        {
-            outColor = fragColor * texture(image, fragTexCoords);
-        } )";
+    void main()
+    {
+        float distance = texture(image, fragTexCoords).r;
+        float alpha    = smoothstep(width, width + edge, distance);
 
+        outColor = vec4(fragColor.xyz, alpha);
+    }
+    )";
     #pragma endregion
 
-    struct GLSprite
+    struct DrawCmd;
+    struct PrimVert;
+
+    using DrawCmdCont = eastl::vector<DrawCmd  >;
+    using VerticeCont = eastl::vector<PrimVert >;
+    using IndiceCont  = eastl::vector<uint32_t >;
+    using Vec4fCont   = eastl::vector<glm::vec4>;
+    using Vec2fCont   = eastl::vector<Vector2f >;
+
+    // TODO: Add uniform map to draw commands?
+    struct DrawCmd
     {
-        std::array<glm::vec2, 4> verts;
-        std::array<glm::vec2, 4> texCoords;
-        glm::vec4 color;
-        glm::vec3 rot; // x = rot, yz = origin
+        int        layer;
+        GLDrawMode drawMode;
+        Texture*   texture = &whiteTex;
+        Shader*    shader  = &defaultShader;
+        Vec4fCont  posAndCoords;
+        IndiceCont indices;
+        ColorRGBAf color;
+
+        bool operator<(const DrawCmd& other)
+        {
+            if (layer       < other.layer) return true;
+            if (other.layer < layer      ) return false;
+
+            if (shader       < other.shader) return true;
+            if (other.shader < shader)       return false;
+
+            if (texture       < other.texture) return true;
+            if (other.texture < texture)       return false;
+
+            if (static_cast<int>(drawMode)       < static_cast<int>(other.drawMode)) return true;
+            if (static_cast<int>(other.drawMode) < static_cast<int>(drawMode)      ) return false;
+
+            return false;
+        }
     };
 
-    const std::vector<uint32_t> sprite_indices = { 0, 2, 1, 1, 2, 3 };
-    Shader                      sprite_shader;
-    std::vector<GLSprite>       sprite_batchBuffer;
-    WeakPtr<Texture>            sprite_lastTexture;
-    Mesh                        sprite_mesh;
-
-    void sprite_init()
+    struct PrimVert
     {
-        rendlog->info("Initing sprites...");
+        glm::vec4  vert;
+        ColorRGBAf color;
+    };
 
-        sprite_shader.create(sprite_vertShader, sprite_fragShader);
+    static inline IndiceCont sprite_indices ={ 0, 2, 1, 1, 2, 3 };
+    static inline Texture    whiteTex;
+    static inline GLubyte    whiteTexData[1][1][4] =
+                             { { {255, 255, 255, 255} } };
 
-        Layout layout;
-        layout.append(Layout::Vec2f(), 4);
-        layout.append(Layout::Vec2f(), 4);
-        layout.append(Layout::Vec4f());
-        layout.append(Layout::Vec3f());
-        layout.setDivisor(1);
+    static constexpr GLuint   restartIndex = std::numeric_limits<GLuint>::max();
+    static constexpr Vector2f originCenter          = { FLT_MAX, FLT_MAX };
+    static constexpr int      defaultSpriteLayer    = 0;
+    static constexpr int      defaultPrimitiveLayer = 1;
+    static constexpr int      defaultTextLayer      = 2;
 
-        sprite_mesh.setLayout(layout);
-        sprite_mesh.setIndices(sprite_indices);
+    static inline Mesh   mesh;
+    static inline Shader defaultShader;
+    static inline Shader textShader;
 
-        sprite_batchBuffer.reserve(1024*8);
+    Renderer* renderer = nullptr;
+    Frustum   frustum;
+    DrawCmdCont drawCmds;
+    VerticeCont batchBuffer;
+    IndiceCont  batchBufferIndices;
+
+    void init()
+    {
+        rendlog->info("Initing Renderer2D...");
+
+        if (!mesh.valid())
+        { mesh.setLayout({ Layout::Vec4f(), Layout::Vec4f() }); }
+
+        if (!whiteTex.created())
+        { whiteTex.setData(whiteTexData, 1, 1, TextureFiltering::Nearest); }
+
+        if (!defaultShader.created())
+        { defaultShader.create(shaderVertSrc, shaderFragSrc); }
+
+        if (!textShader.created())
+        { textShader.create(shaderVertSrc, textFragSrc); }
     }
 
-    void sprite_batch(const TextureParams& cmd)
+    void flushCurrent(Shader* shader, Texture* tex, GLDrawMode drawMode)
     {
-        flushAllExcept(RendererType::Sprite);
+        if (batchBuffer.empty()) { return; }
 
-        // Flush early if textures change
-        // Use texture atlas to avoid texture changes
-        if (cmd.texture != sprite_lastTexture.lock())
-        { sprite_flush(); }
+        tex->bind();
+        shader->bind();
 
-        sprite_lastTexture = cmd.texture;
+        mesh.setData(batchBuffer, AccessType::Dynamic);
+        mesh.setIndices(batchBufferIndices, AccessType::Dynamic);
 
-        sprite_batchBuffer.emplace_back();
-        GLSprite& sprite = sprite_batchBuffer.back();
+        RenderState rs;
+        rs.drawMode = drawMode;
+        Renderer::draw(*shader, mesh, rs);
 
-        float xpluswidth  = cmd.dstrect.x + cmd.dstrect.width;
-        float yplusheight = cmd.dstrect.y + cmd.dstrect.height;
+        batchBuffer.clear();
+        batchBufferIndices.clear();
+    }
 
-        sprite.verts[0] = { cmd.dstrect.x, cmd.dstrect.y }; // topleft
-        sprite.verts[1] = { xpluswidth,    cmd.dstrect.y }; // topright
-        sprite.verts[2] = { cmd.dstrect.x, yplusheight   }; // bottom left
-        sprite.verts[3] = { xpluswidth,    yplusheight   }; // bottom right
+    void flush()
+    {
+        if (drawCmds.empty()) { return; }
 
-        Vector2f origin = cmd.origin;
-        if (origin.x == FLT_MAX) {
-            origin = Vector2f(cmd.dstrect.x + cmd.dstrect.width  / 2,
-                              cmd.dstrect.y + cmd.dstrect.height / 2);
+        std::sort(drawCmds.begin(), drawCmds.end());
+
+        Texture*   lastTexture  = drawCmds[0].texture;
+        Shader*    lastShader   = drawCmds[0].shader;
+        GLDrawMode lastDrawMode = drawCmds[0].drawMode;
+
+        glEnable(GL_PRIMITIVE_RESTART);
+        glPrimitiveRestartIndex(restartIndex);
+
+        bool   stateChanged = true;
+        size_t offset = 0;
+
+        for (auto& cmd : drawCmds)
+        {
+            stateChanged = (cmd.texture != lastTexture || cmd.shader != lastShader || cmd.drawMode != lastDrawMode);
+            if (stateChanged)
+            { flushCurrent(lastShader, lastTexture, lastDrawMode); }
+
+            offset = batchBuffer.size();
+            for (auto& ind : cmd.indices)
+            { batchBufferIndices.push_back(offset + ind); }
+            batchBufferIndices.push_back(restartIndex);
+
+            for (auto& pac : cmd.posAndCoords)
+            { batchBuffer.emplace_back(pac, cmd.color); }
+
+            lastTexture  = cmd.texture;
+            lastShader   = cmd.shader;
+            lastDrawMode = cmd.drawMode;
         }
 
-        sprite.rot = glm::vec3(cmd.rotation, origin.x, origin.y);
+        flushCurrent(lastShader, lastTexture, lastDrawMode);
+        drawCmds.clear();
+    }
 
-        const Vector2f texSize(cmd.texture->getSize());
-        float normalWidth  = (cmd.srcrect.x + cmd.srcrect.width)  / texSize.x;
-        float normalHeight = (cmd.srcrect.y + cmd.srcrect.height) / texSize.y;
-        float normalX      = cmd.srcrect.x / texSize.x;
-        float normalY      = cmd.srcrect.y / texSize.y;
+    void rotate(float& x, float& y, float radians)
+    {
+        float sinv = sin(radians);
+        float cosv = cos(radians);
+        float xcopy = x;
+        float ycopy = y;
+        x = xcopy * cosv - ycopy * sinv;
+        y = xcopy * sinv + ycopy * cosv;
+    }
 
-        if (cmd.flipuvx)
+    void sprite_batch(      Texture&    texture,
+                      const Rectf&      srcrect,
+                      const Rectf&      dstrect,
+                      const int         layer    = 0,
+                      const ColorRGBAf& color    = { 1, 1, 1, 1 },
+                      const float       rotation = 0.f,
+                      Vector2f          origin   = originCenter,
+                      const bool        flipuvx  = false,
+                      const bool        flipuvy  = false,
+                      Shader&           shader   = defaultShader)
+    {
+        drawCmds.emplace_back();
+        DrawCmd& cmd = drawCmds.back();
+
+        cmd.texture  = &texture;
+        cmd.shader   = &shader;
+        cmd.layer    = layer;
+        cmd.indices  = sprite_indices;
+        cmd.drawMode = GLDrawMode::Triangles;
+        cmd.color    = color;
+
+        cmd.posAndCoords.resize(4);
+        float xpluswidth  = dstrect.x + dstrect.width;
+        float yplusheight = dstrect.y + dstrect.height;
+
+        const Vector2f texSize(texture.getSize());
+        float normalWidth  = (srcrect.x + srcrect.width)  / texSize.x;
+        float normalHeight = (srcrect.y + srcrect.height) / texSize.y;
+        float normalX      =  srcrect.x / texSize.x;
+        float normalY      =  srcrect.y / texSize.y;
+
+        if (flipuvx)
         {
             auto tmp = normalX;
             normalX = normalWidth;
             normalWidth = tmp;
         }
-        if (cmd.flipuvy)
+        if (flipuvy)
         {
             auto tmp = normalY;
             normalY = normalHeight;
             normalHeight = tmp;
         }
 
-        sprite.texCoords[0] = { normalX,      normalY      }; // topleft
-        sprite.texCoords[1] = { normalWidth,  normalY      }; // topright
-        sprite.texCoords[2] = { normalX,      normalHeight }; // bottom left
-        sprite.texCoords[3] = { normalWidth,  normalHeight }; // bottom right
+        cmd.posAndCoords[0] = { dstrect.x , dstrect.y  , normalX,      normalY      }; // topleft
+        cmd.posAndCoords[1] = { xpluswidth, dstrect.y  , normalWidth,  normalY      }; // topright
+        cmd.posAndCoords[2] = { dstrect.x , yplusheight, normalX,      normalHeight }; // bottom left
+        cmd.posAndCoords[3] = { xpluswidth, yplusheight, normalWidth,  normalHeight }; // bottom right
 
-        sprite.color = { cmd.color.r, cmd.color.g, cmd.color.b, cmd.color.a };
-    }
-
-    void sprite_flush()
-    {
-        SharedPtr<Texture> tex = sprite_lastTexture.lock();
-        if (!tex) { return; }
-        tex->bind();
-        sprite_mesh.setData(sprite_batchBuffer, AccessType::Dynamic);
-        renderer->drawInstanced(sprite_shader, sprite_mesh, sprite_batchBuffer.size());
-        sprite_batchBuffer.clear();
-    }
-
-    #pragma endregion
-
-    #pragma region Text
-
-    void text_init()
-    {
-        rendlog->info("Initing text...");
-    }
-
-    void text_batch()
-    {
-
-    }
-
-    void text_flush()
-    {
-
-    }
-
-    #pragma endregion
-
-    #pragma region Primitives
-
-    #pragma region Shaders
-    const char* prim_vertShader = R"""(
-    #version 330 core
-    layout (location = 0) in vec2 vertex;
-
-    uniform mat4 projection;
-
-    void main()
-    {
-        gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
-    }
-    )""";
-
-    const char* prim_fragShader = R"""(
-    #version 330 core
-    out vec4 FragColor;
-    uniform vec4 color;
-
-    void main()
-    {
-       FragColor = color;
-    }
-    )""";
-    #pragma endregion
-
-    static constexpr GLuint prim_restartIndex = std::numeric_limits<GLuint>::max();
-    Shader prim_shader;
-    Mesh   prim_mesh;
-    std::vector<Vector2f> prim_batchBuffer;
-    std::vector<GLuint>   prim_batchBufferIndices;
-
-    GLDrawMode prim_lastMode  = GLDrawMode::Unknown;
-    ColorRGBAf prim_lastColor = { 1,1,1,1 };
-    float      prim_lastWidth = 1;
-    
-
-    void prim_init()
-    {
-        rendlog->info("Initing primitives...");
-        prim_shader.create(prim_vertShader, prim_fragShader);
-        prim_mesh.setLayout({ Layout::Vec2f() });
-    }
-    
-    void prim_batch(const std::vector<Vector2f>& points, const ColorRGBAf& color = ColorRGBAf::white(),
-                    float width = 1, GLDrawMode mode = GLDrawMode::LineStrip)
-    {
-        flushAllExcept(RendererType::Primitive);
-
-        if (mode  != prim_lastMode  ||
-            color != prim_lastColor ||
-            width != prim_lastWidth)
-        { prim_flush(); }
-
-        prim_lastMode  = mode;
-        prim_lastColor = color;
-        prim_lastWidth = width;
-
-        for (auto& point : points)
+        if (origin.x == FLT_MAX) {
+            origin = Vector2f(dstrect.x + dstrect.width  / 2,
+                              dstrect.y + dstrect.height / 2); }
+        if (rotation != 0)
         {
-            prim_batchBufferIndices.push_back(static_cast<GLuint>(prim_batchBuffer.size()));
-            prim_batchBuffer.push_back(point);
+            for (auto& v : cmd.posAndCoords)
+            {
+                v.x -= origin.x; v.y -= origin.y;
+                rotate(v.x, v.y, rotation);
+                v.x += origin.x; v.y += origin.y;
+            }
         }
-        prim_batchBufferIndices.push_back(prim_restartIndex);
     }
 
-    void prim_flush()
+
+    void prim_batch(const Vec2fCont&  points,
+                    const int         layer = defaultPrimitiveLayer,
+                    const ColorRGBAf& color = ColorRGBAf::white(),
+                    const float       width = 1,
+                    const GLDrawMode  mode  = GLDrawMode::LineStrip)
     {
-        if (prim_batchBuffer.empty()) { return; }
+        drawCmds.emplace_back();
+        DrawCmd& cmd = drawCmds.back();
 
-        glEnable(GL_PRIMITIVE_RESTART);
-        glPrimitiveRestartIndex(prim_restartIndex);
+        cmd.texture  = &whiteTex;
+        cmd.layer    = layer;
 
-        prim_shader.setVec4f("color", prim_lastColor.r, prim_lastColor.g, prim_lastColor.b, prim_lastColor.a);
-        glLineWidth(prim_lastWidth);
+        ASSERT(points.size() > 0);
+        cmd.posAndCoords.reserve(points.size());
+        cmd.indices.reserve(points.size());
 
-        prim_mesh.setData(prim_batchBuffer, AccessType::Dynamic);
-        prim_mesh.setIndices(prim_batchBufferIndices, AccessType::Dynamic);
-
-        RenderState rs;
-        rs.drawMode = prim_lastMode;
-        Renderer::draw(prim_shader, prim_mesh, rs);
-
-        prim_batchBuffer.clear();
-        prim_batchBufferIndices.clear();
+        for (int i = 0; i < points.size(); i++)
+        {
+            const Vector2f& p = points[i];
+            cmd.posAndCoords.emplace_back(p.x, p.y, 0.f, 0.f);
+            cmd.indices.push_back(i);
+        }
+        
+        cmd.drawMode = mode;
+        cmd.color    = color;
     }
 
-    #pragma endregion
+    void text_batch(const String&     text,
+                          Font&       font,
+                    const Vector2f&   pos,
+                    const int         layer = defaultTextLayer,
+                    const ColorRGBAf& color = ColorRGBAf::white(),
+                    const float       scale = 1.f)
+    {
+        Vector2f currentPos = pos;
+        for (auto& strchar : text)
+        {
+            // TODO: add default unknown character, and use that instead
+            if (!font.containsChar(strchar))
+            { std::cout << "Font does not contain character \"" << strchar << "\"" << std::endl; continue; }
 
-#pragma endregion
+            FontCharacter& ch = font.getChar(strchar);
+            float w    = ch.size.x * scale;
+            float h    = ch.size.y * scale;
+            float xpos = (currentPos.x + ch.bearing.x);
+            float ypos = (currentPos.y - h + (h - ch.bearing.y * scale));
+            currentPos.x += (ch.advance >> 6) * scale;
+
+            sprite_batch(ch.texture,
+                         { Vector2f(0,0), Vector2f(ch.texture.getSize()) },
+                         { xpos, ypos, w, h },
+                         layer,
+                         color,
+                         0.0f,
+                         originCenter,
+                         false,
+                         false,
+                         textShader);
+
+        }
+    }
+
 };

@@ -5,7 +5,7 @@ include(CTest)
 enable_testing()
 add_subdirectory("Tests")
 
-file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS *.cpp *.hpp *.h)
+file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h)
 
 add_library(TLib STATIC "TLib.cpp" ${SOURCE_FILES})
 add_library(TLib::TLib ALIAS TLib)
@@ -15,8 +15,10 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   /MTd")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG}          /MTd")
+set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE}        /MT")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT")
+set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL}     /MT")
 
 target_include_directories(TLib PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -42,6 +44,17 @@ target_link_libraries(TLib PUBLIC sol2)
 
 find_dependency(PalSigslot CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC Pal::Sigslot)
+
+find_dependency(mimalloc CONFIG REQUIRED)
+target_link_libraries(TLib PUBLIC mimalloc-static)
+
+set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
+set(Boost_USE_DEBUG_LIBS        OFF)  # ignore debug libs and
+set(Boost_USE_RELEASE_LIBS       ON)  # only find release libs
+set(Boost_USE_MULTITHREADED      ON)
+set(Boost_USE_STATIC_RUNTIME     ON)  # link Boost Static libraries
+find_dependency(Boost REQUIRED COMPONENTS container)
+target_link_libraries(TLib PRIVATE Boost::boost Boost::container)
 
 ### Graphics stuff
 

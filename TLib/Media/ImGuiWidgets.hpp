@@ -46,28 +46,29 @@ void drawDiagWidget(Renderer* renderer = nullptr, FPSLimit* fpslimit = nullptr)
     if (renderer)
     {
         //ImGui::Checkbox("Frustum Culling", &renderer->frustumCullingEnabled);
-        ImGui::Text(fmt::format("Draw Calls: {}", renderer->getDrawCallsThisFrame()).c_str());
+        ImGui::Text(fmt::format("Draw Calls: {}", renderer->getDrawCount()).c_str());
+        renderer->resetDrawCount();
 
-        VSyncMode vsyncMode = renderer->getVSync();
-        auto cont = magic_enum::enum_values<VSyncMode>();
-        if (ImGui::BeginCombo("VSync", magic_enum::enum_name(vsyncMode).data()))
-        {
-            for (auto& v : cont)
-            {
-                bool selected = (vsyncMode == v);
-                if (ImGui::Selectable(magic_enum::enum_name(v).data(), selected))
-                { renderer->setVSync(v); }
-                if (selected)
-                { ImGui::SetItemDefaultFocus(); }
-            }
-            ImGui::EndCombo();
-        }
+        //VSyncMode vsyncMode = renderer->getVSync();
+        //auto cont = magic_enum::enum_values<VSyncMode>();
+        //if (ImGui::BeginCombo("VSync", magic_enum::enum_name(vsyncMode).data()))
+        //{
+        //    for (auto& v : cont)
+        //    {
+        //        bool selected = (vsyncMode == v);
+        //        if (ImGui::Selectable(magic_enum::enum_name(v).data(), selected))
+        //        { renderer->setVSync(v); }
+        //        if (selected)
+        //        { ImGui::SetItemDefaultFocus(); }
+        //    }
+        //    ImGui::EndCombo();
+        //}
     }
-    ImGui::Text("Delta: %f", delta);
-    ImGui::Text(fmt::format("FPS: {}", fps).c_str());
-    ImGui::Text(fmt::format("CPU Usage: {}%", sysq::getThisProcessCPUUsage()).c_str());
-    ImGui::Text(fmt::format("Phys Ram Used: {} MB", sysq::bytesToMb(meminfop.workingSetSize)).c_str());
-    ImGui::Text(fmt::format("Virt Ram Used: {} MB", sysq::bytesToMb(meminfop.privateUsage)).c_str());
+    ImGui::Text(            "Delta         : %f"   , delta);
+    ImGui::Text(fmt::format("FPS           : {}"   , fps).c_str());
+    ImGui::Text(fmt::format("CPU Usage     : {}%"  , sysq::getThisProcessCPUUsage()).c_str());
+    ImGui::Text(fmt::format("Phys Ram Used : {} MB", sysq::bytesToMb(meminfop.workingSetSize)).c_str());
+    ImGui::Text(fmt::format("Virt Ram Used : {} MB", sysq::bytesToMb(meminfop.privateUsage)).c_str());
     ImGui::Text(fmt::format("Phys RAM Avail: {} MB", sysq::bytesToMb(meminfo.availPhysical)).c_str());
     ImGui::Text(fmt::format("Phys RAM Total: {} MB", sysq::bytesToMb(meminfo.totalPhysical)).c_str());
     ImGui::Text(fmt::format("Virt RAM Avail: {} MB", sysq::bytesToMb(meminfo.availVirtual)).c_str());

@@ -77,10 +77,7 @@ public:
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    static void render()
-    {
-        drawCalls = 0;
-    }
+    static void render() { }
 
     static void draw(Shader& shader, Mesh& mesh, const RenderState& state = RenderState())
     {
@@ -119,7 +116,10 @@ public:
     }
 
     [[nodiscard]] [[maybe_unused]]
-    static inline size_t getDrawCallsThisFrame() { return drawCalls; }
+    static inline size_t getDrawCount() { return drawCalls; }
+
+    [[maybe_unused]]
+    static inline void resetDrawCount() { drawCalls = 0; }
 
     static inline void setVSync(VSyncMode mode)
     { SDL_GL_SetSwapInterval(static_cast<int>(mode)); }

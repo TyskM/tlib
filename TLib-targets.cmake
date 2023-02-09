@@ -52,14 +52,14 @@ add_library(TLib::TLib STATIC IMPORTED)
 set_target_properties(TLib::TLib PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_20"
   INTERFACE_INCLUDE_DIRECTORIES "G:/Resources/Dev/CPP/TLib"
-  INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;sol2;Pal::Sigslot;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui"
+  INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;sol2;Pal::Sigslot;mimalloc-static;\$<LINK_ONLY:Boost::boost>;\$<LINK_ONLY:Boost::container>;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui"
 )
 
-# Import target "TLib::TLib" for configuration "Debug"
-set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+# Import target "TLib::TLib" for configuration "RelWithDebInfo"
+set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
 set_target_properties(TLib::TLib PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
-  IMPORTED_LOCATION_DEBUG "G:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/TLib.lib"
+  IMPORTED_LINK_INTERFACE_LANGUAGES_RELWITHDEBINFO "CXX"
+  IMPORTED_LOCATION_RELWITHDEBINFO "G:/Resources/Dev/CPP/TLib/out/build/x64-windows-reldbg-static/TLib.lib"
   )
 
 # This file does not depend on other imported targets which have

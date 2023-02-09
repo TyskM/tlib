@@ -2,20 +2,20 @@
 // Created by Ty on 2023-01-29.
 //
 
-#include <TLib/Media/Renderer2D.hpp>
 #include <TLib/DataStructures.hpp>
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/Camera2D.hpp>
 #include <TLib/Media/Frustum.hpp>
 #include <TLib/Media/GL/UniformBuffer.hpp>
 #include <TLib/Media/Camera2DDebug.hpp>
-
+#include <boost/container/small_vector.hpp>
 #include "Common.hpp"
 
 struct TexTest : GameTest
 {
-    SharedPtr<Texture> tex;
-    Renderer2D      rend2d;
+    Texture tex;
+    Font    font;
+    
     Vector2f        pos    = { 0.1f, 0.1f };
     Vector2f        srcpos = { 0, 0 };
     Camera2D        view;
@@ -27,10 +27,8 @@ struct TexTest : GameTest
     void create() override
     {
         GameTest::create();
-        rend2d.create(renderer);
-
-        tex = makeShared<Texture>();
-        tex->loadFromFile("assets/ship.png", TextureFiltering::Nearest);
+        tex.loadFromFile("assets/ship.png", TextureFiltering::Nearest);
+        font.loadFontSdf("assets/arial.ttf");
     }
 
     void mainLoop(float delta) override
@@ -46,7 +44,6 @@ struct TexTest : GameTest
 
         Vector2f mwpos = view.localToWorldCoords(Input::mousePos);
 
-        rend2d.begin();
         rend2d.clearColor();
 
         static float time = 0.f;
@@ -65,26 +62,27 @@ struct TexTest : GameTest
                     fmodf(cos(time / 2.f) * (x%12), 1.f),
                     fmodf((time)+x+y, 1.f), 1
                 };
-                const Rectf rect ={ Vector2f(x, y) * offset, Vector2f(32,32) };
+                const Rectf rect = { Vector2f(x, y) * offset, Vector2f(32,32) };
 
-                rend2d.drawTexture(tex, rect, rot, color);
-
+                rend2d.drawTexture(tex, rect, 0, color, rot);
                 --count;
                 if (count == 0) break;
             }
         }
 
         rend2d.drawCircle(mwpos, 12.f);
+        rend2d.drawText("Hello world!", font, { 50, 50 });
+
+        rend2d.render();
+        renderer.render();
 
         beginDiagWidgetExt();
         ImGui::Checkbox    ("Rotation enabled", &rotationEnabled);
-        ImGui::SliderInt   ("Sprite count", &spriteCount, 1, 100 * 100);
+        ImGui::SliderInt   ("Sprite count", &spriteCount, 1, 20000);
         ImGui::SliderFloat ("Sprite offset", &offset, 1.f, 128.f, "%.2f");
         ImGui::End();
         drawDiagWidget(&renderer, &fpslimit);
 
-        rend2d.render();
-        renderer.render();
         imgui.render();
 
         window.swap();

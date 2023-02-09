@@ -10,5 +10,7 @@ find_dependency(gl3w CONFIG REQUIRED)
 find_dependency(glm CONFIG REQUIRED)
 find_dependency(imgui CONFIG REQUIRED)
 find_dependency(PalSigslot CONFIG REQUIRED)
+find_dependency(mimalloc CONFIG REQUIRED)
+find_dependency(Boost REQUIRED COMPONENTS container)
 
 include("${CMAKE_CURRENT_LIST_DIR}/TLib-targets.cmake")

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <TLib/Media/Renderer.hpp>
+#include <TLib/Media/Renderer2D.hpp>
 #include <TLib/Media/Platform/Input.hpp>
 #include <TLib/Media/Platform/Window.hpp>
 #include <TLib/Media/Platform/FPSLimit.hpp>
@@ -56,10 +57,11 @@ const char* vert_flat3d = R"""(
 
 struct GameTest
 {
-    Window   window;
-    Renderer renderer;
-    MyGui    imgui;
-    FPSLimit fpslimit;
+    Window     window;
+    Renderer   renderer;
+    Renderer2D rend2d;
+    MyGui      imgui;
+    FPSLimit   fpslimit;
     //const float runDuration = 6.f;
     Timer timer{true};
     Timer deltaTimer;
@@ -69,6 +71,7 @@ struct GameTest
     {
         window.create();
         renderer.create();
+        rend2d.create(renderer);
         imgui.create(window);
         timer.setPaused(false);
         deltaTimer.restart();
