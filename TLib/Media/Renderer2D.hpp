@@ -13,6 +13,12 @@
 #include <boost/container/small_vector.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 
+namespace detail
+{
+    struct RendererCallback
+    { static int SDLEventFilterCB(void* userdata, SDL_Event* event); };
+}
+
 enum class RendererType
 {
     Sprite    = 1 << 0,
@@ -247,11 +253,11 @@ private:
     struct DrawCmd;
     struct PrimVert;
 
-    using DrawCmdCont = eastl::vector<DrawCmd  >;
-    using VerticeCont = eastl::vector<PrimVert >;
-    using IndiceCont  = eastl::vector<uint32_t >;
-    using Vec4fCont   = eastl::vector<glm::vec4>;
-    using Vec2fCont   = eastl::vector<Vector2f >;
+    using DrawCmdCont = eastl::vector<DrawCmd  , MiAllocator>;
+    using VerticeCont = eastl::vector<PrimVert , MiAllocator>;
+    using IndiceCont  = eastl::vector<uint32_t , MiAllocator>;
+    using Vec4fCont   = eastl::vector<glm::vec4, MiAllocator>;
+    using Vec2fCont   = eastl::vector<Vector2f , MiAllocator>;
 
     // TODO: Add uniform map to draw commands?
     struct DrawCmd
@@ -260,8 +266,8 @@ private:
         GLDrawMode drawMode;
         Texture*   texture = &whiteTex;
         Shader*    shader  = &defaultShader;
-        Vec4fCont  posAndCoords;
-        IndiceCont indices;
+        uint32_t   posIndex, posSize;
+        uint32_t   indIndex, indSize;
         ColorRGBAf color;
 
         bool operator<(const DrawCmd& other)
@@ -306,6 +312,9 @@ private:
     Renderer* renderer = nullptr;
     Frustum   frustum;
     DrawCmdCont drawCmds;
+    Vec4fCont   posAndCoords;
+    IndiceCont  indices;
+
     VerticeCont batchBuffer;
     IndiceCont  batchBufferIndices;
 
@@ -324,6 +333,13 @@ private:
 
         if (!textShader.created())
         { textShader.create(shaderVertSrc, textFragSrc); }
+
+        Camera2D startCam;
+        auto size = Renderer::getFramebufferSize();
+        startCam.setBounds(Rectf(0, 0, size.x, size.y));
+        setView(startCam);
+
+        SDL_AddEventWatch(&detail::RendererCallback::SDLEventFilterCB, this);
     }
 
     void flushCurrent(Shader* shader, Texture* tex, GLDrawMode drawMode)
@@ -367,12 +383,14 @@ private:
             { flushCurrent(lastShader, lastTexture, lastDrawMode); }
 
             offset = batchBuffer.size();
-            for (auto& ind : cmd.indices)
-            { batchBufferIndices.push_back(offset + ind); }
+
+            for (uint32_t i = cmd.indIndex; i < cmd.indIndex + cmd.indSize; i++)
+            { batchBufferIndices.push_back(offset + indices[i]); }
+
             batchBufferIndices.push_back(restartIndex);
 
-            for (auto& pac : cmd.posAndCoords)
-            { batchBuffer.emplace_back(pac, cmd.color); }
+            for (uint32_t i = cmd.posIndex; i < cmd.posIndex + cmd.posSize; i++)
+            { batchBuffer.emplace_back(posAndCoords[i], cmd.color); }
 
             lastTexture  = cmd.texture;
             lastShader   = cmd.shader;
@@ -381,6 +399,8 @@ private:
 
         flushCurrent(lastShader, lastTexture, lastDrawMode);
         drawCmds.clear();
+        posAndCoords.clear();
+        indices.clear();
     }
 
     void rotate(float& x, float& y, float radians)
@@ -410,11 +430,17 @@ private:
         cmd.texture  = &texture;
         cmd.shader   = &shader;
         cmd.layer    = layer;
-        cmd.indices  = sprite_indices;
         cmd.drawMode = GLDrawMode::Triangles;
         cmd.color    = color;
 
-        cmd.posAndCoords.resize(4);
+        cmd.indIndex = indices.size();
+        cmd.indSize  = sprite_indices.size();
+        indices.insert(indices.end(), sprite_indices.begin(), sprite_indices.end());
+
+        cmd.posIndex = posAndCoords.size();
+        cmd.posSize  = 4;
+
+
         float xpluswidth  = dstrect.x + dstrect.width;
         float yplusheight = dstrect.y + dstrect.height;
 
@@ -437,18 +463,21 @@ private:
             normalHeight = tmp;
         }
 
-        cmd.posAndCoords[0] = { dstrect.x , dstrect.y  , normalX,      normalY      }; // topleft
-        cmd.posAndCoords[1] = { xpluswidth, dstrect.y  , normalWidth,  normalY      }; // topright
-        cmd.posAndCoords[2] = { dstrect.x , yplusheight, normalX,      normalHeight }; // bottom left
-        cmd.posAndCoords[3] = { xpluswidth, yplusheight, normalWidth,  normalHeight }; // bottom right
+        posAndCoords.emplace_back( dstrect.x , dstrect.y  , normalX,      normalY      );  // topleft
+        posAndCoords.emplace_back( xpluswidth, dstrect.y  , normalWidth,  normalY      );  // topright
+        posAndCoords.emplace_back( dstrect.x , yplusheight, normalX,      normalHeight );  // bottom left
+        posAndCoords.emplace_back( xpluswidth, yplusheight, normalWidth,  normalHeight );  // bottom right
 
-        if (origin.x == FLT_MAX) {
-            origin = Vector2f(dstrect.x + dstrect.width  / 2,
-                              dstrect.y + dstrect.height / 2); }
         if (rotation != 0)
         {
-            for (auto& v : cmd.posAndCoords)
+            if (origin.x == FLT_MAX) {
+                origin = Vector2f(dstrect.x + dstrect.width  / 2,
+                                  dstrect.y + dstrect.height / 2);
+            }
+
+            for (size_t i = posAndCoords.size() - 4; i < posAndCoords.size(); i++)
             {
+                auto& v = posAndCoords[i];
                 v.x -= origin.x; v.y -= origin.y;
                 rotate(v.x, v.y, rotation);
                 v.x += origin.x; v.y += origin.y;
@@ -463,25 +492,25 @@ private:
                     const float       width = 1,
                     const GLDrawMode  mode  = GLDrawMode::LineStrip)
     {
-        drawCmds.emplace_back();
-        DrawCmd& cmd = drawCmds.back();
-
-        cmd.texture  = &whiteTex;
-        cmd.layer    = layer;
-
-        ASSERT(points.size() > 0);
-        cmd.posAndCoords.reserve(points.size());
-        cmd.indices.reserve(points.size());
-
-        for (int i = 0; i < points.size(); i++)
-        {
-            const Vector2f& p = points[i];
-            cmd.posAndCoords.emplace_back(p.x, p.y, 0.f, 0.f);
-            cmd.indices.push_back(i);
-        }
-        
-        cmd.drawMode = mode;
-        cmd.color    = color;
+        //drawCmds.emplace_back();
+        //DrawCmd& cmd = drawCmds.back();
+        //
+        //cmd.texture  = &whiteTex;
+        //cmd.layer    = layer;
+        //
+        //ASSERT(points.size() > 0);
+        //cmd.posAndCoords.reserve(points.size());
+        //cmd.indices.reserve(points.size());
+        //
+        //for (int i = 0; i < points.size(); i++)
+        //{
+        //    const Vector2f& p = points[i];
+        //    cmd.posAndCoords.emplace_back(p.x, p.y, 0.f, 0.f);
+        //    cmd.indices.push_back(i);
+        //}
+        //
+        //cmd.drawMode = mode;
+        //cmd.color    = color;
     }
 
     void text_batch(const String&     text,
@@ -519,4 +548,24 @@ private:
         }
     }
 
+    void onWindowResized()
+    {
+        GLint viewport[4];
+        glGetIntegerv(GL_VIEWPORT, viewport);
+        auto fbSize = Renderer::getFramebufferSize();
+        glViewport(0, fbSize.y - viewport[3], viewport[2], viewport[3]);
+    }
+
+    friend class detail::RendererCallback;
 };
+
+namespace detail
+{
+    int RendererCallback::SDLEventFilterCB(void* userdata, SDL_Event* event)
+    {
+        Renderer2D* r = static_cast<Renderer2D*>(userdata);
+        if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+        { r->onWindowResized(); }
+        return 1;
+    }
+}

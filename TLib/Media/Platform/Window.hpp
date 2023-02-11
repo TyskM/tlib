@@ -190,6 +190,12 @@ struct Window : NonAssignable
     WindowFlags getFlags()
     { return static_cast<WindowFlags>(SDL_GetWindowFlags(window)); }
 
+    inline void setTitle(const String& title)
+    { SDL_SetWindowTitle(window, title.c_str()); }
+
+    String getTitle()
+    { return SDL_GetWindowTitle(window); }
+
     operator SDL_Window*() { return  window; }
     operator SDL_Window&() { return *window; }
 };

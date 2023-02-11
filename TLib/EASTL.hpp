@@ -8,32 +8,42 @@
 #include <mimalloc.h>
 using namespace eastl;
 
+void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{ return new uint8_t[size]; }
+
+void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{ return new uint8_t[size]; }
+
 /*
 * Rendering 20k sprites and rects
 * with mimalloc 59-65 fps
 * with stl 38-43 fps
 */
 
-#ifndef USESTLMALLOC
+// Microsofts mimalloc
+// https://github.com/microsoft/mimalloc
+struct MiAllocator
+{
+    EASTL_ALLOCATOR_EXPLICIT MiAllocator(const char* = NULL) { }
+    MiAllocator(const MiAllocator&) { }
+    MiAllocator(const MiAllocator&, const char*) { }
 
-void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{ return mi_malloc(size); }
+    MiAllocator& operator=(const MiAllocator&) { return *this; }
 
-void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{ return mi_malloc(size); }
+    void* allocate(size_t size, int flags = 0)
+    { return mi_malloc(size); }
 
-void operator delete[](void* p, size_t size)
-{ mi_free_size(p, size); }
+    void* allocate(size_t size, size_t alignment, size_t alignmentOffset, int flags = 0)
+    { return mi_malloc(size); }
 
-void operator delete[](void* p)
-{ mi_free(p); }
+    void  deallocate(void* p, size_t size)
+    { mi_free_size(p, size); }
 
-#else
+    const char* get_name() const { return ""; }
+    void        set_name(const char*) { }
 
-void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{ return new uint8_t[size]; }
+    inline bool operator==(const MiAllocator&) { return true;  }
+    inline bool operator!=(const MiAllocator&) { return false; }
+};
 
-void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
-{ return new uint8_t[size]; }
 
-#endif
