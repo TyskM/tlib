@@ -86,8 +86,15 @@ struct GameTest
         while (SDL_PollEvent(&e))
         {
             Input::input(e);
-            if (imgui.input(e)) { continue; }
-            
+            imgui.input(e);
+
+            if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+            {
+                auto view = rend2d.getView();
+                view.setBoundsSize(Vector2f(e.window.data1, e.window.data2));
+                rend2d.setView(view);
+            }
+
             if (e.type == SDL_QUIT) { running = false; }
         }
         auto& io = ImGui::GetIO();

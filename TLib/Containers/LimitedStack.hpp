@@ -1,10 +1,9 @@
 #pragma once
 
 #include <deque>
-#include "Misc.hpp"
 
 template <typename T>
-struct LimitedStack : NonCopyable
+struct LimitedStack
 {
 protected:
     size_t maxSize;

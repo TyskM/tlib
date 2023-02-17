@@ -13,6 +13,9 @@
 #include <TLib/Macros.hpp>
 #include <TLib/String.hpp>
 
+#include "IResource.hpp"
+#include "TextureData.hpp"
+
 enum class TextureFiltering
 {
     Unknown [[maybe_unused]] = -1,
@@ -52,68 +55,40 @@ enum class TexPixelFormats : int
     DEPTH_STENCIL   [[maybe_unused]] = GL_DEPTH_STENCIL
 };
 
-struct TextureData : NonCopyable
+enum class UVMode
 {
-    stbi_uc* ptr          = nullptr;
-    int      width        = 0;
-    int      height       = 0;
-    int      channelCount = 0;
-
-    void loadFromPath(const String& path, int reqComp = 4)
-    {
-        reset();
-        ptr = stbi_load(path.c_str(), &width, &height, &channelCount, reqComp);
-    }
-
-    void reset()
-    { stbi_image_free(ptr); }
-
-    bool valid() { return ptr != nullptr; }
-
-    TextureData() = default;
-
-    // @param reqComp: the required number of channels. ex: 4 for RGBA
-    TextureData(const String& path, int reqComp = 4)
-    { loadFromPath(path, reqComp); }
-
-    TextureData(stbi_uc* data, int width, int height, int channelCount) :
-        ptr{ data }, width{ width }, height{ height }, channelCount{ channelCount } { }
-
-    ~TextureData() noexcept { reset(); }
-
-    TextureData(TextureData&& other) noexcept
-    {
-        ptr = other.ptr;
-        other.ptr = nullptr;
-    };
-
-    operator bool() { valid(); }
+    Unknown             [[maybe_unused]] = -1,
+    Repeat              [[maybe_unused]] = GL_REPEAT,
+    MirroredRepeat      [[maybe_unused]] = GL_MIRRORED_REPEAT,
+    ClampToEdge         [[maybe_unused]] = GL_CLAMP_TO_EDGE,
+    MirroredClampToEdge [[maybe_unused]] = GL_MIRROR_CLAMP_TO_EDGE,
+    ClampToBorder       [[maybe_unused]] = GL_CLAMP_TO_BORDER
 };
 
+// OpenGL Texture
 struct Texture : NonAssignable
 {
+private:
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
-    static inline TextureFiltering   defaultTexFiltering   = TextureFiltering::Linear;
-    static inline TexPixelFormats    defaultFormat         = TexPixelFormats::RGBA;
-    static inline TexInternalFormats defaultInternalFormat = TexInternalFormats::RGBA;
+    static constexpr TextureFiltering   defaultTexFiltering   = TextureFiltering::Linear;
+    static constexpr TexPixelFormats    defaultFormat         = TexPixelFormats::RGBA;
+    static constexpr TexInternalFormats defaultInternalFormat = TexInternalFormats::RGBA;
+    static constexpr UVMode             defaultUVMode         = UVMode::ClampToEdge;
     static inline GLubyte fallbackImage[2][2][4] =
     {
         { {255, 0, 255, 255}, {0,   0, 0,   255} },
         { {0,   0, 0,   255}, {255, 0, 255, 255} }
     };
 
-    GLuint             glHandle        =  0;
-    int                width           =  0;
-    int                height          =  0;
-    int                boundSlot       = -1;
-    int                unpackAlignment =  4;
-    TextureFiltering   filtering       = TextureFiltering::Unknown;
-    TexPixelFormats    format          = TexPixelFormats::Unknown;
-    TexInternalFormats internalFormat  = TexInternalFormats::Unknown;
+    GLuint glHandle        =  0;
+    int    width           =  0;
+    int    height          =  0;
+    int    boundSlot       = -1;
 
+public:
     Texture() { }
-    Texture(const std::string& filePath, TextureFiltering texFiltering = defaultTexFiltering)
-    { loadFromFile(filePath, texFiltering); }
+    Texture(const String& filePath)
+    { loadFromFile(filePath); }
 
     ~Texture() { reset(); }
 
@@ -122,14 +97,10 @@ struct Texture : NonAssignable
         if (created())
         {
             GL_CHECK(glDeleteTextures(1, &glHandle));
-            glHandle        = 0;
-            width           = 0;
-            height          = 0;
-            unpackAlignment = 4;
+            glHandle        =  0;
+            width           =  0;
+            height          =  0;
             boundSlot       = -1;
-            filtering       = TextureFiltering::Unknown;
-            format          = TexPixelFormats::Unknown;
-            internalFormat  = TexInternalFormats::Unknown;
         }
     }
 
@@ -139,7 +110,7 @@ struct Texture : NonAssignable
         GL_CHECK(glGenTextures(1, &glHandle));
     }
 
-    bool loadFromFile(const String& filePath, TextureFiltering texFiltering = defaultTexFiltering)
+    bool loadFromFile(const String& filePath)
     {
         if (!created()) { create(); }
 
@@ -161,39 +132,35 @@ struct Texture : NonAssignable
         {
             // TODO: Support different formats?
             // https://stackoverflow.com/questions/23150123/loading-png-with-stb-image-for-opengl-texture-gives-wrong-colors
-            setData(data, texFiltering, defaultFormat, defaultInternalFormat);
+            setData(data, defaultFormat, defaultInternalFormat);
         }
 
         return true;
     }
 
-    void setData(const TextureData& data,
-                 TextureFiltering texFiltering = defaultTexFiltering,
-                 TexPixelFormats format = defaultFormat,
-                 TexInternalFormats internalFormat = defaultInternalFormat, bool generateMipmap = true)
+    void setData(const TextureData&       data,
+                 const TexPixelFormats    format         = defaultFormat,
+                 const TexInternalFormats internalFormat = defaultInternalFormat,
+                 const bool               generateMipmap = true)
     {
-        setData(data.ptr, data.width, data.height, texFiltering, defaultFormat, defaultInternalFormat);
+        setData(data.ptr, data.width, data.height, defaultFormat, defaultInternalFormat);
     }
 
     void setData(
-        const void* data, int width, int height,
-        TextureFiltering texFiltering = defaultTexFiltering,
-        TexPixelFormats format = defaultFormat,
-        TexInternalFormats internalFormat = defaultInternalFormat, bool generateMipmap = true)
+        const void*              data,
+        const int                width,
+        const int                height,
+        const TexPixelFormats    format         = defaultFormat,
+        const TexInternalFormats internalFormat = defaultInternalFormat,
+        const bool               generateMipmap = true)
     {
         if (!created()) { create(); }
 
-        this->width          = width;
-        this->height         = height;
-        this->filtering      = texFiltering;
-        this->format         = format;
-        this->internalFormat = internalFormat;
+        this->width  = width;
+        this->height = height;
 
-        bind();
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<int>(texFiltering)));
-        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<int>(texFiltering)));
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        setFilter(defaultTexFiltering);
+        setUVMode(defaultUVMode);
         
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalFormat, width, height, 0, (GLenum)format, GL_UNSIGNED_BYTE, data));
         if (generateMipmap)
@@ -220,26 +187,58 @@ struct Texture : NonAssignable
         glState.boundTextures[slot] = nullptr;
     }
 
+    [[nodiscard]]
     bool created() const
     { return glHandle != 0 && SDL_GL_GetCurrentContext() != NULL; }
 
+    [[nodiscard]]
+    GLuint handle() const
+    { return glHandle; }
+
+    [[nodiscard]]
     Vector2i getSize() const
     { return Vector2i{ width, height }; }
 
+    // TODO: is unpack alignment per texture?? where am i>:>??????
     void setUnpackAlignment(int value)
     {
-        if (unpackAlignment != value)
-        {
-            unpackAlignment = value;
-            bind();
-            glPixelStorei(GL_UNPACK_ALIGNMENT, value);
-        }
+        bind();
+        glPixelStorei(GL_UNPACK_ALIGNMENT, value);
     }
 
-    // Private
+    // Equivalent to setting GL_TEXTURE_WRAP_S and GL_TEXTURE_WRAP_T
+    void setUVMode(UVMode u, UVMode v)
+    {
+        bind();
+        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, static_cast<int>(u)) );
+        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<int>(v)) );
+    }
+
+    void setUVMode(UVMode uv)
+    { setUVMode(uv, uv); }
+
+    void setFilter(TextureFiltering min, TextureFiltering max)
+    {
+        bind();
+        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<int>(min)) );
+        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<int>(max)) );
+    }
+
+    void setFilter(TextureFiltering mode)
+    { setFilter(mode, mode); }
+
+    // BGRA Mask example
+    // int32_t swizzleMask[] = {GL_BLUE, GL_GREEN, GL_RED, GL_ALPHA};
+    void setSwizzle(const int32_t* mask)
+    {
+        bind();
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, mask);
+    }
+
     void loadFallbackTexture()
     {
-        setData(fallbackImage, 2, 2, TextureFiltering::Nearest);
+        setData(fallbackImage, 2, 2);
+        setFilter(TextureFiltering::Nearest);
     }
 };
 

@@ -12,5 +12,6 @@ find_dependency(imgui CONFIG REQUIRED)
 find_dependency(PalSigslot CONFIG REQUIRED)
 find_dependency(mimalloc CONFIG REQUIRED)
 find_dependency(Boost REQUIRED COMPONENTS container)
+find_dependency(cereal CONFIG REQUIRED)
 
 include("${CMAKE_CURRENT_LIST_DIR}/TLib-targets.cmake")

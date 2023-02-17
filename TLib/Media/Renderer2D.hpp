@@ -10,10 +10,12 @@
 #include <TLib/Media/Resource/Font.hpp>
 #include <TLib/EASTL.hpp>
 #include <EASTL/vector.h>
-#include <boost/container/small_vector.hpp>
 #include <glm/gtx/rotate_vector.hpp>
+#include <span>
 
-namespace detail
+using namespace eastl;
+
+namespace rend2Ddetail
 {
     struct RendererCallback
     { static int SDLEventFilterCB(void* userdata, SDL_Event* event); };
@@ -31,6 +33,7 @@ struct Renderer2D
 #pragma region Public
 public:
 
+    bool created()                  { return this->renderer != nullptr; }
     void create(Renderer& renderer) { this->renderer = &renderer; init(); }
     void shutdown()                 { }
     void render()                   { flush(); }
@@ -46,7 +49,13 @@ public:
 
         auto fbSize = Renderer::getFramebufferSize();
         glViewport(0, fbSize.y - bounds.height, bounds.width, bounds.height);
+
+        view = camera;
     }
+
+    [[nodiscard]]
+    inline Camera2D getView()
+    { return view; }
 
     void clearColor(const ColorRGBAf& color = { 0.1f, 0.1f, 0.1f, 1.f })
     { renderer->clearColor(color); }
@@ -79,7 +88,8 @@ public:
                   const ColorRGBAf& color = ColorRGBAf::white(),
                   const float       width = 1)
     {
-        prim_batch(Vec2fCont{ start, end }, layer, color, width);
+        Vector2f line[2] = { start, end };
+        prim_batch(line, layer, color, width);
     }
 
     void drawRect(float             x,
@@ -91,11 +101,12 @@ public:
                   bool              filled = false,
                   float             rot    = 0.f)
     {
-        Vec2fCont verts(4);
-        verts[0] = Vector2f(x, y);
-        verts[1] = Vector2f(x + w, y);
-        verts[2] = Vector2f(x + w, y + h);
-        verts[3] = Vector2f(x, y + h);
+        Vector2f verts[4] = {
+            Vector2f(x, y),
+            Vector2f(x + w, y),
+            Vector2f(x + w, y + h),
+            Vector2f(x, y + h)
+        };
 
         if (rot != 0)
         {
@@ -149,6 +160,7 @@ public:
         }
     }
 
+    // TODO: Remove heap alloc
     void drawCircle(const Vector2f&   pos,
                     const float       rad,
                     const int         layer        = defaultPrimitiveLayer,
@@ -163,7 +175,7 @@ public:
         float x = rad;
         float y = 0;
 
-        Vec2fCont points;
+        vector<Vector2f, MiAllocator> points;
         points.reserve(segmentCount);
 
         for (int i = 0; i < segmentCount; i++)
@@ -237,8 +249,8 @@ private:
 
     uniform sampler2D image;
 
-    const float width = 0.45;
-    const float edge = 0.1;
+    uniform float width = 0.45;
+    uniform float edge  = 0.1;
 
     void main()
     {
@@ -253,11 +265,8 @@ private:
     struct DrawCmd;
     struct PrimVert;
 
-    using DrawCmdCont = eastl::vector<DrawCmd  , MiAllocator>;
-    using VerticeCont = eastl::vector<PrimVert , MiAllocator>;
-    using IndiceCont  = eastl::vector<uint32_t , MiAllocator>;
-    using Vec4fCont   = eastl::vector<glm::vec4, MiAllocator>;
-    using Vec2fCont   = eastl::vector<Vector2f , MiAllocator>;
+    using Allocator  = MiAllocator;
+    using IndiceCont = vector<uint32_t , Allocator>;
 
     // TODO: Add uniform map to draw commands?
     struct DrawCmd
@@ -266,8 +275,8 @@ private:
         GLDrawMode drawMode;
         Texture*   texture = &whiteTex;
         Shader*    shader  = &defaultShader;
-        uint32_t   posIndex, posSize;
-        uint32_t   indIndex, indSize;
+        uint32_t   posIndex, posSize; // Index and size for posAndCoords
+        uint32_t   indIndex, indSize; // Index and size for indices
         ColorRGBAf color;
 
         bool operator<(const DrawCmd& other)
@@ -308,25 +317,34 @@ private:
     static inline Mesh   mesh;
     static inline Shader defaultShader;
     static inline Shader textShader;
+    Camera2D view;
 
     Renderer* renderer = nullptr;
-    Frustum   frustum;
-    DrawCmdCont drawCmds;
-    Vec4fCont   posAndCoords;
-    IndiceCont  indices;
 
-    VerticeCont batchBuffer;
-    IndiceCont  batchBufferIndices;
+    // TODO: actually use the frustum
+    // need to calculate AABB of the sprites rect to check collision
+    // checking for primitives isn't necessary
+    Frustum frustum;
+
+    // Draw data goes here, then is sorted
+    vector<DrawCmd, Allocator> drawCmds;
+
+    // Draw data vertex data in these two
+    // These aren't stored in the DrawCmd struct so the alloced space can be reused
+    vector<glm::vec4, Allocator> posAndCoords;
+    IndiceCont                   indices;
+
+    // These buffers are copied to the GPU
+    vector<PrimVert, Allocator> batchBuffer;
+    IndiceCont                  batchBufferIndices;
 
     void init()
     {
-        rendlog->info("Initing Renderer2D...");
-
         if (!mesh.valid())
         { mesh.setLayout({ Layout::Vec4f(), Layout::Vec4f() }); }
 
         if (!whiteTex.created())
-        { whiteTex.setData(whiteTexData, 1, 1, TextureFiltering::Nearest); }
+        { whiteTex.setData(whiteTexData, 1, 1); }
 
         if (!defaultShader.created())
         { defaultShader.create(shaderVertSrc, shaderFragSrc); }
@@ -339,7 +357,14 @@ private:
         startCam.setBounds(Rectf(0, 0, size.x, size.y));
         setView(startCam);
 
-        SDL_AddEventWatch(&detail::RendererCallback::SDLEventFilterCB, this);
+        SDL_AddEventWatch(&rend2Ddetail::RendererCallback::SDLEventFilterCB, this);
+
+        size_t reserveSize = 1024 * 5;
+        drawCmds            .reserve(reserveSize);
+        posAndCoords        .reserve(reserveSize);
+        indices             .reserve(reserveSize);
+        batchBuffer         .reserve(reserveSize);
+        batchBufferIndices  .reserve(reserveSize);
     }
 
     void flushCurrent(Shader* shader, Texture* tex, GLDrawMode drawMode)
@@ -486,31 +511,33 @@ private:
     }
 
 
-    void prim_batch(const Vec2fCont&  points,
-                    const int         layer = defaultPrimitiveLayer,
-                    const ColorRGBAf& color = ColorRGBAf::white(),
-                    const float       width = 1,
-                    const GLDrawMode  mode  = GLDrawMode::LineStrip)
+    void prim_batch(const std::span<Vector2f>&  points,
+                    const int                   layer = defaultPrimitiveLayer,
+                    const ColorRGBAf&           color = ColorRGBAf::white(),
+                    const float                 width = 1,
+                    const GLDrawMode            mode  = GLDrawMode::LineStrip)
     {
-        //drawCmds.emplace_back();
-        //DrawCmd& cmd = drawCmds.back();
-        //
-        //cmd.texture  = &whiteTex;
-        //cmd.layer    = layer;
-        //
-        //ASSERT(points.size() > 0);
-        //cmd.posAndCoords.reserve(points.size());
-        //cmd.indices.reserve(points.size());
-        //
-        //for (int i = 0; i < points.size(); i++)
-        //{
-        //    const Vector2f& p = points[i];
-        //    cmd.posAndCoords.emplace_back(p.x, p.y, 0.f, 0.f);
-        //    cmd.indices.push_back(i);
-        //}
-        //
-        //cmd.drawMode = mode;
-        //cmd.color    = color;
+        ASSERT(points.size() > 0);
+
+        drawCmds.emplace_back();
+        DrawCmd& cmd = drawCmds.back();
+        
+        cmd.texture  = &whiteTex;
+        cmd.layer    = layer;
+        cmd.drawMode = mode;
+        cmd.color    = color;
+
+        cmd.indIndex = indices.size();
+        cmd.indSize  = points.size();
+        cmd.posIndex = posAndCoords.size();
+        cmd.posSize  = cmd.indSize;
+        
+        for (int i = 0; i < cmd.indSize; i++)
+        {
+            const Vector2f& p = points[i];
+            posAndCoords.emplace_back(p.x, p.y, 0.f, 0.f);
+            indices.push_back(i);
+        }
     }
 
     void text_batch(const String&     text,
@@ -523,6 +550,13 @@ private:
         Vector2f currentPos = pos;
         for (auto& strchar : text)
         {
+            if (strchar == '\n')
+            {
+                currentPos.y += font.lineHeight();
+                currentPos.x = pos.x;
+                continue;
+            }
+
             // TODO: add default unknown character, and use that instead
             if (!font.containsChar(strchar))
             { std::cout << "Font does not contain character \"" << strchar << "\"" << std::endl; continue; }
@@ -553,13 +587,14 @@ private:
         GLint viewport[4];
         glGetIntegerv(GL_VIEWPORT, viewport);
         auto fbSize = Renderer::getFramebufferSize();
+        // glViewport origin is bottom left, so i make it top left :))
         glViewport(0, fbSize.y - viewport[3], viewport[2], viewport[3]);
     }
 
-    friend class detail::RendererCallback;
+    friend class rend2Ddetail::RendererCallback;
 };
 
-namespace detail
+namespace rend2Ddetail
 {
     int RendererCallback::SDLEventFilterCB(void* userdata, SDL_Event* event)
     {

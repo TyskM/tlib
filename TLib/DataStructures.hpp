@@ -4,15 +4,17 @@
 #include <cmath>
 #include <limits>
 #include "Math.hpp"
-#include "glm/vec2.hpp"
-#include "glm/vec3.hpp"
 
 // There's always a min/max macro somewhere. Make it stop!!!
 #undef min
 #undef max
 
-#pragma region Vector2
-/// Container with 2 of a single type
+constexpr float uint8ToFloat(uint8_t value)
+{ return value / 255.f; }
+
+constexpr uint8_t floatToUint8(float value)
+{ return static_cast<uint8_t>(value * 255.f); }
+
 template <typename T>
 struct Vector2
 {
@@ -133,8 +135,11 @@ struct Vector2
     Vector2<T> operator/=(const float& num) { return Vector2<T>(x /= num, y /= num); }
 
 };
+using Vector2f  = Vector2<float>;
+using Vector2i  = Vector2<int>;
+using Vector2i8 = Vector2<int8_t>;
 
-///\cond INTERNAL
+// Support hashing
 namespace std
 {
     template <typename T>
@@ -148,27 +153,11 @@ namespace std
         }
     };
 }
-///\endcond
-
-/// Container with 2 floats
-/// \relates Vector2
-using Vector2f = Vector2<float>;
-
-/// Container with 2 ints
-/// \relates Vector2
-using Vector2i = Vector2<int>;
-
-
-using Vector2i8 = Vector2<int8_t>;
-#pragma endregion
-
-#pragma region Vector3
 
 template <typename T>
 struct Vector3
 {
     constexpr Vector3(T xv, T yv, T zv) : x{ xv }, y{ yv }, z{ zv } { }
-    constexpr Vector3(const glm::vec<3, T, glm::defaultp>& v) : x{ v.x }, y{ v.y }, z{ v.z } { }
     constexpr Vector3() { }
 
     template <typename CT>
@@ -217,17 +206,22 @@ struct Vector3
     Vector3<T> operator/=(const float& num)             { return Vector3<T>(x /= num, y /= num, z /= num); }
 
 };
-
 using Vector3i = Vector3<int>;
 using Vector3f = Vector3<float>;
 
-#pragma endregion
+template <typename T>
+struct Vector4
+{
+    using value_type = T;
 
-constexpr float uint8ToFloat(uint8_t value)
-{ return value / 255.f; }
+    constexpr Vector4(T xv, T yv, T zv, T wv) : x{ xv }, y{ yv }, z{ zv }, w{ wv } { }
+    constexpr Vector4() { }
 
-constexpr uint8_t floatToUint8(float value)
-{ return static_cast<uint8_t>(value * 255.f); }
+    T x = 0;
+    T y = 0;
+    T z = 0;
+    T w = 0;
+};
 
 // Represents a RGBA color with values 0f-1f
 struct ColorRGBAf

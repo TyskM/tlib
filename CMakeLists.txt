@@ -48,6 +48,9 @@ target_link_libraries(TLib PUBLIC Pal::Sigslot)
 find_dependency(mimalloc CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC mimalloc-static)
 
+find_dependency(cereal CONFIG REQUIRED)
+target_link_libraries(TLib PRIVATE cereal::cereal)
+
 set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
 set(Boost_USE_DEBUG_LIBS        OFF)  # ignore debug libs and
 set(Boost_USE_RELEASE_LIBS       ON)  # only find release libs

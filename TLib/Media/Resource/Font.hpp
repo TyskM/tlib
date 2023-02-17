@@ -29,6 +29,8 @@ private:
     }
 
     std::map<char, FontCharacter> characters;
+    int32_t _lineHeight = 0;
+
 
 public:
     inline FontCharacter& getChar(const char c)
@@ -36,6 +38,10 @@ public:
 
     inline bool containsChar(const char c) const
     { return characters.contains(c); }
+
+    [[nodiscard]]
+    inline int32_t lineHeight() const
+    { return _lineHeight; }
 
     Vector2f calcTextSize(const String& text, float scale = 1.f)
     {
@@ -53,7 +59,7 @@ public:
         return size;
     }
 
-    void loadFontSdf(const String& path, unsigned int size = 24, TextureFiltering filtering = Texture::defaultTexFiltering)
+    void loadFontSdf(const String& path, unsigned int size = 24)
     {
         _init();
         characters.clear();
@@ -68,6 +74,7 @@ public:
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+        _lineHeight = (_face->size->metrics.ascender - _face->size->metrics.descender) >> 6;
         FT_GlyphSlot slot = _face->glyph;
 
         for (unsigned char c = 0; c < 128; c++)
@@ -84,7 +91,7 @@ public:
             ch.texture.setUnpackAlignment(1);
             ch.texture.setData(
                 slot->bitmap.buffer, slot->bitmap.width, slot->bitmap.rows,
-                filtering, TexPixelFormats::RED, TexInternalFormats::RED);
+                TexPixelFormats::RED, TexInternalFormats::RED);
 
             // now store character for later use
             ch.size = Vector2i(slot->bitmap.width, slot->bitmap.rows);
@@ -93,7 +100,9 @@ public:
         }
     }
 
-    void loadFont(const String& path, unsigned int size = 24, TextureFiltering filtering = Texture::defaultTexFiltering)
+    // Deprecated, use loadFontSdf()
+    [[deprecated]]
+    void loadFont(const String& path, unsigned int size = 24)
     {
         _init();
         characters.clear();
@@ -120,7 +129,7 @@ public:
             ch.texture.setUnpackAlignment(1);
             ch.texture.setData(
                 face->glyph->bitmap.buffer, face->glyph->bitmap.width, face->glyph->bitmap.rows,
-                filtering, TexPixelFormats::RED, TexInternalFormats::RED, true);
+                TexPixelFormats::RED, TexInternalFormats::RED, true);
             
             // now store character for later use
             ch.size = Vector2i(face->glyph->bitmap.width, face->glyph->bitmap.rows);

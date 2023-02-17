@@ -1,26 +1,28 @@
 #pragma once
 
-#include <string>
+#include <TLib/String.hpp>
+
 #include <fstream>
 #include <stdexcept>
 #include <vector>
 #include <filesystem>
 
 namespace fs = std::filesystem;
+using Path = fs::path;
 
 struct FileReadError  : public std::runtime_error { using std::runtime_error::runtime_error; };
 struct FileWriteError : public std::runtime_error { using std::runtime_error::runtime_error; };
 
 // Reads a file into a string
-std::string readFile(const fs::path& filePath)
+String readFile(const Path& filePath)
 {
 	// http://insanecoding.blogspot.de/2011/11/how-to-read-in-file-in-c.html
 	std::ifstream in(filePath, std::ios::in | std::ios::binary);
 	if (!in) throw FileReadError("Failed to read file: " + filePath.string());
-	return std::string(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+	return String(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
-void writeToFile(const fs::path& filePath, const std::string& value)
+void writeToFile(const Path& filePath, const String& value)
 {
     fs::create_directories(filePath.parent_path());
     std::ofstream out(filePath, std::ios::out | std::ios::binary);
@@ -30,13 +32,13 @@ void writeToFile(const fs::path& filePath, const std::string& value)
 }
 
 // Puts each line of a file into a vector of strings
-std::vector<std::string> fileToStringVector(const fs::path& path)
+std::vector<String> fileToStringVector(const Path& path)
 {
     std::ifstream file(path);
     if (!file) throw FileReadError("Failed to read file: " + path.string());
 
-    std::string line;
-    std::vector<std::string> outputVector;
+    String line;
+    std::vector<String> outputVector;
 
     while(std::getline(file, line))
     { outputVector.push_back(line); }
@@ -44,9 +46,9 @@ std::vector<std::string> fileToStringVector(const fs::path& path)
     return outputVector;
 }
 
-std::vector<std::string> dirToStringVector(const fs::path& path, bool includeSubDirs = false)
+std::vector<String> dirToStringVector(const Path& path, bool includeSubDirs = false)
 {
-    std::vector<std::string> vec;
+    std::vector<String> vec;
 
     if (includeSubDirs)
     {

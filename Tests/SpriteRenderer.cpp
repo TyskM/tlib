@@ -1,6 +1,3 @@
-//
-// Created by Ty on 2023-01-29.
-//
 
 #include <TLib/DataStructures.hpp>
 #include <TLib/Media/Renderer.hpp>
@@ -8,17 +5,12 @@
 #include <TLib/Media/Frustum.hpp>
 #include <TLib/Media/GL/UniformBuffer.hpp>
 #include <TLib/Media/Camera2DDebug.hpp>
-#include <boost/container/small_vector.hpp>
 #include "Common.hpp"
 
-struct TexTest : GameTest
+struct SpriteTest : GameTest
 {
-    Texture tex;
-    Font    font;
-    
-    Vector2f        pos    = { 0.1f, 0.1f };
-    Vector2f        srcpos = { 0, 0 };
-    Camera2D        view;
+    Texture  tex;
+    Font     font;
 
     bool  rotationEnabled   = true;
     int   spriteCount       = 30;
@@ -27,7 +19,8 @@ struct TexTest : GameTest
     void create() override
     {
         GameTest::create();
-        tex.loadFromFile("assets/ship.png", TextureFiltering::Nearest);
+        tex.loadFromFile("assets/ship.png");
+        tex.setFilter(TextureFiltering::Nearest);
         font.loadFontSdf("assets/arial.ttf");
     }
 
@@ -36,9 +29,7 @@ struct TexTest : GameTest
         GameTest::mainLoop(delta);
         imgui.newFrame();
         
-        auto bounds = view.getBounds();
-        auto size = Renderer::getFramebufferSize();
-        view.setBounds(Rectf(bounds.x, bounds.y, size.x, size.y));
+        auto view = rend2d.getView();
         debugCamera(view);
         rend2d.setView(view);
 
@@ -49,7 +40,7 @@ struct TexTest : GameTest
         static float time = 0.f;
         time += delta;
         int count = spriteCount;
-        int sr = sqrt(spriteCount);
+        int sr = std::ceil(sqrt(spriteCount));
 
         for (int x = 0; x < sr; x++)
         {
@@ -68,6 +59,7 @@ struct TexTest : GameTest
                 --count;
                 if (count == 0) break;
             }
+            if (count == 0) break;
         }
 
         rend2d.drawCircle(mwpos, 12.f);
@@ -92,7 +84,7 @@ struct TexTest : GameTest
 
 int main()
 {
-    TexTest game;
+    SpriteTest game;
     game.create();
     game.run();
     return 0;

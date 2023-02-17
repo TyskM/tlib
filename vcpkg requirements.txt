@@ -11,3 +11,8 @@ glm
 
 sdl2
 sdl2-gfx
+
+cereal
+
+eastl
+mimalloc
