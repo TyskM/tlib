@@ -1,6 +1,7 @@
 
 # TODO: More tests!!!!
 set(TLib_Tests
+        MinimalExample
         FunkyTriangle
         Indices
         FunkyTriangle3D

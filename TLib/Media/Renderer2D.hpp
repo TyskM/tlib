@@ -9,7 +9,8 @@
 #include <TLib/Media/Frustum.hpp>
 #include <TLib/Media/Resource/Font.hpp>
 #include <TLib/EASTL.hpp>
-#include <EASTL/vector.h>
+#include <TLib/Containers/Vector.hpp>
+#include <TLib/Containers/UnorderedMap.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <span>
 
@@ -175,7 +176,7 @@ public:
         float x = rad;
         float y = 0;
 
-        vector<Vector2f, MiAllocator> points;
+        Vector<Vector2f> points;
         points.reserve(segmentCount);
 
         for (int i = 0; i < segmentCount; i++)
@@ -265,10 +266,8 @@ private:
     struct DrawCmd;
     struct PrimVert;
 
-    using Allocator  = MiAllocator;
-    using IndiceCont = vector<uint32_t , Allocator>;
+    using IndiceCont = Vector<uint32_t>;
 
-    // TODO: Add uniform map to draw commands?
     struct DrawCmd
     {
         int        layer;
@@ -327,16 +326,16 @@ private:
     Frustum frustum;
 
     // Draw data goes here, then is sorted
-    vector<DrawCmd, Allocator> drawCmds;
+    Vector<DrawCmd> drawCmds;
 
     // Draw data vertex data in these two
     // These aren't stored in the DrawCmd struct so the alloced space can be reused
-    vector<glm::vec4, Allocator> posAndCoords;
-    IndiceCont                   indices;
+    Vector<glm::vec4> posAndCoords;
+    IndiceCont        indices;
 
     // These buffers are copied to the GPU
-    vector<PrimVert, Allocator> batchBuffer;
-    IndiceCont                  batchBufferIndices;
+    Vector<PrimVert> batchBuffer;
+    IndiceCont       batchBufferIndices;
 
     void init()
     {
@@ -438,16 +437,16 @@ private:
         y = xcopy * sinv + ycopy * cosv;
     }
 
-    void sprite_batch(      Texture&    texture,
-                      const Rectf&      srcrect,
-                      const Rectf&      dstrect,
-                      const int         layer    = 0,
-                      const ColorRGBAf& color    = { 1, 1, 1, 1 },
-                      const float       rotation = 0.f,
-                      Vector2f          origin   = originCenter,
-                      const bool        flipuvx  = false,
-                      const bool        flipuvy  = false,
-                      Shader&           shader   = defaultShader)
+    DrawCmd& sprite_batch(      Texture&    texture,
+                          const Rectf&      srcrect,
+                          const Rectf&      dstrect,
+                          const int         layer    = 0,
+                          const ColorRGBAf& color    = { 1, 1, 1, 1 },
+                          const float       rotation = 0.f,
+                          Vector2f          origin   = originCenter,
+                          const bool        flipuvx  = false,
+                          const bool        flipuvy  = false,
+                          Shader&           shader   = defaultShader)
     {
         drawCmds.emplace_back();
         DrawCmd& cmd = drawCmds.back();
@@ -508,6 +507,8 @@ private:
                 v.x += origin.x; v.y += origin.y;
             }
         }
+
+        return cmd;
     }
 
 
@@ -578,7 +579,6 @@ private:
                          false,
                          false,
                          textShader);
-
         }
     }
 

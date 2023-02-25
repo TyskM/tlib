@@ -99,7 +99,7 @@ struct GameTest
         }
         auto& io = ImGui::GetIO();
         if (!(io.WantCaptureKeyboard)) { Input::updateKeyboard(); }
-        if (!(io.WantCaptureMouse))    { Input::updateMouse(); }
+        if (!(io.WantCaptureMouse))    { Input::updateMouse();    }
     }
 
     int run()

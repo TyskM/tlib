@@ -24,6 +24,13 @@ if( !(x) ) \
 #define ASSERT(x) ((void)0);
 #endif
 
+#define RELASSERT(x) \
+if( !(x) ) \
+{ \
+    std::cerr << "Assertion failed in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ << std::endl; \
+    abort(); \
+}
+
 #ifdef TLIB_DEBUG
 #define ASSERTMSG(x, str) \
 if( !(x) ) \
