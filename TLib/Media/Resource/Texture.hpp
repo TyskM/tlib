@@ -66,7 +66,7 @@ enum class UVMode
 };
 
 // OpenGL Texture
-struct Texture : NonAssignable
+struct Texture : NonCopyable
 {
 private:
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
@@ -89,6 +89,26 @@ public:
     Texture() { }
     Texture(const String& filePath)
     { loadFromFile(filePath); }
+
+    Texture(Texture&& other) noexcept
+    {
+        glHandle = other.glHandle;
+        other.glHandle = 0;
+
+        width     = other.width;
+        height    = other.height;
+        boundSlot = other.boundSlot;
+    }
+
+    Texture& operator=(Texture&& other) noexcept
+    {
+        glHandle       = other.glHandle;
+        other.glHandle = 0;
+
+        width     = other.width;
+        height    = other.height;
+        boundSlot = other.boundSlot;
+    }
 
     ~Texture() { reset(); }
 
