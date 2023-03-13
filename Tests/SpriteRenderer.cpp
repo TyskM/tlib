@@ -9,8 +9,9 @@
 
 struct SpriteTest : GameTest
 {
-    Texture  tex;
-    Font     font;
+    Texture    tex;
+    SDFFont    sdffont;
+    BitmapFont bmfont;
 
     bool  rotationEnabled   = true;
     int   spriteCount       = 30;
@@ -19,9 +20,11 @@ struct SpriteTest : GameTest
     void create() override
     {
         GameTest::create();
+        window.setTitle("Advanced Sprite Test");
         tex.loadFromFile("assets/ship.png");
         tex.setFilter(TextureFiltering::Nearest);
-        font.loadFontSdf("assets/arial.ttf");
+        sdffont.loadFromFile("assets/roboto.ttf");
+        bmfont.loadFromFile("assets/roboto.ttf");
     }
 
     void mainLoop(float delta) override
@@ -29,13 +32,13 @@ struct SpriteTest : GameTest
         GameTest::mainLoop(delta);
         imgui.newFrame();
         
-        auto view = rend2d.getView();
+        auto view = Renderer2D::getView();
         debugCamera(view);
-        rend2d.setView(view);
+        Renderer2D::setView(view);
 
         Vector2f mwpos = view.localToWorldCoords(Input::mousePos);
 
-        rend2d.clearColor();
+        Renderer::clearColor();
 
         static float time = 0.f;
         time += delta;
@@ -55,25 +58,37 @@ struct SpriteTest : GameTest
                 };
                 const Rectf rect = { Vector2f(x, y) * offset, Vector2f(32,32) };
 
-                rend2d.drawTexture(tex, rect, 0, color, rot);
+                Renderer2D::drawTexture(tex, rect, 0, color, rot);
                 --count;
                 if (count == 0) break;
             }
             if (count == 0) break;
         }
 
-        rend2d.drawCircle(mwpos, 12.f);
-        rend2d.drawText("Hello world!", font, { 50, 50 });
+        Renderer2D::drawCircle(mwpos, 12.f);
+        Renderer2D::drawCircle(mwpos + Vector2f(20, 20), 12.f);
+        Renderer2D::drawRect({ mwpos, Vector2f(20, 20) });
+        Renderer2D::drawText("Hello world!", sdffont, { 50, 50 });
+        Renderer2D::drawText("Hello world!", bmfont,  { 50, 50 + float(sdffont.lineHeight()) });
 
-        rend2d.render();
-        renderer.render();
+        Renderer2D::render();
+
+        float tempWidth = Renderer2D::getSDFTextWidth();
+        float tempEdge  = Renderer2D::getSDFTextEdge();
 
         beginDiagWidgetExt();
         ImGui::Checkbox    ("Rotation enabled", &rotationEnabled);
         ImGui::SliderInt   ("Sprite count", &spriteCount, 1, 20000);
         ImGui::SliderFloat ("Sprite offset", &offset, 1.f, 128.f, "%.2f");
+
+        if (ImGui::SliderFloat("Text Width", &tempWidth, 0.0f, 1.f))
+        { Renderer2D::setSDFTextWidth(tempWidth); }
+
+        if (ImGui::SliderFloat("Text Edge", &tempEdge, 0.0f, 1.f))
+        { Renderer2D::setSDFTextEdge(tempEdge); }
+
         ImGui::End();
-        drawDiagWidget(&renderer, &fpslimit);
+        drawDiagWidget(&fpslimit);
 
         imgui.render();
 

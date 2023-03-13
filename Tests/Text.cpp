@@ -9,7 +9,7 @@
 
 struct TextTest : GameTest
 {
-    Font font;
+    SDFFont font;
 
     String text =
 R"(Lorem ipsum dolor sit amet, consectetur adipiscing elit.
@@ -27,7 +27,8 @@ Fusce sodales est scelerisque erat iaculis elementum.
     void create() override
     {
         GameTest::create();
-        font.loadFontSdf("assets/arial.ttf");
+        window.setTitle("Text Test");
+        font.loadFromFile("assets/arial.ttf");
     }
 
     void mainLoop(float delta) override
@@ -35,26 +36,23 @@ Fusce sodales est scelerisque erat iaculis elementum.
         GameTest::mainLoop(delta);
         imgui.newFrame();
 
-        auto view = rend2d.getView();
+        auto view = Renderer2D::getView();
         debugCamera(view);
-        rend2d.setView(view);
+        Renderer2D::setView(view);
 
         Vector2f mwpos = view.localToWorldCoords(Input::mousePos);
 
-        rend2d.clearColor();
+        Renderer::clearColor();
 
         static float time = 0.f;
         time += delta;
 
-        rend2d.drawCircle(mwpos, 12.f);
-        rend2d.drawText(text, font, { 50, 50 });
+        Renderer2D::drawCircle(mwpos, 12.f);
+        Renderer2D::drawText(text, font, { 50, 50 });
 
-        rend2d.render();
-        renderer.render();
+        Renderer2D::render();
 
-        beginDiagWidgetExt();
-        ImGui::End();
-        drawDiagWidget(&renderer, &fpslimit);
+        drawDiagWidget(&fpslimit);
 
         imgui.render();
 

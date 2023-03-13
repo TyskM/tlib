@@ -23,13 +23,13 @@ protected:
 
 public:
     inline void setPos(const Vector3f& posv) { this->pos = {posv.x, posv.y, posv.z}; }
-    [[nodiscard]] inline Vector3f getPos() const { return pos; }
+    [[nodiscard]] inline Vector3f getPos() const { return Vector3f(pos); }
 
     inline void setTarget(const Vector3f& targetv) { target = { targetv.x, targetv.y, targetv.z }; }
-    [[nodiscard]] inline Vector3f getTarget() const { return target; }
+    [[nodiscard]] inline Vector3f getTarget() const { return Vector3f(target); }
 
     inline void setUp(const Vector3f& upv) { up = { upv.x, upv.y, upv.z }; }
-    [[nodiscard]] inline Vector3f getUp() const { return up; }
+    [[nodiscard]] inline Vector3f getUp() const { return Vector3f(up); }
 
     [[nodiscard]]
     glm::mat4 getViewMatrix() const
@@ -78,9 +78,10 @@ struct TriangleTest3D : GameTest
     void create() override
     {
         GameTest::create();
+        window.setTitle("Funky Triangle 3D");
         glDisable(GL_CULL_FACE);
-        mesh.setData(triVerts, AccessType::Dynamic);
         mesh.setLayout({ Layout::Vec3f(), Layout::Vec4f() });
+        mesh.setData(triVerts, AccessType::Dynamic);
         shader.create(vert_flat3d, frag_flat);
     }
 
@@ -88,7 +89,7 @@ struct TriangleTest3D : GameTest
     {
         GameTest::mainLoop(delta);
 
-        renderer.clearColor();
+        Renderer::clearColor();
         makeTriangleFunky();
 
         const float radius = 1.0f;
@@ -101,8 +102,9 @@ struct TriangleTest3D : GameTest
         auto proj = camera.getPerspectiveMatrix();
         shader.setMat4f("projection", proj * view);
 
-        renderer.draw(shader, mesh);
+        Renderer::draw(shader, mesh);
         window.swap();
+        fpslimit.wait();
     }
 
     void makeTriangleFunky()

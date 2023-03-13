@@ -27,11 +27,12 @@ struct TLibTest
     void run()
     {
         WindowCreateParams p;
-        p.size ={ 1280, 720 };
+        p.title = "Simple Sprite Test";
+        p.size  = { 1280, 720 };
         win.create(p);
 
-        rend.create();
-        rend2d.create(rend);
+        Renderer::create();
+        Renderer2D::create();
 
         tex.loadFromFile("assets/ship.png");
 

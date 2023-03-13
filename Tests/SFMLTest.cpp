@@ -19,7 +19,7 @@ struct SFMLTest
 
     void run()
     {
-        win.create(sf::VideoMode(1280, 720), "Window");
+        win.create(sf::VideoMode(1280, 720), "SFML Test");
         tex.loadFromFile("assets/ship.png");
         sprite.setTexture(tex);
 

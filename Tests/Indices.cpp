@@ -30,9 +30,10 @@ struct IndicesTest : GameTest
     void create() override
     {
         GameTest::create();
+        window.setTitle("Indices");
+        mesh.setLayout({ Layout::Vec2f(), Layout::Vec4f() });
         mesh.setData(vertices);
         mesh.setIndices(indices);
-        mesh.setLayout({ Layout::Vec2f(), Layout::Vec4f() });
         shader.create(vert_flat, frag_flat);
         Camera2D view;
         view.setBounds({ 0, 0, 1, 1 });
@@ -43,9 +44,10 @@ struct IndicesTest : GameTest
     {
         GameTest::mainLoop(delta);
 
-        renderer.clearColor();
-        renderer.draw(shader, mesh);
+        Renderer::clearColor();
+        Renderer::draw(shader, mesh);
         window.swap();
+        fpslimit.wait();
     }
 };
 

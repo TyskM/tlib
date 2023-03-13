@@ -25,8 +25,9 @@ struct TriangleTest : GameTest
     void create() override
     {
         GameTest::create();
-        mesh.setData(triVerts, AccessType::Dynamic);
+        window.setTitle("Funky Triangle");
         mesh.setLayout({ Layout::Vec2f(), Layout::Vec4f() });
+        mesh.setData(triVerts, AccessType::Dynamic);
         shader.create(vert_flat, frag_flat);
         Camera2D view;
         view.setBounds({ 0, 0, 1, 1 });
@@ -39,19 +40,25 @@ struct TriangleTest : GameTest
     {
         GameTest::mainLoop(delta);
 
-        if (Input::isKeyJustPressed(SDL_SCANCODE_W))
-        { pos.y += 10.f * 1/60.f; }
-        if (Input::isKeyJustPressed(SDL_SCANCODE_S))
-        { pos.y -= 10.f * 1/60.f; }
+        const float ms = 2.f;
+        if (Input::isKeyPressed(SDL_SCANCODE_W))
+        { pos.y += ms * delta; }
+        if (Input::isKeyPressed(SDL_SCANCODE_S))
+        { pos.y -= ms * delta; }
+        if (Input::isKeyPressed(SDL_SCANCODE_A))
+        { pos.x += ms * delta; }
+        if (Input::isKeyPressed(SDL_SCANCODE_D))
+        { pos.x -= ms * delta; }
 
         Camera2D view;
         view.setBounds({ pos.x, pos.y, 1, 1 });
         shader.setMat4f("projection", view.getMatrix());
 
-        renderer.clearColor();
+        Renderer::clearColor();
         makeTriangleFunky();
-        renderer.draw(shader, mesh);
+        Renderer::draw(shader, mesh);
         window.swap();
+        fpslimit.wait();
     }
 
     void makeTriangleFunky()

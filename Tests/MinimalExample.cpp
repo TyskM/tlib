@@ -17,9 +17,11 @@ int main()
     FPSLimit   fpslimit;
     Timer      deltaTimer;
 
-    window      .create();
-    renderer    .create();
-    rend2d      .create(renderer);
+    window.create();
+    window.setTitle("Minimal Example");
+    Renderer::create();
+    Renderer2D::create();
+
     imgui       .create(window);
     deltaTimer  .restart();
     fpslimit    .setFPSLimit(144);
@@ -46,9 +48,11 @@ int main()
         }
         auto& io = ImGui::GetIO();
         if (!(io.WantCaptureKeyboard)) { Input::updateKeyboard(); }
-        if (!(io.WantCaptureMouse)) { Input::updateMouse(); }
+        if (!(io.WantCaptureMouse))    { Input::updateMouse(); }
 
         // Update/Draw Here
+
+        fpslimit.wait();
     }
 
     return 0;

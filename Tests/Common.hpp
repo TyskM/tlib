@@ -57,11 +57,9 @@ const char* vert_flat3d = R"""(
 
 struct GameTest
 {
-    Window     window;
-    Renderer   renderer;
-    Renderer2D rend2d;
-    MyGui      imgui;
-    FPSLimit   fpslimit;
+    Window   window;
+    MyGui    imgui;
+    FPSLimit fpslimit;
     //const float runDuration = 6.f;
     Timer timer{true};
     Timer deltaTimer;
@@ -70,8 +68,8 @@ struct GameTest
     virtual void create()
     {
         window.create();
-        renderer.create();
-        rend2d.create(renderer);
+        Renderer::create();
+        Renderer2D::create();
         imgui.create(window);
         timer.setPaused(false);
         deltaTimer.restart();
@@ -90,9 +88,9 @@ struct GameTest
 
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
-                auto view = rend2d.getView();
+                auto view = Renderer2D::getView();
                 view.setBoundsSize(Vector2f(e.window.data1, e.window.data2));
-                rend2d.setView(view);
+                Renderer2D::setView(view);
             }
 
             if (e.type == SDL_QUIT) { running = false; }
