@@ -34,8 +34,9 @@ struct Input
         ActionControl(ActionType type, int id, SDL_Keymod modifier = KMOD_NONE)
             : type{ type }, id{ id }, modifier{ modifier } { }
 
-        bool strictModChecking = true;
-        int modifier = KMOD_NONE; // See SDL_Keymod
+        // TODO: fix this
+        bool strictModChecking = false;
+        int  modifier = KMOD_NONE; // See SDL_Keymod
         ActionType type;
         int id;
     };
