@@ -25,6 +25,28 @@
 #include <TLib/Macros.hpp>
 #include <TLib/String.hpp>
 
+#ifdef TLIB_DEBUG
+#define ASSERTMSGBOX(expr, title, msg)                                                                                      \
+if( !(expr) )                                                                                                               \
+{                                                                                                                           \
+    std::cerr << "Assertion failed in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ << std::endl; \
+    std::cerr << "Message: " << msg << std::endl;                                                                           \
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title, msg, NULL);                                                       \
+    abort();                                                                                                                \
+}
+#else
+#define ASSERTMSGBOX(expr, title, msg) ((void)0);
+#endif
+
+#define RELASSERTMSGBOX(expr, title, msg)                                                                                   \
+if( !(expr) )                                                                                                               \
+{                                                                                                                           \
+    std::cerr << "Assertion failed in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ << std::endl; \
+    std::cerr << "Message: " << msg << std::endl;                                                                           \
+    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title, msg, NULL);                                                       \
+    abort();                                                                                                                \
+}
+
 using InputEvent = SDL_Event;
 
 enum class WindowFlags : int
@@ -119,7 +141,6 @@ struct Window : NonAssignable
 
     void swap() { SDL_GL_SwapWindow(window); }
 
-    [[maybe_unused]]
     void makeCurrent()
     {
         ASSERT(created());
@@ -132,26 +153,23 @@ struct Window : NonAssignable
         SDL_GL_MakeCurrent(window, glContext);
     }
 
-    bool created() { return window != nullptr; }
+    [[nodiscard]] bool created()
+    { return window != nullptr; }
 
-    [[nodiscard]] [[maybe_unused]]
-    inline String getTitle() const
+    [[nodiscard]] String getTitle() const
     { return SDL_GetWindowTitle(window); }
 
-    [[nodiscard]] [[maybe_unused]]
-    inline SDL_Surface* getSurface() const noexcept
+    [[nodiscard]] SDL_Surface* getSurface() const noexcept
     { return SDL_GetWindowSurface(window); }
 
-    [[nodiscard]] [[maybe_unused]]
-    Vector2i getSize() const noexcept
+    [[nodiscard]] Vector2i getSize() const noexcept
     {
         Vector2i s;
         SDL_GetWindowSize(window, &s.x, &s.y);
         return s;
     }
 
-    [[nodiscard]] [[maybe_unused]]
-    void* getNativeHandle()
+    [[nodiscard]] void* getNativeHandle()
     {
         #ifdef OS_WINDOWS
         return wm.info.win.window;
@@ -162,8 +180,7 @@ struct Window : NonAssignable
         #endif
     }
 
-    [[nodiscard]] [[maybe_unused]]
-    void* getDisplayType()
+    [[nodiscard]] void* getDisplayType()
     {
         #ifdef OS_WINDOWS 
         return NULL;
@@ -174,26 +191,38 @@ struct Window : NonAssignable
         #endif
     }
 
-    [[nodiscard]] [[maybe_unused]]
-    Vector2i getFramebufferSize() const noexcept
+    [[nodiscard]] Vector2i getFramebufferSize() const noexcept
     {
         int fbw, fbh;
         SDL_GL_GetDrawableSize(window, &fbw, &fbh);
         return { fbw, fbh };
     }
 
-    [[nodiscard]] [[maybe_unused]]
-    inline SDL_GLContext getGLContext() const
+    [[nodiscard]] SDL_GLContext getGLContext() const
     { return glContext; }
 
-    [[nodiscard]] [[maybe_unused]]
-    WindowFlags getFlags()
+    [[nodiscard]] bool hasInputFocus() const
+    { return hasFlag(WindowFlags::InputFocus); }
+
+    [[nodiscard]] bool hasMouseFocus() const
+    { return hasFlag(WindowFlags::MouseFocus); }
+
+    [[nodiscard]] bool isMinimized() const
+    { return hasFlag(WindowFlags::Minimized); }
+
+    [[nodiscard]] bool hasFlag(const WindowFlags flag) const
+    { return flag & static_cast<WindowFlags>(SDL_GetWindowFlags(window)); }
+
+    [[nodiscard]] WindowFlags getFlags()
     { return static_cast<WindowFlags>(SDL_GetWindowFlags(window)); }
 
-    inline void setTitle(const String& title)
+    void setTitle(const char* title)
+    { SDL_SetWindowTitle(window, title); }
+
+    void setTitle(const String& title)
     { SDL_SetWindowTitle(window, title.c_str()); }
 
-    String getTitle()
+    [[nodiscard]] String getTitle()
     { return SDL_GetWindowTitle(window); }
 
     operator SDL_Window*() { return  window; }
