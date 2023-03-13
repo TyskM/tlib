@@ -14,14 +14,6 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <span>
 
-using namespace eastl;
-
-namespace rend2Ddetail
-{
-    struct RendererCallback
-    { static int SDLEventFilterCB(void* userdata, SDL_Event* event); };
-}
-
 enum class RendererType
 {
     Sprite    = 1 << 0,
@@ -34,12 +26,16 @@ struct Renderer2D
 #pragma region Public
 public:
 
-    bool created()                  { return this->renderer != nullptr; }
-    void create(Renderer& renderer) { this->renderer = &renderer; init(); }
-    void shutdown()                 { }
-    void render()                   { flush(); }
+    static constexpr Vector2f OriginCenter          = { FLT_MAX, FLT_MAX };
+    static constexpr int      DefaultSpriteLayer    = 0;
+    static constexpr int      DefaultPrimitiveLayer = 1;
+    static constexpr int      DefaultTextLayer      = 2;
 
-    void setView(const Camera2D& camera)
+    static bool created() { return inited; }
+    static void create()  { init();        }
+    static void render()  { flush();       }
+
+    static void setView(const Camera2D& camera)
     {
         auto bounds = camera.getBounds();
         auto mat    = camera.getMatrix();
@@ -55,52 +51,52 @@ public:
     }
 
     [[nodiscard]]
-    inline Camera2D getView()
+    static inline Camera2D getView()
     { return view; }
 
-    void clearColor(const ColorRGBAf& color = { 0.1f, 0.1f, 0.1f, 1.f })
-    { renderer->clearColor(color); }
+    static void clearColor(const ColorRGBAf& color = { 0.1f, 0.1f, 0.1f, 1.f })
+    { Renderer::clearColor(color); }
 
-    void drawTexture(      Texture&            tex,
-                     const Rectf&              dstrect,
-                     const int                 layer    = defaultSpriteLayer,
-                     const ColorRGBAf&         color    = { 1, 1, 1, 1 },
-                     const float               rotation = 0.f,
-                     const Vector2f            origin   = originCenter)
+    static void drawTexture(      Texture&            tex,
+                            const Rectf&              dstrect,
+                            const int                 layer    = DefaultSpriteLayer,
+                            const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
+                            const float               rotation = 0.f,
+                            const Vector2f            origin   = OriginCenter)
     {
         sprite_batch(tex, Rectf(Vector2f{ 0.f,0.f },
                                 Vector2f(tex.getSize())), dstrect, layer, color, rotation, origin);
     }
 
-    void drawTexture(      Texture&            tex,
-                     const Rectf&              srcrect,
-                     const Rectf&              dstrect,
-                     const int                 layer    = defaultSpriteLayer,
-                     const ColorRGBAf&         color    = { 1, 1, 1, 1 },
-                     const float               rotation = 0.f,
-                     const Vector2f            origin   = originCenter)
+    static void drawTexture(      Texture&            tex,
+                            const Rectf&              srcrect,
+                            const Rectf&              dstrect,
+                            const int                 layer    = DefaultSpriteLayer,
+                            const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
+                            const float               rotation = 0.f,
+                            const Vector2f            origin   = OriginCenter)
     {
         sprite_batch(tex, srcrect, dstrect, layer, color, rotation, origin);
     }
 
-    void drawLine(const Vector2f&   start,
-                  const Vector2f&   end,
-                  const int         layer = defaultPrimitiveLayer,
-                  const ColorRGBAf& color = ColorRGBAf::white(),
-                  const float       width = 1)
+    static void drawLine(const Vector2f&   start,
+                         const Vector2f&   end,
+                         const int         layer = DefaultPrimitiveLayer,
+                         const ColorRGBAf& color = ColorRGBAf::white(),
+                         const float       width = 1)
     {
         Vector2f line[2] = { start, end };
         prim_batch(line, layer, color, width);
     }
 
-    void drawRect(float             x,
-                  float             y,
-                  float             w,
-                  float             h,
-                  const int         layer  = defaultPrimitiveLayer,
-                  const ColorRGBAf& color  = ColorRGBAf::white(),
-                  bool              filled = false,
-                  float             rot    = 0.f)
+    static void drawRect(float             x,
+                         float             y,
+                         float             w,
+                         float             h,
+                         const int         layer  = DefaultPrimitiveLayer,
+                         const ColorRGBAf& color  = ColorRGBAf::white(),
+                         bool              filled = false,
+                         float             rot    = 0.f)
     {
         Vector2f verts[4] = {
             Vector2f(x, y),
@@ -122,20 +118,20 @@ public:
         prim_batch(verts, layer, color, 1, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop);
     }
 
-    void drawRect(const Rectf&      rect,
-                  const int         layer  = defaultPrimitiveLayer,
-                  const ColorRGBAf& color  = ColorRGBAf::white(),
-                  bool              filled = false,
-                  float             rot    = 0.f)
+    static void drawRect(const Rectf&      rect,
+                         const int         layer  = DefaultPrimitiveLayer,
+                         const ColorRGBAf& color  = ColorRGBAf::white(),
+                         bool              filled = false,
+                         float             rot    = 0.f)
     {
         drawRect(rect.x, rect.y, rect.width, rect.height, layer, color, filled, rot);
     }
 
-    void drawGrid(const Vector2f&   start,
-                  const Vector2i&   gridCount,
-                  Vector2f          gridSize,
-                  const int         layer     = defaultPrimitiveLayer,
-                  const ColorRGBAf& color     = ColorRGBAf::white())
+    static void drawGrid(const Vector2f&   start,
+                         const Vector2i&   gridCount,
+                         Vector2f          gridSize,
+                         const int         layer     = DefaultPrimitiveLayer,
+                         const ColorRGBAf& color     = ColorRGBAf::white())
     {
         const float targetX = gridCount.x * gridSize.x + start.x;
         const float targetY = gridCount.y * gridSize.y + start.y;
@@ -162,12 +158,12 @@ public:
     }
 
     // TODO: Remove heap alloc
-    void drawCircle(const Vector2f&   pos,
-                    const float       rad,
-                    const int         layer        = defaultPrimitiveLayer,
-                    const ColorRGBAf& color        = ColorRGBAf::white(),
-                    const bool        filled       = false,
-                    const int         segmentCount = 16)
+    static void drawCircle(const Vector2f&   pos,
+                           const float       rad,
+                           const int         layer        = DefaultPrimitiveLayer,
+                           const ColorRGBAf& color        = ColorRGBAf::white(),
+                           const bool        filled       = false,
+                           const int         segmentCount = 16)
     {
         const float theta = 3.1415926f * 2.f / static_cast<float>(segmentCount);
         const float tangetial_factor = tanf(theta);
@@ -194,15 +190,33 @@ public:
         prim_batch(points, layer, color, 1.f, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop);
     }
 
-    void drawText(const String&     text,
-                  Font&             font,
-                  const Vector2f&   pos,
-                  const int         layer = defaultTextLayer,
-                  const ColorRGBAf& color = ColorRGBAf::white(),
-                  const float       scale = 1.f)
+    static void drawText(const String&     text,
+                         FontBase&         font,
+                         const Vector2f&   pos,
+                         const int         layer = DefaultTextLayer,
+                         const ColorRGBAf& color = ColorRGBAf::white(),
+                         const float       scale = 1.f)
     {
         text_batch(text, font, pos, layer, color, scale);
     }
+
+    static inline void setSDFTextWidth(const float width)
+    {
+        sdfTextWidth = width;
+        textShader.setFloat("width", width);
+    }
+
+    static inline void setSDFTextEdge(const float edge)
+    {
+        sdfTextEdge = edge;
+        textShader.setFloat("edge", edge);
+    }
+
+    static inline float getSDFTextWidth()
+    { return sdfTextWidth; }
+
+    static inline float getSDFTextEdge()
+    { return sdfTextEdge; }
 
 #pragma endregion
 
@@ -210,7 +224,7 @@ public:
 private:
 
     #pragma region Shaders
-    const char* shaderVertSrc = R"""(
+    static inline const char* shaderVertSrc = R"""(
     #version 330 core
     layout (location = 0) in vec4 vertex;
     layout (location = 1) in vec4 color;
@@ -228,7 +242,7 @@ private:
     }
     )""";
 
-    const char* shaderFragSrc = R"""(
+    static inline const char* shaderFragSrc = R"""(
     #version 330 core
     in vec2 fragTexCoords;
     in vec4 fragColor;
@@ -242,7 +256,7 @@ private:
     }
     )""";
 
-    const char* textFragSrc = R"(
+    static inline const char* textFragSrc = R"(
     #version 330 core
     in vec2 fragTexCoords;
     in vec4 fragColor;
@@ -308,37 +322,43 @@ private:
                              { { {255, 255, 255, 255} } };
 
     static constexpr GLuint   restartIndex = std::numeric_limits<GLuint>::max();
-    static constexpr Vector2f originCenter          = { FLT_MAX, FLT_MAX };
-    static constexpr int      defaultSpriteLayer    = 0;
-    static constexpr int      defaultPrimitiveLayer = 1;
-    static constexpr int      defaultTextLayer      = 2;
 
-    static inline Mesh   mesh;
-    static inline Shader defaultShader;
-    static inline Shader textShader;
-    Camera2D view;
+    static inline Mesh     mesh;
+    static inline Shader   defaultShader;
+    static inline Shader   textShader;
+    static inline Camera2D view;
+    static inline bool     inited = false;
 
-    Renderer* renderer = nullptr;
+    static inline float sdfTextWidth;
+    static inline float sdfTextEdge;
 
     // TODO: actually use the frustum
     // need to calculate AABB of the sprites rect to check collision
     // checking for primitives isn't necessary
-    Frustum frustum;
+    static inline Frustum frustum;
 
     // Draw data goes here, then is sorted
-    Vector<DrawCmd> drawCmds;
+    static inline Vector<DrawCmd> drawCmds;
 
     // Draw data vertex data in these two
     // These aren't stored in the DrawCmd struct so the alloced space can be reused
-    Vector<glm::vec4> posAndCoords;
-    IndiceCont        indices;
+    static inline Vector<glm::vec4> posAndCoords;
+    static inline IndiceCont        indices;
 
     // These buffers are copied to the GPU
-    Vector<PrimVert> batchBuffer;
-    IndiceCont       batchBufferIndices;
+    static inline Vector<PrimVert> batchBuffer;
+    static inline IndiceCont       batchBufferIndices;
 
-    void init()
+    static int SDLEventFilterCB(void* userdata, SDL_Event* event)
     {
+        if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+        { Renderer2D::onWindowResized(); }
+        return 0;
+    }
+
+    static void init()
+    {
+        if (inited) { return; }
         if (!mesh.valid())
         { mesh.setLayout({ Layout::Vec4f(), Layout::Vec4f() }); }
 
@@ -351,12 +371,15 @@ private:
         if (!textShader.created())
         { textShader.create(shaderVertSrc, textFragSrc); }
 
+        setSDFTextEdge(0.04f);
+        setSDFTextWidth(0.48f);
+
         Camera2D startCam;
         auto size = Renderer::getFramebufferSize();
         startCam.setBounds(Rectf(0, 0, size.x, size.y));
         setView(startCam);
 
-        SDL_AddEventWatch(&rend2Ddetail::RendererCallback::SDLEventFilterCB, this);
+        SDL_AddEventWatch(&SDLEventFilterCB, NULL);
 
         size_t reserveSize = 1024 * 5;
         drawCmds            .reserve(reserveSize);
@@ -364,9 +387,10 @@ private:
         indices             .reserve(reserveSize);
         batchBuffer         .reserve(reserveSize);
         batchBufferIndices  .reserve(reserveSize);
+        inited = true;
     }
 
-    void flushCurrent(Shader* shader, Texture* tex, GLDrawMode drawMode)
+    static void flushCurrent(Shader* shader, Texture* tex, GLDrawMode drawMode)
     {
         if (batchBuffer.empty()) { return; }
 
@@ -384,7 +408,7 @@ private:
         batchBufferIndices.clear();
     }
 
-    void flush()
+    static void flush()
     {
         if (drawCmds.empty()) { return; }
 
@@ -427,7 +451,7 @@ private:
         indices.clear();
     }
 
-    void rotate(float& x, float& y, float radians)
+    static void rotate(float& x, float& y, float radians)
     {
         float sinv = sin(radians);
         float cosv = cos(radians);
@@ -437,16 +461,16 @@ private:
         y = xcopy * sinv + ycopy * cosv;
     }
 
-    DrawCmd& sprite_batch(      Texture&    texture,
-                          const Rectf&      srcrect,
-                          const Rectf&      dstrect,
-                          const int         layer    = 0,
-                          const ColorRGBAf& color    = { 1, 1, 1, 1 },
-                          const float       rotation = 0.f,
-                          Vector2f          origin   = originCenter,
-                          const bool        flipuvx  = false,
-                          const bool        flipuvy  = false,
-                          Shader&           shader   = defaultShader)
+    static DrawCmd& sprite_batch(      Texture&    texture,
+                                 const Rectf&      srcrect,
+                                 const Rectf&      dstrect,
+                                 const int         layer    = 0,
+                                 const ColorRGBAf& color    = { 1.f, 1.f, 1.f, 1.f },
+                                 const float       rotation = 0.f,
+                                 Vector2f          origin   = OriginCenter,
+                                 const bool        flipuvx  = false,
+                                 const bool        flipuvy  = false,
+                                 Shader&           shader   = defaultShader)
     {
         drawCmds.emplace_back();
         DrawCmd& cmd = drawCmds.back();
@@ -512,11 +536,11 @@ private:
     }
 
 
-    void prim_batch(const std::span<Vector2f>&  points,
-                    const int                   layer = defaultPrimitiveLayer,
-                    const ColorRGBAf&           color = ColorRGBAf::white(),
-                    const float                 width = 1,
-                    const GLDrawMode            mode  = GLDrawMode::LineStrip)
+    static void prim_batch(const std::span<Vector2f>&  points,
+                           const int                   layer = DefaultPrimitiveLayer,
+                           const ColorRGBAf&           color = ColorRGBAf::white(),
+                           const float                 width = 1,
+                           const GLDrawMode            mode  = GLDrawMode::LineStrip)
     {
         ASSERT(points.size() > 0);
 
@@ -541,19 +565,19 @@ private:
         }
     }
 
-    void text_batch(const String&     text,
-                          Font&       font,
-                    const Vector2f&   pos,
-                    const int         layer = defaultTextLayer,
-                    const ColorRGBAf& color = ColorRGBAf::white(),
-                    const float       scale = 1.f)
+    static void text_batch(const String&     text,
+                                 FontBase&   font,
+                           const Vector2f&   pos,
+                           const int         layer = DefaultTextLayer,
+                           const ColorRGBAf& color = ColorRGBAf::white(),
+                           const float       scale = 1.f)
     {
         Vector2f currentPos = pos;
         for (auto& strchar : text)
         {
             if (strchar == '\n')
             {
-                currentPos.y += font.lineHeight();
+                currentPos.y += font.newLineHeight();
                 currentPos.x = pos.x;
                 continue;
             }
@@ -563,10 +587,10 @@ private:
             { std::cout << "Font does not contain character \"" << strchar << "\"" << std::endl; continue; }
 
             FontCharacter& ch = font.getChar(strchar);
+            float xpos = currentPos.x + ch.bearing.x * scale;
+            float ypos = currentPos.y + (font.getChar('H').bearing.y - ch.bearing.y) * scale;
             float w    = ch.size.x * scale;
             float h    = ch.size.y * scale;
-            float xpos = (currentPos.x + ch.bearing.x);
-            float ypos = (currentPos.y - h + (h - ch.bearing.y * scale));
             currentPos.x += (ch.advance >> 6) * scale;
 
             sprite_batch(ch.texture,
@@ -575,14 +599,14 @@ private:
                          layer,
                          color,
                          0.0f,
-                         originCenter,
+                         OriginCenter,
                          false,
                          false,
                          textShader);
         }
     }
 
-    void onWindowResized()
+    static void onWindowResized()
     {
         GLint viewport[4];
         glGetIntegerv(GL_VIEWPORT, viewport);
@@ -590,17 +614,4 @@ private:
         // glViewport origin is bottom left, so i make it top left :))
         glViewport(0, fbSize.y - viewport[3], viewport[2], viewport[3]);
     }
-
-    friend class rend2Ddetail::RendererCallback;
 };
-
-namespace rend2Ddetail
-{
-    int RendererCallback::SDLEventFilterCB(void* userdata, SDL_Event* event)
-    {
-        Renderer2D* r = static_cast<Renderer2D*>(userdata);
-        if (event->type == SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
-        { r->onWindowResized(); }
-        return 1;
-    }
-}

@@ -113,26 +113,28 @@ struct Vector2
     Vector2<T> sqrt()       const { return Vector2<T>( static_cast<T>(std::sqrt(x)),        static_cast<T>(std::sqrt(y))       ); }
     Vector2<T> pow(T value) const { return Vector2<T>( static_cast<T>(std::pow(x, value)),  static_cast<T>(std::pow(y, value)) ); }
 
-    operator std::string() const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
-    bool operator==(const Vector2<T>& other) const { return x == other.x && y == other.y; }
-    bool operator!=(const Vector2<T>& other) const { return !(operator==(other)); }
-    Vector2<T> operator-() const { return Vector2<T>(-x, -y); }
-    Vector2<T> operator+(const Vector2<T>& other) const { return Vector2<T>(x + other.x, y + other.y); }
-    Vector2<T> operator-(const Vector2<T>& other) const { return Vector2<T>(x - other.x, y - other.y); }
-    Vector2<T> operator*(const Vector2<T>& other) const { return Vector2<T>(x * other.x, y * other.y); }
-    Vector2<T> operator/(const Vector2<T>& other) const { return Vector2<T>(x / other.x, y / other.y); }
-    Vector2<T> operator*(const int& num) const { return Vector2<T>(x * num, y * num); }
-    Vector2<T> operator/(const int& num) const { return Vector2<T>(x / num, y / num); }
-    Vector2<T> operator*(const float& num) const { return Vector2<T>(x * num, y * num); }
-    Vector2<T> operator/(const float& num) const { return Vector2<T>(x / num, y / num); }
-    Vector2<T> operator+=(const Vector2<T>& other) { return Vector2<T>(x += other.x, y += other.y); }
-    Vector2<T> operator-=(const Vector2<T>& other) { return Vector2<T>(x -= other.x, y -= other.y); }
-    Vector2<T> operator*=(const Vector2<T>& other) { return Vector2<T>(x *= other.x, y *= other.y); }
-    Vector2<T> operator/=(const Vector2<T>& other) { return Vector2<T>(x /= other.x, y /= other.y); }
-    Vector2<T> operator*=(const int& num) { return Vector2<T>(x *= num, y *= num); }
-    Vector2<T> operator/=(const int& num) { return Vector2<T>(x /= num, y /= num); }
-    Vector2<T> operator*=(const float& num) { return Vector2<T>(x *= num, y *= num); }
-    Vector2<T> operator/=(const float& num) { return Vector2<T>(x /= num, y /= num); }
+    operator   String()                             const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
+    bool       operator==(const Vector2<T>& other)  const { return x == other.x && y == other.y; }
+    bool       operator!=(const Vector2<T>& other)  const { return !(operator==(other)); }
+    Vector2<T> operator-()                          const { return Vector2<T>(-x, -y); }
+    Vector2<T> operator+(const Vector2<T>& other)   const { return Vector2<T>(x + other.x, y + other.y); }
+    Vector2<T> operator-(const Vector2<T>& other)   const { return Vector2<T>(x - other.x, y - other.y); }
+    Vector2<T> operator*(const Vector2<T>& other)   const { return Vector2<T>(x * other.x, y * other.y); }
+    Vector2<T> operator/(const Vector2<T>& other)   const { return Vector2<T>(x / other.x, y / other.y); }
+    Vector2<T> operator*(const int& num)            const { return Vector2<T>(x * num, y * num); }
+    Vector2<T> operator/(const int& num)            const { return Vector2<T>(x / num, y / num); }
+    Vector2<T> operator+(const float& num)          const { return Vector2<T>(x + num, y + num); }
+    Vector2<T> operator-(const float& num)          const { return Vector2<T>(x - num, y - num); }
+    Vector2<T> operator*(const float& num)          const { return Vector2<T>(x * num, y * num); }
+    Vector2<T> operator/(const float& num)          const { return Vector2<T>(x / num, y / num); }
+    Vector2<T> operator+=(const Vector2<T>& other)        { return Vector2<T>(x += other.x, y += other.y); }
+    Vector2<T> operator-=(const Vector2<T>& other)        { return Vector2<T>(x -= other.x, y -= other.y); }
+    Vector2<T> operator*=(const Vector2<T>& other)        { return Vector2<T>(x *= other.x, y *= other.y); }
+    Vector2<T> operator/=(const Vector2<T>& other)        { return Vector2<T>(x /= other.x, y /= other.y); }
+    Vector2<T> operator*=(const int& num)                 { return Vector2<T>(x *= num, y *= num); }
+    Vector2<T> operator/=(const int& num)                 { return Vector2<T>(x /= num, y /= num); }
+    Vector2<T> operator*=(const float& num)               { return Vector2<T>(x *= num, y *= num); }
+    Vector2<T> operator/=(const float& num)               { return Vector2<T>(x /= num, y /= num); }
 
 };
 using Vector2f  = Vector2<float>;
@@ -227,8 +229,12 @@ struct Vector4
 struct ColorRGBAf
 {
     constexpr ColorRGBAf() = default;
+
     constexpr ColorRGBAf(float rv, float gv, float bv, float av = 1.f) :
         r{ rv }, g{ gv }, b{ bv }, a{ av } { }
+
+    explicit constexpr ColorRGBAf(int rv, int gv, int bv, int av = 255) :
+        r{ uint8ToFloat(rv) }, g{ uint8ToFloat(gv) }, b{ uint8ToFloat(bv) }, a{ uint8ToFloat(av) } { }
 
     float r = 0;
     float g = 0;
@@ -238,14 +244,22 @@ struct ColorRGBAf
     bool operator==(const ColorRGBAf& other) { return r == other.r && g == other.g && b == other.b && a == other.a; }
     bool operator!=(const ColorRGBAf& other) { return !(operator==(other)); }
 
-    static constexpr inline ColorRGBAf red()    { return ColorRGBAf{ 1.f, 0.f, 0.f }; }
-    static constexpr inline ColorRGBAf green()  { return ColorRGBAf{ 0.f, 1.f, 0.f }; }
-    static constexpr inline ColorRGBAf blue()   { return ColorRGBAf{ 0.f, 0.f, 1.f }; }
-    static constexpr inline ColorRGBAf white()  { return ColorRGBAf{ 1.f, 1.f, 1.f }; }
-    static constexpr inline ColorRGBAf black()  { return ColorRGBAf{ 0.f, 0.f, 0.f }; }
-    static constexpr inline ColorRGBAf purple() { return ColorRGBAf{ uint8ToFloat(127), 0.f, 1.f }; }
-    static constexpr inline ColorRGBAf yellow() { return ColorRGBAf{ 1.f, 1.f, 0.f }; }
-    static constexpr inline ColorRGBAf orange() { return ColorRGBAf{ 1.f, uint8ToFloat(128), 0.f }; }
+    static constexpr inline ColorRGBAf red()         { return ColorRGBAf{ 255, 0,   0    }; }
+    static constexpr inline ColorRGBAf green()       { return ColorRGBAf{ 0,   255, 0    }; }
+    static constexpr inline ColorRGBAf blue()        { return ColorRGBAf{ 0,   0,   255  }; }
+    static constexpr inline ColorRGBAf white()       { return ColorRGBAf{ 255, 255, 255  }; }
+    static constexpr inline ColorRGBAf black()       { return ColorRGBAf{ 0,   0,   0    }; }
+    static constexpr inline ColorRGBAf purple()      { return ColorRGBAf{ 127, 0,   255  }; }
+    static constexpr inline ColorRGBAf yellow()      { return ColorRGBAf{ 255, 255, 0    }; }
+    static constexpr inline ColorRGBAf orange()      { return ColorRGBAf{ 255, 128, 0    }; }
+    static constexpr inline ColorRGBAf magenta()     { return ColorRGBAf{ 255, 0,   255  }; }
+    static constexpr inline ColorRGBAf darkMagenta() { return ColorRGBAf{ 139, 0,   139  }; }
+    static constexpr inline ColorRGBAf lime()        { return ColorRGBAf{ 0,   255, 0    }; }
+    static constexpr inline ColorRGBAf cyan()        { return ColorRGBAf{ 0,   255, 255  }; }
+    static constexpr inline ColorRGBAf steelBlue()   { return ColorRGBAf{ 70,  130, 180  }; }
+    static constexpr inline ColorRGBAf royalBlue()   { return ColorRGBAf{ 65,  105, 225  }; }
+    static constexpr inline ColorRGBAf gold()        { return ColorRGBAf{ 255, 215, 0    }; }
+    
 };
 
 // Represents a RGBA color with values 0-255

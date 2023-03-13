@@ -41,6 +41,8 @@ public:
 
     static void create()
     {
+        if (created()) { return; }
+
         rendlog->info("Creating renderer...");
 
         setVSync(VSyncMode::Disabled);
@@ -76,8 +78,6 @@ public:
         glClearColor(color.r, color.g, color.b, color.a);
         glClear(GL_COLOR_BUFFER_BIT);
     }
-
-    static void render() { }
 
     static void draw(Shader& shader, Mesh& mesh, const RenderState& state = RenderState())
     {

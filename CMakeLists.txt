@@ -4,6 +4,7 @@ project(TLib VERSION 0.1.0)
 include(CTest)
 enable_testing()
 add_subdirectory("Tests")
+add_subdirectory("Demos")
 
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h)
 
