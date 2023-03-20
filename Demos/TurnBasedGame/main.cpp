@@ -206,15 +206,7 @@ struct Game
             // IF MOUSE MOVED TOO NEW GRID
             if (worldGridPos != lastWorldGridPos)
             {
-                tlog::info(worldGridPos.toString());
-
                 hoveredUnit = map.getUnitAtPos(worldGridPos);
-
-                if (Input::isActionJustPressed(config.actPrimary))
-                {
-                    if (!hoveredUnit.empty())
-                    { selectedUnit = hoveredUnit; }
-                }
 
                 if (!selectedUnit.empty())
                 { map.computePath(selectedUnit->pos, worldGridPos, hoveredPath); }
@@ -222,6 +214,21 @@ struct Game
                 { map.resetPath(hoveredPath); }
 
                 lastWorldGridPos = worldGridPos;
+            }
+
+            if (Input::isActionJustPressed(config.actPrimary))
+            {
+                if (!hoveredUnit.empty())
+                {
+                    selectedUnit = hoveredUnit;
+                    map.resetPath(hoveredPath);
+                }
+            }
+
+            if (Input::isActionJustPressed(config.actSecondary))
+            {
+                selectedUnit.reset();
+                map.resetPath(hoveredPath);
             }
         }
 
@@ -237,8 +244,7 @@ struct Game
         { Renderer2D::drawRect({ Vector2f(hoveredUnit->pos) * config.gridSize, config.gridSize }, 1, ColorRGBAf::green()); }
 
         const Vector2f offset = { 20, 20 };
-        Renderer2D::drawText(fmt::format("Grid: ({}, {})\nlmao", worldGridPos.x, worldGridPos.y), font, Renderer2D::getView().getBoundsPos() + offset);
-        Renderer2D::drawRect({ 20, 20, 100, 30 });
+        Renderer2D::drawText(fmt::format("Grid: ({}, {})", worldGridPos.x, worldGridPos.y), font, Renderer2D::getView().getBoundsPos() + offset);
 
         Renderer2D::render();
     }
