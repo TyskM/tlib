@@ -5,7 +5,7 @@
 
 #include "Texture.hpp"
 #include <TLib/DataStructures.hpp>
-#include <map>
+#include <TLib/Containers/Vector.hpp>
 
 struct FontCharacter
 {
@@ -17,9 +17,6 @@ struct FontCharacter
 
 struct FontDetail
 {
-    // TODO: a map isn't needed, use an array and instance by char. they're just numbers
-    using CharMap = std::map<char, FontCharacter>;
-
     static inline FT_Library ft = nullptr;
     static void initFreetype()
     {
@@ -29,12 +26,12 @@ struct FontDetail
     }
 };
 
-struct FontBase
+struct FontBase : NonAssignable
 {
 protected:
-    FontDetail::CharMap characters;
+    // DONE: a map isn't needed, use an array and instance by char. they're just numbers
+    Vector<FontCharacter> characters;
     int32_t _newLineHeight = 0;
-    int32_t _height = 0;
 
 public:
     [[nodiscard]]
@@ -43,11 +40,7 @@ public:
 
     [[nodiscard]]
     inline bool containsChar(const char c) const
-    { return characters.contains(c); }
-
-    [[nodiscard]]
-    inline int32_t height() const
-    { return _height; }
+    { return c >= 0 && c < characters.size(); }
 
     [[nodiscard]]
     inline int32_t newLineHeight() const
@@ -63,7 +56,7 @@ public:
         Vector2f size;
         for (auto& strchar : text)
         {
-            if (!characters.contains(strchar))
+            if (!containsChar(strchar))
             { tlog::error(("Font does not contain character \"{}\""), strchar); continue; }
 
             FontCharacter& ch = characters.at(strchar);
@@ -94,7 +87,10 @@ struct SDFFont : FontBase
 
         FT_GlyphSlot slot = face->glyph;
 
-        for (unsigned char c = 0; c < 128; c++)
+        // HACK: load all chars from font
+        size_t charCount = 128;
+        characters.resize(charCount);
+        for (unsigned char c = 0; c < charCount; c++)
         {
             // Load character glyph 
             if (FT_Load_Char(face, c, FT_LOAD_RENDER))
@@ -103,15 +99,9 @@ struct SDFFont : FontBase
                 continue;
             }
 
-            
-
             FT_Render_Glyph(slot, FT_RENDER_MODE_SDF);
             
-            // Bitmap.rows in bitmap height
-            if (slot->bitmap.rows > _height)
-            { _height = slot->bitmap.rows; }
-
-            FontCharacter& ch = characters[c];
+            FontCharacter& ch = characters.at(c);
             ch.texture.create();
             ch.texture.setUnpackAlignment(1);
             ch.texture.setData(
@@ -146,7 +136,10 @@ struct BitmapFont : FontBase
 
         _newLineHeight = (face->size->metrics.ascender - face->size->metrics.descender) >> 6;
 
-        for (unsigned char c = 0; c < 128; c++)
+        // HACK: load all chars from font
+        size_t charCount = 128;
+        characters.resize(charCount);
+        for (unsigned char c = 0; c < charCount; c++)
         {
             // load character glyph 
             if (FT_Load_Char(face, c, FT_LOAD_RENDER))
@@ -155,7 +148,7 @@ struct BitmapFont : FontBase
                 continue;
             }
 
-            FontCharacter& ch = characters[c];
+            FontCharacter& ch = characters.at(c);
             ch.texture.create();
             ch.texture.setUnpackAlignment(1);
             ch.texture.setData(
