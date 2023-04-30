@@ -1,8 +1,6 @@
 #pragma once
 
 #define NOMINMAX
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
 
 #include <TLib/DataStructures.hpp>
 #include <TLib/Media/GL/GLHelpers.hpp>
@@ -12,6 +10,7 @@
 #include <TLib/NonAssignable.hpp>
 #include <TLib/Macros.hpp>
 #include <TLib/String.hpp>
+#include <TLib/thirdparty/stbi.hpp>
 
 #include "IResource.hpp"
 #include "TextureData.hpp"
