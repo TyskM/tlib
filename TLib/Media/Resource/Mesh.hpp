@@ -9,9 +9,10 @@
 #include <TLib/Media/GL/Layout.hpp>
 #include <TLib/Media/GL/ElementBuffer.hpp>
 #include <TLib/Media/Logging.hpp>
+#include <TLib/NonAssignable.hpp>
 #include <cstdint>
 
-struct Mesh
+struct Mesh : NonCopyable
 {
 protected:
     VertexArray   vao; // Layout
@@ -21,16 +22,41 @@ protected:
     uint32_t      _vertexCount = 0;
     uint32_t      _indiceCount = 0;
 
-public:
-    Mesh() = default;
+    void move(Mesh& src)
+    {
+        vao = eastl::move(src.vao);
+        vbo = eastl::move(src.vbo);
+        ebo = eastl::move(src.ebo);
+        _layout      = src._layout;
+        _vertexCount = src._vertexCount;
+        _indiceCount = src._indiceCount;
+    }
 
-    [[nodiscard]] inline bool valid()                 const { return validLayout(); }
-    [[nodiscard]] inline bool validLayout()           const { return vao.created() && _layout.sizeBytes() > 0; }
-    [[nodiscard]] inline bool validVertices()         const { return vbo.created(); }
-    [[nodiscard]] inline bool validIndices()          const { return ebo.created(); }
-    [[nodiscard]] inline const Layout   layout()      const { return _layout; }
-    [[nodiscard]] inline const uint32_t vertexCount() const { return _vertexCount; }
-    [[nodiscard]] inline const uint32_t indiceCount() const { return _indiceCount; }
+public:
+    Mesh()  = default;
+    ~Mesh() = default;
+
+    // Movable only
+    Mesh(Mesh&& src)            noexcept { move(src); }
+    Mesh& operator=(Mesh&& src) noexcept { reset(); move(src); return *this; }
+
+    [[nodiscard]] inline const bool     valid()         const { return validLayout(); }
+    [[nodiscard]] inline const bool     validLayout()   const { return vao.created() && _layout.sizeBytes() > 0; }
+    [[nodiscard]] inline const bool     validVertices() const { return vbo.created(); }
+    [[nodiscard]] inline const bool     validIndices()  const { return ebo.created(); }
+    [[nodiscard]] inline const Layout   layout()        const { return _layout; }
+    [[nodiscard]] inline const uint32_t vertexCount()   const { return _vertexCount; }
+    [[nodiscard]] inline const uint32_t indiceCount()   const { return _indiceCount; }
+
+    void reset()
+    {
+        ebo.reset();
+        vbo.reset();
+        vao.reset();
+        _layout.clear();
+        _vertexCount = 0;
+        _indiceCount = 0;
+    }
 
     bool bind()
     {
@@ -100,6 +126,8 @@ public:
     template <typename ContainerOfuint32_tType>
     void setIndices(const ContainerOfuint32_tType& indices, AccessType accessType = AccessType::Static)
     {
+        if (indices.size() == 0) { return; }
+
         if (accessType == AccessType::Static)
         { rendlog->info("Setting static mesh indices: Bytes={}; Size={};", indices.size() * sizeof(uint32_t), indices.size()); }
         if (!vao.created()) { vao.create(); }
