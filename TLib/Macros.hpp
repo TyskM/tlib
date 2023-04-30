@@ -1,7 +1,6 @@
 #pragma once
 
 #include <iostream>
-#include <boost/preprocessor.hpp>
 
 #define OS_WINDOWS _WIN32
 #define OS_MAC     __APPLE__
@@ -68,6 +67,3 @@ template <typename B> inline bool operator>= (name a, B b) { return static_cast<
 
 #define STRING_NAME(X) #X
 #define STRING_VALUE(X) STRING_NAME(X)
-
-#define COMMA_SEP(r, token, i, e) BOOST_PP_COMMA_IF(i) token(e)
-#define WRAP(token, ...) BOOST_PP_SEQ_FOR_EACH_I(COMMA_SEP, token, BOOST_PP_VARIADIC_TO_SEQ(__VA_ARGS__))

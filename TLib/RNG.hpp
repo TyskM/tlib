@@ -2,11 +2,6 @@
 #include <cassert>
 #include <random>
 #include <stdexcept>
-#ifdef BOOST_SERIALIZE
-#include <sstream>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/split_member.hpp>
-#endif
 
 // Basic rng with convenience functions
 // Relies on std::random_device and std::mt19937

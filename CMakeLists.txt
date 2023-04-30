@@ -40,9 +40,6 @@ target_link_libraries(TLib PUBLIC spdlog::spdlog spdlog::spdlog_header_only)
 find_dependency(magic_enum CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC magic_enum::magic_enum)
 
-find_dependency(sol2 CONFIG REQUIRED)
-target_link_libraries(TLib PUBLIC sol2)
-
 find_dependency(PalSigslot CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC Pal::Sigslot)
 
@@ -78,6 +75,17 @@ target_link_libraries(TLib PUBLIC glm::glm)
 
 find_dependency(imgui CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC imgui::imgui)
+
+find_package(assimp CONFIG REQUIRED)
+target_link_libraries(TLib PRIVATE assimp::assimp)
+
+
+
+
+
+
+##
+#### Make package
 
 install(TARGETS TLib EXPORT TLib-targets)
 # install package
