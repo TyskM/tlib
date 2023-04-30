@@ -3,7 +3,8 @@
 #include <string>
 #include <cmath>
 #include <limits>
-#include "Math.hpp"
+#include <TLib/String.hpp>
+#include <TLib/Math.hpp>
 
 // There's always a min/max macro somewhere. Make it stop!!!
 #undef min
@@ -113,7 +114,7 @@ struct Vector2
     Vector2<T> sqrt()       const { return Vector2<T>( static_cast<T>(std::sqrt(x)),        static_cast<T>(std::sqrt(y))       ); }
     Vector2<T> pow(T value) const { return Vector2<T>( static_cast<T>(std::pow(x, value)),  static_cast<T>(std::pow(y, value)) ); }
 
-    operator   String()                             const { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
+    operator   String()                             const { return String("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
     bool       operator==(const Vector2<T>& other)  const { return x == other.x && y == other.y; }
     bool       operator!=(const Vector2<T>& other)  const { return !(operator==(other)); }
     Vector2<T> operator-()                          const { return Vector2<T>(-x, -y); }
