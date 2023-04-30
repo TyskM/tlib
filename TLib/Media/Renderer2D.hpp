@@ -472,6 +472,7 @@ private:
                                  const bool        flipuvy  = false,
                                  Shader&           shader   = defaultShader)
     {
+        ASSERT(inited); // Forgot to call Renderer2D::init()
         drawCmds.emplace_back();
         DrawCmd& cmd = drawCmds.back();
 
@@ -542,6 +543,7 @@ private:
                            const float                 width = 1,
                            const GLDrawMode            mode  = GLDrawMode::LineStrip)
     {
+        ASSERT(inited); // Forgot to call Renderer2D::init()
         ASSERT(points.size() > 0);
 
         drawCmds.emplace_back();
@@ -572,6 +574,8 @@ private:
                            const ColorRGBAf& color = ColorRGBAf::white(),
                            const float       scale = 1.f)
     {
+        ASSERT(inited); // Forgot to call Renderer2D::init()
+        if (!font.created()) { return; }
         Vector2f currentPos = pos;
         for (auto& strchar : text)
         {
