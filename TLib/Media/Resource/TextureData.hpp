@@ -1,4 +1,12 @@
 
+#pragma once
+
+#define NOMINMAX
+
+#include <TLib/String.hpp>
+#include <TLib/NonAssignable.hpp>
+#include <TLib/thirdparty/stbi.hpp>
+
 // CPU Texture information
 struct TextureData : NonCopyable
 {
@@ -7,16 +15,26 @@ struct TextureData : NonCopyable
     int      height       = 0;
     int      channelCount = 0;
 
-    void loadFromPath(const String& path, int reqComp = 4)
+    bool loadFromPath(const String& path, int reqComp = 4)
     {
         reset();
-        ptr = stbi_load(path.c_str(), &width, &height, &channelCount, reqComp);
+        auto tempptr = stbi_load(path.c_str(), &width, &height, &channelCount, reqComp);
+
+        if (stbi_failure_reason())
+        {
+            tlog::error("TextureData: Failed to load file from path '{}'", path);
+            ptr = nullptr;
+            return false;
+        }
+
+        ptr = tempptr;
+        return true;
     }
 
     void reset()
     { stbi_image_free(ptr); }
 
-    bool valid() { return ptr != nullptr; }
+    bool valid() const { return ptr != nullptr; }
 
     TextureData() = default;
 
