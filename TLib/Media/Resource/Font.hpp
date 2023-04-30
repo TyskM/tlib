@@ -109,7 +109,7 @@ struct SDFFont : FontBase
                 TexPixelFormats::RED, TexInternalFormats::RED);
 
             // now store character for later use
-            ch.size = Vector2i(slot->bitmap.width, slot->bitmap.rows);
+            ch.size    = Vector2i(slot->bitmap.width, slot->bitmap.rows);
             ch.bearing = Vector2i(slot->bitmap_left, slot->bitmap_top);
             ch.advance = slot->advance.x;
         }

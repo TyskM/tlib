@@ -20,7 +20,7 @@ struct SpriteTest : GameTest
     void create() override
     {
         GameTest::create();
-        window.setTitle("Advanced Sprite Test");
+        window.setTitle("Sprite Renderer");
         tex.loadFromFile("assets/ship.png");
         tex.setFilter(TextureFiltering::Nearest);
         sdffont.loadFromFile("assets/roboto.ttf");
@@ -54,7 +54,7 @@ struct SpriteTest : GameTest
                 {
                     fmodf(sin(time), 1.f) * (y%16),
                     fmodf(cos(time / 2.f) * (x%12), 1.f),
-                    fmodf((time)+x+y, 1.f), 1
+                    fmodf((time)+x+y, 1.f), 1.f
                 };
                 const Rectf rect = { Vector2f(x, y) * offset, Vector2f(32,32) };
 
@@ -69,7 +69,7 @@ struct SpriteTest : GameTest
         Renderer2D::drawCircle(mwpos + Vector2f(20, 20), 12.f);
         Renderer2D::drawRect({ mwpos, Vector2f(20, 20) });
         Renderer2D::drawText("Hello world!", sdffont, { 50, 50 });
-        Renderer2D::drawText("Hello world!", bmfont,  { 50, 50 + float(sdffont.lineHeight()) });
+        Renderer2D::drawText("Hello world!", bmfont,  { 50, 50 + float(sdffont.newLineHeight()) });
 
         Renderer2D::render();
 

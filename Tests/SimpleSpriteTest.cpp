@@ -63,7 +63,7 @@ struct TLibTest
                     {
                         fmodf(sin(time), 1.f) * (y%16),
                         fmodf(cos(time / 2.f) * (x%12), 1.f),
-                        fmodf((time)+x+y, 1.f), 1
+                        fmodf((time)+x+y, 1.f), 1.f
                     };
                     const Rectf rect ={ Vector2f(x, y) * 4.f, Vector2f(32,32) };
 
