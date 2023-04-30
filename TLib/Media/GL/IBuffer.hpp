@@ -20,7 +20,7 @@ enum class AccessType : GLenum
 
 // This class is not intended to be used directly.
 // See: VertexBuffer, ElementBuffer
-struct IBuffer : NonAssignable
+struct IBuffer : NonCopyable
 {
     GLuint glHandle = 0;
 
@@ -48,4 +48,18 @@ struct IBuffer : NonAssignable
 
     operator GLuint*() { return &glHandle; }
     operator GLuint()  { return glHandle; }
+
+    IBuffer(IBuffer&& src) noexcept
+    {
+        glHandle = src.glHandle;
+        src.glHandle = 0;
+    }
+
+    IBuffer& operator=(IBuffer&& src) noexcept
+    {
+        reset();
+        glHandle = src.glHandle;
+        src.glHandle = 0;
+        return *this;
+    }
 };
