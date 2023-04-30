@@ -4,29 +4,32 @@
 
 #pragma once
 
-#include "GLHelpers.hpp"
-#include "../DataStructures.hpp"
-#include <vector>
+#include <TLib/Media/GL/GLHelpers.hpp>
+#include <TLib/DataStructures.hpp>
+#include <TLib/Containers/Vector.hpp>
 
 /**
- * Used to map values to GL
- *
- * Example:
- * struct Vector2f
- * { float x, y; }
- * struct Color4f
- * { float r, g, b, a; }
- *
- * struct Vertex
- * {
- *  Vector2f pos;
- *  Color4f color;
- * }
- * Vertex layout:           Position              Color
- * Layout vertexLayout = { { 2, GLType::Float }, { 4, GLType::Float } }
- * OR
- * Layout vertexLayout = { Layout::Vec2f(), Layout::Vec4f() }
- * @see Layout
+    Used to map values to GL
+    
+    Example:
+    struct Vector2f
+    { float x, y; }
+    struct Color4f
+    { float r, g, b, a; }
+    
+    struct Vertex
+    {
+     Vector2f pos;
+     Color4f color;
+    }
+
+    Vertex layout:
+                            Position (2 floats)   Color (4 floats)
+    Layout vertexLayout = { { 2, GLType::Float }, { 4, GLType::Float } }
+    OR
+    Layout vertexLayout = { Layout::Vec2f(), Layout::Vec4f() }
+
+    @see Layout
  */
 struct Attribute
 {
@@ -37,7 +40,10 @@ protected:
 
 public:
     constexpr Attribute(uint8_t size, GLType type, uint32_t divisor = 0) : _size{ size }, _type{ type }, _divisor{ divisor }
-    { ASSERT(size <= 4); }
+    {
+        // Attributes can't have more than 4 components
+        ASSERT(size <= 4);
+    }
 
     inline Attribute& setDivisor(uint32_t v)
     { _divisor = v; return *this; }
@@ -56,11 +62,13 @@ struct Layout
 {
 protected:
     uint32_t _sizeBytes = 0;
-    std::vector<Attribute> _values;
+    Vector<Attribute> _values;
 
 public:
     Layout() = default;
+
     Layout(const std::initializer_list<Attribute>& values) { set(values); }
+
     Layout(const Attribute& attr, uint32_t count) { set(attr, count); }
 
     void set(const Attribute& attr, const uint32_t count)
@@ -117,7 +125,7 @@ public:
     }
 
     [[nodiscard]] inline uint32_t sizeBytes() const { return _sizeBytes; }
-    [[nodiscard]] inline const std::vector<Attribute>& getValues() const { return _values; }
+    [[nodiscard]] inline const Vector<Attribute>& getValues() const { return _values; }
 
     // TODO: low prio, add more presets. Most of the presets that matter are already here
     [[maybe_unused]] constexpr static inline Attribute Bool () { return { 1, GLType::Bool  }; }
