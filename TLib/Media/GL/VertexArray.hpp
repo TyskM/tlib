@@ -5,7 +5,7 @@
 #include <TLib/Media/Logging.hpp>
 
 // Used for storing information about a VertexBuffer
-struct VertexArray
+struct VertexArray : NonCopyable
 {
     GLuint glHandle = 0;
 
@@ -46,4 +46,18 @@ struct VertexArray
 
     operator GLuint*() { return &glHandle; }
     operator GLuint()  { return glHandle; }
+
+    VertexArray(VertexArray&& src) noexcept
+    {
+        glHandle = src.glHandle;
+        src.glHandle = 0;
+    }
+
+    VertexArray& operator=(VertexArray&& src) noexcept
+    {
+        reset();
+        glHandle = src.glHandle;
+        src.glHandle = 0;
+        return *this;
+    }
 };
