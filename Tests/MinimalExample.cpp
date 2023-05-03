@@ -11,8 +11,6 @@
 int main()
 {
     Window     window;
-    Renderer   renderer;
-    Renderer2D rend2d;
     MyGui      imgui;
     FPSLimit   fpslimit;
     Timer      deltaTimer;
@@ -39,18 +37,26 @@ int main()
 
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
-                auto view = rend2d.getView();
+                auto view = Renderer2D::getView();
                 view.setBoundsSize(Vector2f(e.window.data1, e.window.data2));
-                rend2d.setView(view);
+                Renderer2D::setView(view);
             }
 
             if (e.type == SDL_QUIT) { running = false; }
         }
         auto& io = ImGui::GetIO();
         if (!(io.WantCaptureKeyboard)) { Input::updateKeyboard(); }
-        if (!(io.WantCaptureMouse))    { Input::updateMouse(); }
+        if (!(io.WantCaptureMouse)) { Input::updateMouse(); }
+
+        Renderer::clearColor();
 
         // Update/Draw Here
+
+        imgui.newFrame();
+        drawDiagWidget(&fpslimit);
+        imgui.render();
+
+        window.swap();
 
         fpslimit.wait();
     }
