@@ -22,6 +22,7 @@ struct Vector2
     using value_type = T;
 
     constexpr Vector2(T xv, T yv) : x{ xv }, y{ yv } { }
+    constexpr Vector2(T v) : x{ v }, y{ v } {}
     constexpr Vector2() = default;
 
     template <typename CT>
@@ -260,7 +261,28 @@ struct ColorRGBAf
     static constexpr inline ColorRGBAf steelBlue()   { return ColorRGBAf{ 70,  130, 180  }; }
     static constexpr inline ColorRGBAf royalBlue()   { return ColorRGBAf{ 65,  105, 225  }; }
     static constexpr inline ColorRGBAf gold()        { return ColorRGBAf{ 255, 215, 0    }; }
-    
+};
+
+// Represents a RGB color with values 0f-1f
+struct ColorRGBf
+{
+    constexpr ColorRGBf() = default;
+
+    constexpr ColorRGBf(float rv, float gv, float bv) :
+        r{rv}, g{gv}, b{bv} { }
+
+    explicit constexpr ColorRGBf(int rv, int gv, int bv) :
+        r{uint8ToFloat(rv)}, g{uint8ToFloat(gv)}, b{uint8ToFloat(bv)} { }
+
+    explicit constexpr ColorRGBf(const ColorRGBAf& rgba) :
+        r{rgba.r}, g{rgba.g}, b{rgba.b} { }
+
+    float r = 0;
+    float g = 0;
+    float b = 0;
+
+    bool operator==(const ColorRGBf& other) { return r == other.r && g == other.g && b == other.b; }
+    bool operator!=(const ColorRGBf& other) { return !(operator==(other)); }
 };
 
 // Represents a RGBA color with values 0-255
