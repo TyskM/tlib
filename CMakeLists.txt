@@ -92,9 +92,9 @@ target_link_libraries(TLib PUBLIC assimp::assimp)
 
 # Polygon Mesh Processing Library (pmp-library)
 # https://github.com/pmp-library/pmp-library
-set(pmp_DIR "TLib/thirdparty/pmp/build")
-find_dependency(pmp CONFIG REQUIRED)
-target_link_libraries(TLib PUBLIC pmp)
+# set(pmp_DIR "TLib/thirdparty/pmp/build")
+# find_dependency(pmp CONFIG REQUIRED)
+# target_link_libraries(TLib PUBLIC pmp)
 
 ##
 #### Make package

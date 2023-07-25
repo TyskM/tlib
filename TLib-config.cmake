@@ -14,8 +14,8 @@ find_dependency(Boost REQUIRED COMPONENTS container)
 find_dependency(cereal CONFIG REQUIRED)
 find_dependency(assimp CONFIG REQUIRED)
 
-set(pmp_DIR "${TLib_DIR}/TLib/thirdparty/pmp/build")
-find_dependency(pmp CONFIG REQUIRED)
+#set(pmp_DIR "${TLib_DIR}/TLib/thirdparty/pmp/build")
+#find_dependency(pmp CONFIG REQUIRED)
 
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/TLib-targets.cmake")
    include("${CMAKE_CURRENT_LIST_DIR}/TLib-targets.cmake")
