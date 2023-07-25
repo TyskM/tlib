@@ -1,5 +1,7 @@
 
 # TODO: More tests!!!!
+# TODO: Add tests for resource copy and move
+
 set(TLib_Tests
         MinimalExample
         FunkyTriangle
@@ -10,6 +12,7 @@ set(TLib_Tests
         SFMLTest
         SimpleSpriteTest
         Text
+        Model
 )
 
 enable_testing()
@@ -28,7 +31,7 @@ foreach(test IN LISTS TLib_Tests)
     add_executable(${test} "${test}.cpp" "Common.hpp")
     target_include_directories(${test} PUBLIC TLib::TLib)
     target_link_libraries(${test} PUBLIC TLib::TLib)
-    add_test(NAME ${test} COMMAND ${test} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    add_test(NAME ${test} COMMAND ${test})
     add_dependencies(${test} copy_assets)
 endforeach()
 
