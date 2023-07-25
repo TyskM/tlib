@@ -22,7 +22,7 @@ struct VertexArray : NonCopyable
         if (created())
         {
             rendlog->info("Destroyed VAO at location {}", glHandle);
-            glDeleteBuffers(1, &glHandle);
+            glDeleteVertexArrays(1, &glHandle);
             glHandle = 0;
         }
     }
