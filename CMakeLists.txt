@@ -6,7 +6,12 @@ enable_testing()
 add_subdirectory("Tests")
 add_subdirectory("Demos")
 
-file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h)
+file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h pmp/*.cpp pmp/*.hpp pmp/*.h)
+
+# Remove PMP sources
+file(GLOB_RECURSE PMP_FILES CONFIGURE_DEPENDS
+TLib/thirdparty/pmp/*.cpp TLib/thirdparty/pmp/*.hpp TLib/thirdparty/pmp/*.h)
+list(REMOVE_ITEM SOURCE_FILES ${PMP_FILES})
 
 add_library(TLib STATIC "TLib.cpp" ${SOURCE_FILES})
 add_library(TLib::TLib ALIAS TLib)
@@ -20,6 +25,12 @@ set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG}          /MTd")
 set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE}        /MT")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT")
 set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL}     /MT")
+
+message("Build Type: ${CMAKE_BUILD_TYPE}")
+if (CMAKE_BUILD_TYPE EQUAL "DEBUG")
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+endif()
 
 target_include_directories(TLib PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -76,13 +87,14 @@ target_link_libraries(TLib PUBLIC glm::glm)
 find_dependency(imgui CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC imgui::imgui)
 
-find_package(assimp CONFIG REQUIRED)
-target_link_libraries(TLib PRIVATE assimp::assimp)
+find_dependency(assimp CONFIG REQUIRED)
+target_link_libraries(TLib PUBLIC assimp::assimp)
 
-
-
-
-
+# Polygon Mesh Processing Library (pmp-library)
+# https://github.com/pmp-library/pmp-library
+set(pmp_DIR "TLib/thirdparty/pmp/build")
+find_dependency(pmp CONFIG REQUIRED)
+target_link_libraries(TLib PUBLIC pmp)
 
 ##
 #### Make package

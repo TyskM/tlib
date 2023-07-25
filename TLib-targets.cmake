@@ -7,7 +7,7 @@ if(CMAKE_VERSION VERSION_LESS "2.8.3")
    message(FATAL_ERROR "CMake >= 2.8.3 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 2.8.3...3.23)
+cmake_policy(VERSION 2.8.3...3.24)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -52,7 +52,7 @@ add_library(TLib::TLib STATIC IMPORTED)
 set_target_properties(TLib::TLib PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_20"
   INTERFACE_INCLUDE_DIRECTORIES "G:/Resources/Dev/CPP/TLib"
-  INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;\$<LINK_ONLY:cereal::cereal>;\$<LINK_ONLY:Boost::boost>;\$<LINK_ONLY:Boost::container>;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;\$<LINK_ONLY:assimp::assimp>"
+  INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;\$<LINK_ONLY:cereal::cereal>;\$<LINK_ONLY:Boost::boost>;\$<LINK_ONLY:Boost::container>;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp;pmp"
 )
 
 # Import target "TLib::TLib" for configuration "Debug"
