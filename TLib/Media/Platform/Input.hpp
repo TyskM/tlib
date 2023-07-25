@@ -4,10 +4,9 @@
 
 #include <TLib/DataStructures.hpp>
 #include <TLib/Media/Platform/SDL2.hpp>
-
-#include <string>
-#include <vector>
-#include <map>
+#include <TLib/String.hpp>
+#include <TLib/Containers/Vector.hpp>
+#include <TLib/Containers/UnorderedMap.hpp>
 
 /* Usage example
 
@@ -26,6 +25,7 @@ void update()
 */
 struct Input
 {
+public:
     enum class ActionType
     { MOUSE, KEYBOARD };
 
@@ -63,10 +63,14 @@ struct Input
             controls.emplace_back(actType, id);
         }
 
-        std::string name;
-        std::vector<Input::ActionControl> controls;
+        String name;
+        Vector<Input::ActionControl> controls;
     };
     using Act = Action;
+
+    static inline Vector2i mousePos;      // Read-only
+    static inline Vector2i prevMousePos; // Read-only
+    static inline Vector2i mouseDelta;  // Read-only
 
     static inline const int MOUSE_LEFT         =  0;
     static inline const int MOUSE_MIDDLE       =  1;
@@ -77,6 +81,7 @@ struct Input
     static inline const int MOUSE_WHEEL_UP     =  6;
     static inline const int MB_COUNT           =  7;
 
+private:
     static inline std::vector<Uint8> kb;
     static inline std::vector<Uint8> prevkb;
 
@@ -87,10 +92,9 @@ struct Input
     static inline bool wheelUpNextUpdate   = false;
     static inline bool wheelDownNextUpdate = false;
 
-    static inline Vector2i mousePos;
-    static inline Vector2i prevMousePos;
-    static inline Vector2i mouseDelta;
 
+public:
+    // Call in your input loop
     static inline void input(const SDL_Event& e)
     {
         if      (e.type == SDL_MOUSEWHEEL && e.wheel.y > 0) { wheelUpNextUpdate   = true; }
@@ -98,6 +102,7 @@ struct Input
     }
 
     // Call before update loop
+    // This calls updateKeyboard(), and updateMouse()
     static inline void update()
     {
         updateKeyboard();
@@ -129,6 +134,8 @@ struct Input
         wheelUpNextUpdate   = false;
         wheelDownNextUpdate = false;
     }
+
+    //// Action input
 
     static inline bool isActionPressed(const Action& action)
     {
@@ -184,24 +191,43 @@ struct Input
         return false;
     }
 
+    //// Raw keyboard input
+
+    // See SDL_SCANCODE_
     static inline bool isKeyPressed     (int key) { return kb[key]; }
+
+    // See SDL_SCANCODE_
     static inline bool isKeyJustPressed (int key) { return kb[key] && !prevkb[key]; }
+
+    // See SDL_SCANCODE_
     static inline bool isKeyReleased    (int key) { return !isKeyPressed(key); }
+
+    // See SDL_SCANCODE_
     static inline bool isKeyJustReleased(int key) { return !kb[key] && prevkb[key]; }
 
+    //// Raw mouse input
+
+    // See Input::MOUSE_
     static inline bool isMousePressed     (int button) { return (mouse[button]); }
+
+    // See Input::MOUSE_
     static inline bool isMouseJustPressed (int button)
     {
         if (button >= MOUSE_WHEEL_DOWN) { return isMousePressed(button); }
         else { return (mouse[button] && !prevmouse[button]); }
     }
 
+    // See Input::MOUSE_
     static inline bool isMouseReleased    (int button) { return !isMousePressed(button); }
+
+    // See Input::MOUSE_
     static inline bool isMouseJustReleased(int button)
     {
         if (button >= MOUSE_WHEEL_DOWN) { return isMouseReleased(button); }
         else { return !mouse[button] && prevmouse[button]; }
     }
+
+    //// String junk
 
     static inline const std::unordered_map<int, String> mouseButtonNameMap =
     {
@@ -214,18 +240,18 @@ struct Input
         { MOUSE_WHEEL_UP  , "Mouse Wheel Up"   }
     };
 
-    static inline const std::unordered_map<int, String> mouseButtonNameMapShort =
+    static inline const UnorderedMap<int, String> mouseButtonNameMapShort =
     {
-        { MOUSE_LEFT      , "LMB"       },
-        { MOUSE_MIDDLE    , "MMB"     },
-        { MOUSE_RIGHT     , "RMB"      },
+        { MOUSE_LEFT      , "LMB"         },
+        { MOUSE_MIDDLE    , "MMB"         },
+        { MOUSE_RIGHT     , "RMB"         },
         { MOUSE_X1        , "MX1"         },
         { MOUSE_X2        , "MX2"         },
-        { MOUSE_WHEEL_DOWN, "Wheel Down" },
-        { MOUSE_WHEEL_UP  , "Wheel Up"   }
+        { MOUSE_WHEEL_DOWN, "Wheel Down"  },
+        { MOUSE_WHEEL_UP  , "Wheel Up"    }
     };
 
-    static inline const std::map<SDL_Keymod, String> modMap =
+    static inline const UnorderedMap<SDL_Keymod, String> modMap =
     {
         { KMOD_NONE  , "None"   },
         { KMOD_LSHIFT, "LShift" },
@@ -298,7 +324,7 @@ struct Input
         {
             case ActionType::MOUSE:
                 if (mouseButtonNameMap.contains(ctrl.id))
-                { str += mouseButtonNameMap.at(ctrl.id); }
+                { str += mouseButtonNameMap.contains(ctrl.id); }
                 else { str += "Unknown"; }
                 break;
             case ActionType::KEYBOARD:
@@ -310,6 +336,7 @@ struct Input
         return str;
     }
 
+private:
     static inline bool _verifyAction(const Action& act)
     {
         return act.controls.size() > 0;
