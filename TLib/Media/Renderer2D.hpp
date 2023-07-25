@@ -14,13 +14,6 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <span>
 
-enum class RendererType
-{
-    Sprite    = 1 << 0,
-    Text      = 1 << 1,
-    Primitive = 1 << 2
-}; FLAG_ENUM(RendererType);
-
 struct Renderer2D
 {
 #pragma region Public
@@ -44,8 +37,8 @@ public:
 
         frustum = Frustum(mat);
 
-        auto fbSize = Renderer::getFramebufferSize();
-        glViewport(0, fbSize.y - bounds.height, bounds.width, bounds.height);
+        glViewport(0, 0, /* (fbSize.y - bounds.height) TODO: used to use this, remember why lmao */
+                   bounds.width, bounds.height);
 
         view = camera;
     }

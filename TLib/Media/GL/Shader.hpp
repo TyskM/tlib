@@ -1,21 +1,22 @@
 #pragma once
 
 #define NOMINMAX
-#include "GLHelpers.hpp"
+#include <TLib/Media/GL/GLHelpers.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
 #include <unordered_map>
-#include "../DataStructures.hpp"
-#include "../NonAssignable.hpp"
-#include "../Macros.hpp"
-#include "GLState.hpp"
-#include "UniformBuffer.hpp"
+#include <TLib/DataStructures.hpp>
+#include <TLib/NonAssignable.hpp>
+#include <TLib/Macros.hpp>
+#include <TLib/Media/GL/GLState.hpp>
+#include <TLib/Media/GL/UniformBuffer.hpp>
 
-struct Shader : NonCopyable
+class Shader : NonCopyable
 {
     GLuint glHandle = 0;
     mutable std::unordered_map<String, GLint> _uniformCache;
 
+public:
     Shader() { }
     Shader(const char* vertData, const char* fragData) { create(vertData, fragData); }
     Shader(Shader&& other) noexcept { operator=(std::move(other)); }
@@ -57,6 +58,9 @@ struct Shader : NonCopyable
 
     void create(const String& vert, const String& frag)
     { create(vert.c_str(), frag.c_str()); }
+
+    bool created() const
+    { return glHandle != 0; }
 
     void bind()
     {
@@ -185,7 +189,7 @@ struct Shader : NonCopyable
         if(!success)
         {
             glGetShaderInfoLog(shaderHandle, 512, NULL, infoLog);
-            std::cerr << "!!! ERROR: Failed to compile shader. Info:\n" << infoLog << std::endl;
+            tlog::critical("Failed to compile shader. Info:\n{}", infoLog);
         };
     }
 
@@ -197,7 +201,7 @@ struct Shader : NonCopyable
         if(!success)
         {
             glGetProgramInfoLog(programHandle, 512, NULL, infoLog);
-            std::cout << "!!! ERROR: Failed to link shader program. Info:\n" << infoLog << std::endl;
+            tlog::critical("Failed to link shader program. Info:\n{}", infoLog);
         }
     }
 };

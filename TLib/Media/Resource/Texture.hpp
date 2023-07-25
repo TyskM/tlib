@@ -83,6 +83,7 @@ private:
     int    width           =  0;
     int    height          =  0;
     int    boundSlot       = -1;
+    fs::path _path;
 
 public:
     Texture() { }
@@ -92,21 +93,25 @@ public:
     Texture(Texture&& other) noexcept
     {
         glHandle = other.glHandle;
-        other.glHandle = 0;
+        other.glHandle  = 0;
+        other.boundSlot = -1;
 
-        width     = other.width;
-        height    = other.height;
-        boundSlot = other.boundSlot;
+        width      = other.width;
+        height     = other.height;
+        boundSlot  = other.boundSlot;
+        _path      = other._path;
     }
 
     Texture& operator=(Texture&& other) noexcept
     {
-        glHandle       = other.glHandle;
-        other.glHandle = 0;
+        glHandle = other.glHandle;
+        other.glHandle  = 0;
+        other.boundSlot = -1;
 
-        width     = other.width;
-        height    = other.height;
-        boundSlot = other.boundSlot;
+        width      = other.width;
+        height     = other.height;
+        boundSlot  = other.boundSlot;
+        _path      = other._path;
     }
 
     ~Texture() { reset(); }
@@ -129,15 +134,15 @@ public:
         GL_CHECK(glGenTextures(1, &glHandle));
     }
 
-    bool loadFromFile(const String& filePath)
+    bool loadFromFile(const fs::path& path)
     {
         if (!created()) { create(); }
 
-        TextureData data(filePath, 4);
+        TextureData data(path, 4);
 
         if (!data.valid()) // Error!!
         {
-            tlog::error("Failed to load image from path ('{}')", filePath);
+            tlog::error("Failed to load image from path ('{}')", path.string());
 
             if (stbi_failure_reason())
             { tlog::error("\tReason: {}", stbi_failure_reason()); }
@@ -149,6 +154,8 @@ public:
         }
         else
         {
+            _path = path;
+
             // TODO: Support different formats?
             // https://stackoverflow.com/questions/23150123/loading-png-with-stb-image-for-opengl-texture-gives-wrong-colors
             setData(data, defaultFormat, defaultInternalFormat);
@@ -162,7 +169,7 @@ public:
                  const TexInternalFormats internalFormat = defaultInternalFormat,
                  const bool               generateMipmap = true)
     {
-        setData(data.ptr, data.width, data.height, defaultFormat, defaultInternalFormat);
+        setData(data.ptr(), data.width(), data.height(), defaultFormat, defaultInternalFormat);
     }
 
     void setData(
@@ -217,6 +224,31 @@ public:
     [[nodiscard]]
     Vector2i getSize() const
     { return Vector2i{ width, height }; }
+
+    // Returns the path passed during loadFromFile()
+    // If the texture is empty or the data was passed in without loadFromFile
+    // then path().empty() will return true.
+    fs::path path() const { return _path; }
+
+    void setPath(const fs::path& apath) { _path = apath; }
+
+    bool isFromSamePath(const fs::path& otherPath) const
+    {
+        // If one or both paths are empty, this should probably return false.
+        if (path().empty())
+        {
+            #if TLIB_DEBUG
+            tlog::debug("Tried to compare paths where one or both was empty!\n\tPath 1: {}\n\tPath 2: {}",
+                path().string(), otherPath.string());
+            #endif
+            return false;
+        }
+
+        return fs::equivalent(path(), otherPath);
+    }
+
+    bool isFromSamePath(const Texture& otherTex) const
+    { return isFromSamePath(otherTex.path()); }
 
     // TODO: is unpack alignment per texture?? where am i>:>??????
     void setUnpackAlignment(int value)

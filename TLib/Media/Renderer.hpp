@@ -9,7 +9,7 @@
 
 struct RenderState
 {
-    GLDrawMode  drawMode = GLDrawMode::Triangles;
+    GLDrawMode  drawMode       = GLDrawMode::Triangles;
     GLBlendMode srcBlendFactor = GLBlendMode::SrcAlpha;
     GLBlendMode dstBlendFactor = GLBlendMode::OneMinusSrcAlpha;
 };
@@ -18,7 +18,7 @@ struct Renderer
 {
 protected:
     static inline size_t drawCalls = 0;
-    static inline bool isCreated = false;
+    static inline bool   isCreated = false;
 
     static bool prepare(Shader& shader, Mesh& mesh, const RenderState& state)
     {

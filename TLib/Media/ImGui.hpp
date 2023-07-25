@@ -4,6 +4,7 @@
 #include <TLib/NonAssignable.hpp>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
+#include <imgui_stdlib.h>
 
 struct MyGui : NonAssignable
 {

@@ -52,6 +52,8 @@ int main()
 
         // Update/Draw Here
 
+        Renderer2D::render();
+
         imgui.newFrame();
         drawDiagWidget(&fpslimit);
         imgui.render();

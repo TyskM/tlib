@@ -9,12 +9,12 @@
 #include <magic_enum.hpp>
 
 // End with ImGui::End()
-void beginDiagWidgetExt()
+void beginDiagWidgetExt(bool* p_open = NULL, ImGuiWindowFlags flags = 0)
 {
-    ImGui::Begin("Diagnostics");
+    ImGui::Begin("Diagnostics", p_open);
 }
 
-void drawDiagWidget(FPSLimit* fpslimit = nullptr)
+void drawDiagWidget(FPSLimit* fpslimit = nullptr, bool* p_open = NULL, ImGuiWindowFlags flags = 0)
 {
     float delta = ImGui::GetIO().DeltaTime;
     const auto meminfo = sysq::getGlobalMemInfo();
@@ -34,7 +34,7 @@ void drawDiagWidget(FPSLimit* fpslimit = nullptr)
     }
     ++fpscounter;
 
-    beginDiagWidgetExt();
+    beginDiagWidgetExt(p_open, flags);
 
     if (fpslimit)
     {
