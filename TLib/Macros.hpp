@@ -55,7 +55,16 @@ if( !(x) ) \
 
 #pragma endregion
 
-// Create operators for enums
+/*
+    Create operators for enums.
+    Use like this:
+        enum class RendererType
+        {
+            Sprite    = 1 << 0,
+            Text      = 1 << 1,
+            Primitive = 1 << 2
+        }; FLAG_ENUM(RendererType);
+*/
 #define FLAG_ENUM(name)                                                                                                             \
 inline name  operator|  (name a, name b)                   { return static_cast<name>(static_cast<int>(a) | static_cast<int>(b)); } \
 inline name& operator|= (name & a, const name & b)         { return a = a | b; }                                                    \
