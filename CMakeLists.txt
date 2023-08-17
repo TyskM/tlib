@@ -8,6 +8,9 @@ add_subdirectory("Demos")
 
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h pmp/*.cpp pmp/*.hpp pmp/*.h)
 
+# Show all warnings
+add_compile_options(/W4)
+
 # Remove PMP sources
 file(GLOB_RECURSE PMP_FILES CONFIGURE_DEPENDS
 TLib/thirdparty/pmp/*.cpp TLib/thirdparty/pmp/*.hpp TLib/thirdparty/pmp/*.h)
@@ -20,6 +23,7 @@ target_compile_features(TLib PUBLIC cxx_std_20)
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
+include(FetchContent)
 
 set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG}          /MTd")
 set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE}        /MT")
@@ -34,7 +38,18 @@ endif()
 
 target_include_directories(TLib PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-$<INSTALL_INTERFACE:TLib>  # <prefix>/TLib
+$<INSTALL_INTERFACE:TLib> # <prefix>/TLib
+)
+
+### Setup CMRC for embedding files
+find_package(CMakeRC)
+# Add embeded files here
+file(GLOB_RECURSE EMBED_FILES CONFIGURE_DEPENDS TLib/Embed/Shaders/*.vert TLib/Embed/Shaders/*.frag) # Shader files
+cmrc_add_resource_library(embed ${EMBED_FILES})
+target_link_libraries(TLib PRIVATE embed)
+target_include_directories(TLib PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/_cmrc/include>
+    $<INSTALL_INTERFACE:TLib> # <prefix>/TLib
 )
 
 include(CMakeFindDependencyMacro)
@@ -58,7 +73,7 @@ find_dependency(mimalloc CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC mimalloc-static)
 
 find_dependency(cereal CONFIG REQUIRED)
-target_link_libraries(TLib PRIVATE cereal::cereal)
+target_link_libraries(TLib PUBLIC cereal::cereal)
 
 set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
 set(Boost_USE_DEBUG_LIBS        OFF)  # ignore debug libs and
@@ -66,7 +81,7 @@ set(Boost_USE_RELEASE_LIBS       ON)  # only find release libs
 set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     ON)  # link Boost Static libraries
 find_dependency(Boost REQUIRED COMPONENTS container)
-target_link_libraries(TLib PRIVATE Boost::boost Boost::container)
+target_link_libraries(TLib PUBLIC Boost::boost Boost::container)
 
 ### Graphics stuff
 
@@ -99,7 +114,7 @@ target_link_libraries(TLib PUBLIC assimp::assimp)
 ##
 #### Make package
 
-install(TARGETS TLib EXPORT TLib-targets)
+install(TARGETS TLib embed cmrc-base EXPORT TLib-targets)
 # install package
 install(EXPORT TLib-targets
     FILE TLib-targets.cmake

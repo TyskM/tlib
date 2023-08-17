@@ -11,6 +11,8 @@
 #include <TLib/EASTL.hpp>
 #include <TLib/Containers/Vector.hpp>
 #include <TLib/Containers/UnorderedMap.hpp>
+#include <TLib/Embed/Embed.hpp>
+
 #include <glm/gtx/rotate_vector.hpp>
 #include <span>
 
@@ -215,64 +217,6 @@ public:
 
 #pragma region Impl
 private:
-
-    #pragma region Shaders
-    static inline const char* shaderVertSrc = R"""(
-    #version 330 core
-    layout (location = 0) in vec4 vertex;
-    layout (location = 1) in vec4 color;
-
-    out vec2 fragTexCoords;
-    out vec4 fragColor;
-
-    uniform mat4 projection;
-
-    void main()
-    {
-        gl_Position   = projection * vec4(vertex.xy, 0.0, 1.0);
-        fragTexCoords = vertex.zw;
-        fragColor     = color;
-    }
-    )""";
-
-    static inline const char* shaderFragSrc = R"""(
-    #version 330 core
-    in vec2 fragTexCoords;
-    in vec4 fragColor;
-    out vec4 outColor;
-
-    uniform sampler2D image;
-
-    void main()
-    {
-        outColor = fragColor * texture(image, fragTexCoords);
-    }
-    )""";
-
-    static inline const char* textFragSrc = R"(
-    #version 330 core
-    in vec2 fragTexCoords;
-    in vec4 fragColor;
-    out vec4 outColor;
-
-    uniform sampler2D image;
-
-    uniform float width = 0.45;
-    uniform float edge  = 0.1;
-
-    void main()
-    {
-        float distance = texture(image, fragTexCoords).r;
-        float alpha    = smoothstep(width, width + edge, distance);
-
-        outColor = vec4(fragColor.xyz, alpha);
-    }
-    )";
-    #pragma endregion
-
-    struct DrawCmd;
-    struct PrimVert;
-
     using IndiceCont = Vector<uint32_t>;
 
     struct DrawCmd
@@ -359,10 +303,16 @@ private:
         { whiteTex.setData(whiteTexData, 1, 1); }
 
         if (!defaultShader.created())
-        { defaultShader.create(shaderVertSrc, shaderFragSrc); }
+        {
+            defaultShader.create( TLibEmbed::getFileAsString("TLib/Embed/Shaders/2d.vert").c_str(),
+                                  TLibEmbed::getFileAsString("TLib/Embed/Shaders/2d.frag").c_str());
+        }
 
         if (!textShader.created())
-        { textShader.create(shaderVertSrc, textFragSrc); }
+        {
+            textShader.create( TLibEmbed::getFileAsString("TLib/Embed/Shaders/2d.vert").c_str(),
+                               TLibEmbed::getFileAsString("TLib/Embed/Shaders/sdf_text.frag").c_str());
+        }
 
         setSDFTextEdge(0.04f);
         setSDFTextWidth(0.48f);

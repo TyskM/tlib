@@ -13,6 +13,7 @@ find_dependency(mimalloc CONFIG REQUIRED)
 find_dependency(Boost REQUIRED COMPONENTS container)
 find_dependency(cereal CONFIG REQUIRED)
 find_dependency(assimp CONFIG REQUIRED)
+find_dependency(CMakeRC CONFIG REQUIRED)
 
 #set(pmp_DIR "${TLib_DIR}/TLib/thirdparty/pmp/build")
 #find_dependency(pmp CONFIG REQUIRED)
