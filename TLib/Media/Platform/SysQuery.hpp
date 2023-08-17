@@ -9,7 +9,7 @@
 #include "processthreadsapi.h"
 #endif
 
-#include "../Timer.hpp"
+#include <TLib/Timer.hpp>
 #include <cstdint>
 
 // https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
@@ -33,7 +33,7 @@ namespace sysq
 
         ULONGLONG subtractTimes(const FILETIME& ftA, const FILETIME& ftB)
         {
-            LARGE_INTEGER a, b;
+            LARGE_INTEGER a{}, b{};
 
             a.LowPart = ftA.dwLowDateTime;
             a.HighPart = ftA.dwHighDateTime;
@@ -93,7 +93,7 @@ namespace sysq
         GlobalMemoryInfo gbi;
 
     #ifdef _WIN32
-        MEMORYSTATUSEX memInfo;
+        MEMORYSTATUSEX memInfo{};
         memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 
         if (GlobalMemoryStatusEx(&memInfo))
@@ -118,7 +118,7 @@ namespace sysq
         PrivateMemoryInfo lmi;
 
     #ifdef _WIN32
-        PROCESS_MEMORY_COUNTERS_EX pmc;
+        PROCESS_MEMORY_COUNTERS_EX pmc{};
         if (GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc)))
         {
             lmi.pageFaultCount             = pmc.PageFaultCount;
@@ -193,8 +193,10 @@ namespace sysq
         InterlockedDecrement(&detail::runCount);
 
         return cpuCopy;
-    #endif
 
+    #else
         return 0;
+    
+    #endif
     }
 }

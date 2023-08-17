@@ -70,3 +70,5 @@ struct OptionalLockGuard : NonAssignable
 
 template <typename T>
 using Atomic = std::atomic<T>;
+
+using Thread = std::thread;

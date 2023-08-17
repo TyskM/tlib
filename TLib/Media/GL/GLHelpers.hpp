@@ -32,17 +32,17 @@ enum class GLType : int
 
 std::unordered_map<GLType, uint32_t> glTypeSizeMap =
 {
-    { GLType::Bool   , sizeof(int8_t)      },
-    { GLType::Byte   , sizeof(int8_t)      },
-    { GLType::UByte  , sizeof(uint8_t)     },
-    { GLType::Short  , sizeof(int16_t)     },
-    { GLType::UShort , sizeof(uint16_t)    },
-    { GLType::Int    , sizeof(int32_t)     },
-    { GLType::UInt   , sizeof(uint32_t)    },
-    { GLType::Float  , sizeof(float_t)     },
-    { GLType::HFloat , sizeof(float_t) / 2 },
-    { GLType::Double , sizeof(double_t)    },
-    { GLType::Fixed  , sizeof(float_t)     }
+    { GLType::Bool   , static_cast<uint32_t>( sizeof(int8_t)      ) },
+    { GLType::Byte   , static_cast<uint32_t>( sizeof(int8_t)      ) },
+    { GLType::UByte  , static_cast<uint32_t>( sizeof(uint8_t)     ) },
+    { GLType::Short  , static_cast<uint32_t>( sizeof(int16_t)     ) },
+    { GLType::UShort , static_cast<uint32_t>( sizeof(uint16_t)    ) },
+    { GLType::Int    , static_cast<uint32_t>( sizeof(int32_t)     ) },
+    { GLType::UInt   , static_cast<uint32_t>( sizeof(uint32_t)    ) },
+    { GLType::Float  , static_cast<uint32_t>( sizeof(float_t)     ) },
+    { GLType::HFloat , static_cast<uint32_t>( sizeof(float_t) / 2 ) },
+    { GLType::Double , static_cast<uint32_t>( sizeof(double_t)    ) },
+    { GLType::Fixed  , static_cast<uint32_t>( sizeof(float_t)     ) }
 };
 
 enum class GLDrawMode : GLenum
