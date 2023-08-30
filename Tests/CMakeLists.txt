@@ -13,6 +13,7 @@ set(TLib_Tests
         SimpleSpriteTest
         Text
         Model
+        GUI
 )
 
 enable_testing()
