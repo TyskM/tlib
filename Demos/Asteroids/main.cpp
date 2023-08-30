@@ -1,4 +1,4 @@
-
+﻿
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/Renderer2D.hpp>
 #include <TLib/Media/Platform/Input.hpp>
@@ -6,6 +6,8 @@
 #include <TLib/Media/Platform/FPSLimit.hpp>
 #include <TLib/Timer.hpp>
 #include <TLib/RNG.hpp>
+#include <TLib/Media/ImGui.hpp>
+#include <TLib/Containers/Set.hpp>
 
 // TODO:
 // Audio ie. Hitsounds, shoot sounds, death sound, high score sound, field cleared sound
@@ -27,21 +29,23 @@ struct Config
     float asteroidMaxSize        = 18.f;
     float asteroidMinSize        = asteroidMaxSize / 3.f + 1.f;
 
-    // Controls
-    Action actForward  = { "Forward",  { ActionType::KEYBOARD, SDL_SCANCODE_W     } };
-    Action actBackward = { "Backward", { ActionType::KEYBOARD, SDL_SCANCODE_S     } };
-    Action actLeft     = { "Left",     { ActionType::KEYBOARD, SDL_SCANCODE_A     } };
-    Action actRight    = { "Right",    { ActionType::KEYBOARD, SDL_SCANCODE_D     } };
-    Action actPrimary  = { "Primary", {{ ActionType::MOUSE,    Input::MOUSE_LEFT  },
-                                       { ActionType::KEYBOARD, SDL_SCANCODE_SPACE }}};
-    Action actRestart  = { "Restart",  { ActionType::KEYBOARD, SDL_SCANCODE_R     } };
-    Action actDbgAsteroid =
-    { "Debug Spawn Asteroid", { ActionType::KEYBOARD, SDL_SCANCODE_E } };
+    //// Controls
+
+    // Don't let users change this
+    Action actMenu     = { "Menu",     { ActionType::KEYBOARD, SDL_SCANCODE_ESCAPE } };
+
+    Action actForward  = { "Forward",  {  ActionType::KEYBOARD, SDL_SCANCODE_W      } };
+    Action actBackward = { "Backward", {  ActionType::KEYBOARD, SDL_SCANCODE_S      } };
+    Action actLeft     = { "Left",     {  ActionType::KEYBOARD, SDL_SCANCODE_A      } };
+    Action actRight    = { "Right",    {  ActionType::KEYBOARD, SDL_SCANCODE_D      } };
+    Action actPrimary  = { "Shoot",    {{ ActionType::MOUSE,    Input::MOUSE_LEFT   },
+                                       {  ActionType::KEYBOARD, SDL_SCANCODE_SPACE  }}};
+    Action actRestart  = { "Restart",  {  ActionType::KEYBOARD, SDL_SCANCODE_R      } };
 } config;
 
 struct Projectile
 {
-    Timer    timeAlive;
+    float    timeAlive = 0.f;
     Vector2f pos;
     Vector2f vel;
     bool     freed = false;
@@ -64,8 +68,6 @@ struct Player
     float    rot  = 0.f;
 };
 
-
-
 bool circlesIntersect(const Vector2f& c1pos, float c1rad, const Vector2f& c2pos, float c2rad)
 {
     return c1pos.distanceTo(c2pos) < c2rad + c1rad;
@@ -84,6 +86,8 @@ Vector2f getWrappedCoord(const Vector2f& in, const Rectf& bounds)
 Window     window;
 FPSLimit   fpslimit;
 Timer      deltaTimer;
+MyGui      imgui;
+bool       running = true;
 
 struct Game
 {
@@ -96,6 +100,7 @@ struct Game
     Texture shipTex;
     Texture plumeTex;
 
+    bool   paused = false;
     bool   gameOver = false;
     double score = 0.f;
 
@@ -127,128 +132,121 @@ struct Game
         Vector2f mouseWorldPos = cam.localToWorldCoords(Input::mousePos);
         float fb = 0.f;
 
-        // Update
-        if (!gameOver)
+        ////////// Update
+        if (!paused)
         {
-            float lr   = Input::isActionPressed(config.actRight)    - Input::isActionPressed(config.actLeft);
-            fb         = Input::isActionPressed(config.actBackward) - Input::isActionPressed(config.actForward);
-            bool shoot = Input::isActionJustPressed(config.actPrimary);
-
-            // Debug asteroid
-            if (Input::isActionJustPressed(config.actDbgAsteroid))
+            if (!gameOver)
             {
-                Asteroid a;
-                a.segmentCount = rng.randRangeInt(4, 16);
+                float lr   = Input::isActionPressed(config.actRight)    - Input::isActionPressed(config.actLeft);
+                fb         = Input::isActionPressed(config.actBackward) - Input::isActionPressed(config.actForward);
+                bool shoot = Input::isActionJustPressed(config.actPrimary);
 
-                a.pos = mouseWorldPos;
-                a.vel = Vector2f(Input::mouseDelta);
-                asteroids.push_back(a);
-            }
+                // Player movement
+                Vector2f playerLookVector = Vector2f(0, 1).rotated(player.rot);
+                if (lr) { player.rot += lr * config.playerRotSpeed * delta; }
+                if (fb) { player.vel += (playerLookVector * fb) * config.playerMoveSpeed; }
+                player.pos += player.vel * delta;
 
-            // Player movement
-            Vector2f playerLookVector = Vector2f(0, 1).rotated(player.rot);
-            if (lr) { player.rot += lr * config.playerRotSpeed * delta; }
-            if (fb) { player.vel += (playerLookVector * fb) * config.playerMoveSpeed; }
-            player.pos += player.vel * delta;
+                // Player Wrapping
+                player.pos.x = fmod(player.pos.x, screenRect.width);
+                player.pos.y = fmod(player.pos.y, screenRect.height);
+                player.pos   = getWrappedCoord(player.pos, screenRect);
 
-            // Player Wrapping
-            player.pos.x = fmod(player.pos.x, screenRect.width);
-            player.pos.y = fmod(player.pos.y, screenRect.height);
-            player.pos   = getWrappedCoord(player.pos, screenRect);
-
-            // Shooting input
-            if (shoot)
-            {
-                Projectile p;
-                p.pos = player.pos;
-                p.vel = (-playerLookVector * config.projectileSpeed);
-                projectiles.push_back(p);
-            }
-        }
-
-        if (Input::isActionJustPressed(config.actRestart))
-        { start(); return; }
-
-        // Asteroids movement and player collision
-        for (auto& a : asteroids)
-        {
-            a.pos += a.vel * delta;
-            a.pos = getWrappedCoord(a.pos, screenRect);
-            if (circlesIntersect(player.pos, config.playerHitboxSize, a.pos, a.radius))
-            { gameOver = true; }
-        }
-
-        // Projectile movement and collision
-        for (auto& p : projectiles)
-        {
-            p.pos += p.vel * delta;
-            p.pos = getWrappedCoord(p.pos, screenRect);
-
-            Vector<Asteroid> newAsteroids;
-            for (auto& a : asteroids)
-            {
-                // On intersect with an asteroid
-                if (circlesIntersect(p.pos, config.projectileSize, a.pos, a.radius))
+                // Shooting input
+                if (shoot)
                 {
-                    p.freed = true;
-                    a.freed = true;
-
-                    score += 100.0 / a.radius;
-
-                    if (a.radius < config.asteroidMinSize)
-                    { break; }
-
-                    // Split the rocks!
-                    Asteroid newa1 = a;
-                    newa1.freed    = false;
-                    newa1.radius   = a.radius * 0.66666f;
-                    Asteroid newa2 = newa1;
-
-                    const float turnAmount = 0.133333f;
-                    newa1.vel.rotate((math::pi * 2.f) *  turnAmount);
-                    newa2.vel.rotate((math::pi * 2.f) * -turnAmount);
-
-                    newAsteroids.push_back(newa1);
-                    newAsteroids.push_back(newa2);
-
-                    break;
+                    Projectile p;
+                    p.pos = player.pos;
+                    p.vel = (-playerLookVector * config.projectileSpeed);
+                    projectiles.push_back(p);
                 }
             }
 
-            if (p.timeAlive.getElapsedTime().asSeconds() > config.projectileLifetimeSecs)
-            { p.freed = true; }
+            if (Input::isActionJustPressed(config.actRestart))
+            { start(); return; }
 
-            if (newAsteroids.size() > 0)
+            // Asteroids movement and player collision
+            for (auto& a : asteroids)
             {
-                asteroids.insert(asteroids.end(), newAsteroids.begin(), newAsteroids.end());
-                newAsteroids.clear();
+                a.pos += a.vel * delta;
+                a.pos = getWrappedCoord(a.pos, screenRect);
+                if (circlesIntersect(player.pos, config.playerHitboxSize, a.pos, a.radius))
+                { gameOver = true; }
+            }
+
+            // Projectile movement and collision
+            for (auto& p : projectiles)
+            {
+                p.pos += p.vel * delta;
+                p.pos = getWrappedCoord(p.pos, screenRect);
+
+                Vector<Asteroid> newAsteroids;
+                for (auto& a : asteroids)
+                {
+                    // On intersect with an asteroid
+                    if (circlesIntersect(p.pos, config.projectileSize, a.pos, a.radius))
+                    {
+                        p.freed = true;
+                        a.freed = true;
+
+                        score += 100.0 / a.radius;
+
+                        if (a.radius < config.asteroidMinSize)
+                        { break; }
+
+                        // Split the rocks!
+                        Asteroid newa1 = a;
+                        newa1.freed    = false;
+                        newa1.radius   = a.radius * 0.66666f;
+                        Asteroid newa2 = newa1;
+
+                        const float turnAmount = 0.133333f;
+                        newa1.vel.rotate((math::pi * 2.f) *  turnAmount);
+                        newa2.vel.rotate((math::pi * 2.f) * -turnAmount);
+
+                        newAsteroids.push_back(newa1);
+                        newAsteroids.push_back(newa2);
+
+                        break;
+                    }
+                }
+
+                p.timeAlive += delta;
+                if (p.timeAlive > config.projectileLifetimeSecs)
+                { p.freed = true; }
+
+                if (newAsteroids.size() > 0)
+                {
+                    asteroids.insert(asteroids.end(), newAsteroids.begin(), newAsteroids.end());
+                    newAsteroids.clear();
+                }
+            }
+
+            // Erase freed projectiles and asteroids
+            eastl::erase_if(asteroids,   [](const auto& v) { return v.freed; });
+            eastl::erase_if(projectiles, [](const auto& v) { return v.freed; });
+
+            // Spawn new asteroids if there's none left
+            if (asteroids.size() == 0)
+            {
+                const float distFromPlayer = 250.f;
+                Asteroid a;
+                a.radius = config.asteroidMaxSize;
+                a.segmentCount = rng.randRangeInt(4, 16);
+                a.pos = player.pos;
+                a.pos.x -= distFromPlayer;
+                a.vel = Vector2f(rng.randRangeReal(1.f, 100.f), rng.randRangeReal(1.f, 100.f));
+                asteroids.push_back(a);
+
+                a.segmentCount = rng.randRangeInt(4, 16);
+                a.pos = player.pos;
+                a.pos.x += distFromPlayer;
+                a.vel = Vector2f(rng.randRangeReal(1.f, 100.f), rng.randRangeReal(1.f, 100.f));
+                asteroids.push_back(a);
             }
         }
 
-        // Erase freed projectiles and asteroids
-        eastl::erase_if(asteroids,   [](const auto& v) { return v.freed; });
-        eastl::erase_if(projectiles, [](const auto& v) { return v.freed; });
-
-        // Spawn new asteroids if there's none left
-        if (asteroids.size() == 0)
-        {
-            const float distFromPlayer = 250.f;
-            Asteroid a;
-            a.radius = config.asteroidMaxSize;
-            a.segmentCount = rng.randRangeInt(4, 16);
-            a.pos = player.pos;
-            a.pos.x -= distFromPlayer;
-            a.vel = Vector2f(rng.randRangeReal(1.f, 100.f), rng.randRangeReal(1.f, 100.f));
-            asteroids.push_back(a);
-
-            a.segmentCount = rng.randRangeInt(4, 16);
-            a.pos = player.pos;
-            a.pos.x += distFromPlayer;
-            a.vel = Vector2f(rng.randRangeReal(1.f, 100.f), rng.randRangeReal(1.f, 100.f));
-            asteroids.push_back(a);
-        }
-
-        // Draw
+        ////////// Draw
         Renderer::clearColor();
 
         for (auto& a : asteroids)
@@ -261,8 +259,7 @@ struct Game
         {
             const Vector2f playerCenteredPos = player.pos - player.size/2.f;;
 
-            Renderer2D::drawTexture(shipTex,         { playerCenteredPos, player.size }, 0, ColorRGBAf::white(), player.rot);
-
+            Renderer2D::drawTexture(shipTex, { playerCenteredPos, player.size }, 0, ColorRGBAf::white(), player.rot);
 
             if (fb != 0.0f)
             { Renderer2D::drawTexture(plumeTex, { playerCenteredPos, player.size }, 0, ColorRGBAf::white(), player.rot); }
@@ -284,23 +281,207 @@ struct Game
 
         Renderer2D::render();
     }
-};
+} game;
+
+struct Menu
+{
+private:
+    enum class State
+    {
+        Main,
+        Input
+    };
+
+    Texture backTex;
+
+    bool _open = false;
+    Vector<State> stateStack = {State::Main};
+    Vector<Action*> actions;
+    
+    Input::ActionControl* keyToAssign = nullptr;
+    Set<Input::ActionControl*> keysToRemove;
+
+public:
+    void setup()
+    {
+        backTex.loadFromFile("assets/left.png");
+
+        actions.push_back(&config.actForward);
+        actions.push_back(&config.actBackward);
+        actions.push_back(&config.actLeft);
+        actions.push_back(&config.actRight);
+        actions.push_back(&config.actPrimary);
+        actions.push_back(&config.actRestart);
+    }
+
+    float backButtonSize = 16.f;
+    int maxActions = 3;
+    Vector2f mainWindowSize  = { 130, 180 };
+    Vector2f inputWindowSize = { 300, 350 };
+
+    bool isOpen() const { return _open == true; }
+
+    void open()
+    {
+        _open = true;
+        game.paused = true;
+    }
+
+    void close()
+    {
+        _open = false;
+        stateStack = {State::Main};
+        keyToAssign = nullptr;
+        keysToRemove.clear();
+        game.paused = false;
+    }
+
+    void toggle()
+    {
+        if (isOpen()) { close(); }
+        else { open(); }
+    }
+
+    void render()
+    {
+        if (!_open) { close(); return; }
+
+        if (stateStack.back() != State::Main)   { ImGui::SetNextWindowSize({ inputWindowSize.x, inputWindowSize.y }); }
+        else                                    { ImGui::SetNextWindowSize({ mainWindowSize.x,  mainWindowSize.y  }); }
+        ImGui::Begin("Menu", &_open, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+
+        // Back button
+        if (stateStack.size() > 1)
+        {
+            if (ImGui::ImageButton("Back", (ImTextureID)backTex.handle(), {backButtonSize, backButtonSize}))
+            { stateStack.pop_back(); }
+        } else
+        { ImGui::Dummy({backButtonSize, backButtonSize}); }
+
+        switch (stateStack.back())
+        {
+        case State::Main:  mainMenu();  break;
+        case State::Input: inputMenu(); break;
+        default: break;
+        }
+
+        ImGui::End();
+    }
+
+private:
+    void mainMenu()
+    {
+        if (ImGui::Button("Restart", {-1, 0}))
+        { game.start(); close(); }
+        if (ImGui::Button("Key Mapping", {-1, 0}))
+        { stateStack.push_back(State::Input); }
+        if (ImGui::Button("Quit", {-1, 0}))
+        { running = false; }
+    }
+
+    void inputMenu()
+    {
+        auto& io = ImGui::GetIO();
+
+        const float buttonWidth = 80.f;
+
+        if (keyToAssign)
+        {
+            if (Input::getLastInput().valid())
+            {
+                *keyToAssign = Input::getLastInput();
+                keyToAssign = nullptr;
+            }
+        }
+
+        int i = 0;
+        const int columns = maxActions + 1;
+        if (ImGui::BeginTable("table", columns, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_SizingFixedSame))
+        {
+            for (Input::Action* act : actions)
+            {
+                ImGui::TableNextColumn();
+                ImGui::Text(act->name.c_str());
+                ImGui::TableNextColumn();
+
+                // Draw/edit current keybinds
+                for (Input::ActionControl& c : act->controls)
+                {
+                    String name;
+                    if (&c == keyToAssign) name = "...";
+                    else                   name = Input::controlToStringShort(c);
+
+                    if (ImGui::Button((name + "##" + std::to_string(i)).c_str(), {-1, 0}))
+                    {
+                        keyToAssign = &c;
+                        Input::clearLastInput();
+                    }
+
+                    // Remove input
+                    if (ImGui::IsItemHovered() && io.MouseDown[1])
+                    {
+                        keysToRemove.insert(&c);
+                    }
+
+                    ImGui::TableNextColumn();
+                    ++i;
+                }
+
+                // Add keybind
+                if (act->controls.size() < maxActions)
+                {
+                    if (ImGui::Button( String("+##" + std::to_string(i)).c_str(), {-1, 0} ))
+                    {
+                        act->controls.push_back(Input::ActionControl(Input::ActionType::KEYBOARD, SDL_SCANCODE_AGAIN));
+                        keyToAssign = &act->controls.back();
+                        Input::clearLastInput();
+                    }
+                    ++i;
+                }
+                ImGui::TableNextRow();
+            }
+
+            ImGui::EndTable();
+        }
+
+        // Remove keys queued for delete
+        if (keysToRemove.empty()) { return; }
+        for (auto& act : actions)
+        {
+            eastl::erase_if(act->controls, [this](Input::ActionControl& v)
+                {
+                    auto it = keysToRemove.find(&v);
+                    if (it != keysToRemove.end())
+                    { return true; }
+                    return false;
+                });
+        }
+        keysToRemove.clear();
+    }
+
+} menu;
 
 int main()
 {
+    bool showMetricsWindow = false;
+
     window.create();
     window.setTitle("Asteroids");
     Renderer::create();
     Renderer2D::create();
+    imgui.create(window);
+    auto& io = ImGui::GetIO();
+    const ImWchar range[3] = {0x20, 0xFFFF, 0};
+    io.Fonts->AddFontFromFileTTF("assets/roboto.ttf", 16, 0, range);
+
+    menu.setup();
 
     deltaTimer .restart();
     fpslimit   .setFPSLimit(144);
     fpslimit   .setEnabled(true);
 
-    Game game;
     game.start();
 
-    bool running = true;
     while (running)
     {
         float delta = deltaTimer.restart().asSeconds();
@@ -308,6 +489,7 @@ int main()
         while (SDL_PollEvent(&e))
         {
             Input::input(e);
+            imgui.input(e);
 
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
@@ -318,9 +500,21 @@ int main()
 
             if (e.type == SDL_QUIT) { running = false; }
         }
-        Input::update();
+        auto& io = ImGui::GetIO();
+        if (!(io.WantCaptureKeyboard)) { Input::updateKeyboard(); }
+        if (!(io.WantCaptureMouse))    { Input::updateMouse(); }
 
+        if (Input::isActionJustPressed(config.actMenu))
+        { menu.toggle(); }
+
+        if (Input::isKeyJustPressed(SDL_SCANCODE_F1))
+        { showMetricsWindow = !showMetricsWindow; }
+
+        imgui.newFrame();
+        if (showMetricsWindow) { ImGui::ShowMetricsWindow(&showMetricsWindow); }
         game.loop(delta);
+        menu.render();
+        imgui.render();
 
         window.swap();
 
