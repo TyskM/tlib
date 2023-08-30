@@ -1,3 +1,11 @@
+
+#[[
+    vcpkg dependencies:
+    core: spdlog magic-enum palsigslot freetype mimalloc cereal boost-algorithm boost-container SDL2 sdl2-gfx gl3w glm imgui imgui[sdl2-binding] imgui[opengl3-binding] assimp cmakerc
+    tests: sfml
+]]
+
+
 cmake_minimum_required(VERSION 3.0.0)
 project(TLib VERSION 0.1.0)
 
@@ -104,6 +112,9 @@ target_link_libraries(TLib PUBLIC imgui::imgui)
 
 find_dependency(assimp CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC assimp::assimp)
+
+find_dependency(freetype CONFIG REQUIRED)
+target_link_libraries(TLib PUBLIC freetype)
 
 # Polygon Mesh Processing Library (pmp-library)
 # https://github.com/pmp-library/pmp-library

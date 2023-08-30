@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SDL2.hpp"
+#include <TLib/Media/Platform/SDL2.hpp>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL2_framerate.h>
 

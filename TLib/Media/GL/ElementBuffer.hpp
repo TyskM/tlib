@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "IBuffer.hpp"
+#include <TLib/Media/GL/IBuffer.hpp>
 
 // Also known as an index buffer
 // For storing indices

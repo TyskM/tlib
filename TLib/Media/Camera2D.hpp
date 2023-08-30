@@ -7,10 +7,10 @@
 struct Camera2D
 {
 protected:
-    Rectf bounds  = {0, 0, 6, 6};
-    Vector2f zoom = {1.f, 1.f};
-    float znear   = -1.f;
-    float zfar    = 1.f;
+    Rectf    bounds  = {0, 0, 6, 6};
+    Vector2f zoom    = {1.f, 1.f};
+    float    znear   = -1.f;
+    float    zfar    =  1.f;
 
 public:
     Camera2D(float x, float y, float width, float height) : bounds{x, y, width, height} { }

@@ -56,7 +56,7 @@ add_library(TLib::TLib STATIC IMPORTED)
 set_target_properties(TLib::TLib PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_20"
   INTERFACE_INCLUDE_DIRECTORIES "G:/Resources/Dev/CPP/TLib;G:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/_cmrc/include"
-  INTERFACE_LINK_LIBRARIES "\$<LINK_ONLY:TLib::embed>;EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;cereal::cereal;Boost::boost;Boost::container;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp"
+  INTERFACE_LINK_LIBRARIES "\$<LINK_ONLY:TLib::embed>;EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;cereal::cereal;Boost::boost;Boost::container;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp;freetype"
 )
 
 # Create imported target TLib::embed

@@ -3,7 +3,7 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
-#include "Texture.hpp"
+#include <TLib/Media/Resource/Texture.hpp>
 #include <TLib/DataStructures.hpp>
 #include <TLib/Containers/Vector.hpp>
 

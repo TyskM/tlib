@@ -31,14 +31,23 @@ public:
 
     struct ActionControl
     {
+        ActionControl() { }
         ActionControl(ActionType type, int id, SDL_Keymod modifier = KMOD_NONE)
             : type{ type }, id{ id }, modifier{ modifier } { }
+
+        bool valid() const { return id != -1; }
+        
+        void clear()
+        {
+            *this = ActionControl();
+        }
+
 
         // TODO: fix this
         bool strictModChecking = false;
         int  modifier = KMOD_NONE; // See SDL_Keymod
-        ActionType type;
-        int id;
+        ActionType type = ActionType::KEYBOARD;
+        int id = -1;
     };
 
     struct Action
@@ -92,6 +101,7 @@ private:
     static inline bool wheelUpNextUpdate   = false;
     static inline bool wheelDownNextUpdate = false;
 
+    static inline ActionControl lastInput;
 
 public:
     // Call in your input loop
@@ -99,6 +109,21 @@ public:
     {
         if      (e.type == SDL_MOUSEWHEEL && e.wheel.y > 0) { wheelUpNextUpdate   = true; }
         else if (e.type == SDL_MOUSEWHEEL && e.wheel.y < 0) { wheelDownNextUpdate = true; }
+
+        switch (e.type)
+        {
+        case SDL_KEYUP:         lastInput = ActionControl(ActionType::KEYBOARD, e.key.keysym.scancode, static_cast<SDL_Keymod>(e.key.keysym.mod)); break;
+        case SDL_MOUSEBUTTONUP: lastInput = ActionControl(ActionType::MOUSE,    e.button.button-1); break;
+
+        case SDL_MOUSEWHEEL:
+            if (e.wheel.y > 0)
+            { lastInput = ActionControl(ActionType::MOUSE, MOUSE_WHEEL_UP); }
+            else if (e.wheel.y < 0)
+            { lastInput = ActionControl(ActionType::MOUSE, MOUSE_WHEEL_DOWN); }
+            break;
+
+        default: break;
+        }
     }
 
     // Call before update loop
@@ -134,6 +159,12 @@ public:
         wheelUpNextUpdate   = false;
         wheelDownNextUpdate = false;
     }
+
+    static inline ActionControl getLastInput()
+    { return lastInput; }
+
+    static inline void clearLastInput()
+    { lastInput = ActionControl(); }
 
     //// Action input
 
@@ -305,8 +336,12 @@ public:
                 else { str += "?"; }
                 break;
             case ActionType::KEYBOARD:
-                str += std::string(SDL_GetScancodeName((SDL_Scancode)ctrl.id));
+            {
+                String name = SDL_GetScancodeName((SDL_Scancode)ctrl.id);
+                if (name == "") { str += "?"; }
+                else { str += name; }
                 break;
+            }
             default: str += "?"; break;
         }
 
@@ -325,12 +360,16 @@ public:
             case ActionType::MOUSE:
                 if (mouseButtonNameMap.contains(ctrl.id))
                 { str += mouseButtonNameMap.contains(ctrl.id); }
-                else { str += "Unknown"; }
+                else { str += "?"; }
                 break;
             case ActionType::KEYBOARD:
-                str += std::string(SDL_GetScancodeName((SDL_Scancode)ctrl.id));
+            {
+                String name = SDL_GetScancodeName((SDL_Scancode)ctrl.id);
+                if (name == "") { str += "?"; }
+                else { str += name; }
                 break;
-            default: str += "Unknown"; break;
+            }
+            default: str += "?"; break;
         }
 
         return str;
