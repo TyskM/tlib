@@ -13,6 +13,15 @@
 #include <TLib/Media/GUI/FlowLayout.hpp>
 #include <TLib/Media/GUI/Widgets/Button/Button.hpp>
 #include <TLib/Media/GUI/Widgets/CheckBox/CheckBox.hpp>
+#include <TLib/Media/GUI/Widgets/Frame/Frame.hpp>
+#include <TLib/Media/GUI/Widgets/DropDown/DropDown.hpp>
+#include <TLib/Media/GUI/Widgets/TextField/TextField.hpp>
+#include <TLib/Media/GUI/Widgets/RadioButton/RadioButton.hpp>
+#include <TLib/Media/GUI/Widgets/RadioButton/RadioButtonGroup.hpp>
+#include <TLib/Media/GUI/Widgets/Slider/Slider.hpp>
+#include <TLib/Media/GUI/Widgets/TextBox/ExtendedTextBox.hpp>
+#include <TLib/Media/GUI/Widgets/Tab/TabbedPane.hpp>
+#include <TLib/Media/GUI/Widgets/ScrollPane/ScrollPane.hpp>
 
 struct UI
 {
@@ -32,9 +41,22 @@ struct UI
     UPtr<agui::Font>         defaultFont     = NULL;
 
     SimpleActionListener simpleAL;
-    agui::FlowLayout flow;
-    agui::Button button;
-    agui::CheckBox checkBox;
+    
+    UPtr<agui::Frame           > frame;
+    UPtr<agui::FlowLayout      > flow;
+    UPtr<agui::Button          > button;
+    UPtr<agui::CheckBox        > checkBox;
+    UPtr<agui::DropDown        > dropDown;
+    UPtr<agui::TextField       > textField;
+    UPtr<agui::RadioButton     > rButton[3];
+    UPtr<agui::RadioButtonGroup> rGroup;
+    UPtr<agui::Slider          > slider;
+    UPtr<agui::ExtendedTextBox > exTextBox;
+    UPtr<agui::TabbedPane      > tabbedPane;
+    UPtr<agui::Tab             > tab[3];
+    UPtr<agui::ListBox         > listBox;
+    UPtr<agui::ScrollPane      > scrollPane;
+    UPtr<agui::Button          > scrollButtons[15];
 
     void init()
     {
@@ -50,18 +72,64 @@ struct UI
         defaultFont.reset(agui::Font::load("assets/roboto.ttf", 16));
         agui::Widget::setGlobalFont(defaultFont.get());
 
-        gui->add(&flow);
+        frame               = makeUnique<agui::Frame           >();
+        flow                = makeUnique<agui::FlowLayout      >();
+        button              = makeUnique<agui::Button          >();
+        checkBox            = makeUnique<agui::CheckBox        >();
+        dropDown            = makeUnique<agui::DropDown        >();
+        textField           = makeUnique<agui::TextField       >();
+        rGroup              = makeUnique<agui::RadioButtonGroup>();
+        slider              = makeUnique<agui::Slider          >();
+        exTextBox           = makeUnique<agui::ExtendedTextBox >();
+        tabbedPane          = makeUnique<agui::TabbedPane      >();
+        listBox             = makeUnique<agui::ListBox         >();
+        scrollPane          = makeUnique<agui::ScrollPane      >();
 
-        flow.add(&button);
-        button.setSize(80, 40);
-        button.setText("Push Me");
-        button.addActionListener(&simpleAL);
+        for (int i = 0; i < std::size(tab); i++)
+        { tab[i] = makeUnique<agui::Tab>(); }
 
-        flow.add(&checkBox);
-        checkBox.setAutosizing(true);
-        checkBox.setText("Show me a message box");
-        checkBox.setCheckBoxAlignment(agui::ALIGN_MIDDLE_LEFT);
-        checkBox.addActionListener(&simpleAL);
+        for (int i = 0; i < std::size(scrollButtons); i++)
+        { scrollButtons[i] = makeUnique<agui::Button>(); }
+
+        gui->add(frame.get());
+        frame->setSize(220, 420);
+        frame->setLocation(60, 60);
+        frame->setText("Example Frame");
+        frame->add(flow.get());
+
+        flow->add(button.get());
+        button->setSize(80, 40);
+        button->setText("Push Me");
+        button->addActionListener(&simpleAL);
+
+        flow->add(checkBox.get());
+        checkBox->setAutosizing(true);
+        checkBox->setText("Show me a message box");
+        checkBox->setCheckBoxAlignment(agui::ALIGN_MIDDLE_LEFT);
+        checkBox->addActionListener(&simpleAL);
+
+        std::stringstream ss;
+        for (int i = 0; i < std::size(rButton); i++)
+        {
+            rButton[i] = makeUnique<agui::RadioButton>();
+            ss.str("");
+            ss.clear();
+            ss << "Sample Radio Button ";
+            ss << i;
+
+            rGroup->add(rButton[i].get());
+            rButton[i]->setAutosizing(true);
+            rButton[i]->setText(ss.str());
+            flow->add(rButton[i].get());
+            rButton[i]->setLocation(0, 30 * i);
+            rButton[i]->addActionListener(&simpleAL);
+        }
+
+        flow->add(slider.get());
+        slider->setSize(100, 36);
+        slider->setMaxValue(255);
+        slider->setMarkerSize(agui::Dimension(10, 30));
+        slider->addActionListener(&simpleAL);
     }
 };
 
