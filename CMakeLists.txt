@@ -6,7 +6,7 @@
 ]]
 
 
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.15)
 project(TLib VERSION 0.1.0)
 
 include(CTest)
@@ -24,7 +24,9 @@ file(GLOB_RECURSE PMP_FILES CONFIGURE_DEPENDS
 TLib/thirdparty/pmp/*.cpp TLib/thirdparty/pmp/*.hpp TLib/thirdparty/pmp/*.h)
 list(REMOVE_ITEM SOURCE_FILES ${PMP_FILES})
 
-add_library(TLib STATIC "TLib.cpp" ${SOURCE_FILES})
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+add_library(TLib "TLib.cpp" ${SOURCE_FILES})
 add_library(TLib::TLib ALIAS TLib)
 target_compile_features(TLib PUBLIC cxx_std_20)
 
@@ -33,12 +35,9 @@ set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 include(FetchContent)
 
-set(CMAKE_CXX_FLAGS_DEBUG          "${CMAKE_CXX_FLAGS_DEBUG}          /MTd")
-set(CMAKE_CXX_FLAGS_RELEASE        "${CMAKE_CXX_FLAGS_RELEASE}        /MT")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /MT")
-set(CMAKE_CXX_FLAGS_MINSIZEREL     "${CMAKE_CXX_FLAGS_MINSIZEREL}     /MT")
-
+message("Triplet:  ${VCPKG_TARGET_TRIPLET}")
 message("Build Type: ${CMAKE_BUILD_TYPE}")
+message("Shared Build: ${BUILD_SHARED_LIBS}")
 if (CMAKE_BUILD_TYPE EQUAL "DEBUG")
     add_compile_options(-fsanitize=address)
     add_link_options(-fsanitize=address)
@@ -50,15 +49,15 @@ $<INSTALL_INTERFACE:TLib> # <prefix>/TLib
 )
 
 ### Setup CMRC for embedding files
-find_package(CMakeRC)
+#find_package(CMakeRC)
 # Add embeded files here
-file(GLOB_RECURSE EMBED_FILES CONFIGURE_DEPENDS TLib/Embed/Shaders/*.vert TLib/Embed/Shaders/*.frag) # Shader files
-cmrc_add_resource_library(embed ${EMBED_FILES})
-target_link_libraries(TLib PRIVATE embed)
-target_include_directories(TLib PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/_cmrc/include>
-    $<INSTALL_INTERFACE:TLib> # <prefix>/TLib
-)
+#file(GLOB_RECURSE EMBED_FILES CONFIGURE_DEPENDS TLib/Embed/Shaders/*.vert TLib/Embed/Shaders/*.frag) # Shader files
+#cmrc_add_resource_library(embed ${EMBED_FILES})
+#target_link_libraries(TLib PRIVATE embed)
+#target_include_directories(TLib PUBLIC
+#    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/_cmrc/include>
+#    $<INSTALL_INTERFACE:TLib> # <prefix>/TLib
+#)
 
 include(CMakeFindDependencyMacro)
 
@@ -123,9 +122,39 @@ target_link_libraries(TLib PUBLIC freetype)
 # target_link_libraries(TLib PUBLIC pmp)
 
 ##
+#### Embedder
+enable_testing()
+add_executable(Embedder "Embedder/embedder.cpp")
+target_compile_features(Embedder PUBLIC cxx_std_20)
+
+find_dependency(CLI11 CONFIG REQUIRED)
+target_link_libraries(Embedder PUBLIC CLI11::CLI11)
+target_link_libraries(Embedder PUBLIC spdlog::spdlog spdlog::spdlog_header_only)
+
+add_test(EmbedTest1 Embedder -f "Embedder/test/2d.frag" "Embedder/test/2d.vert" -o "embed.hpp" --ow)
+
+# Embedder tests
+add_custom_target(EmbedTestAssets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/Embedder/test ${CMAKE_CURRENT_BINARY_DIR}/Embedder/test )
+add_dependencies(Embedder EmbedTestAssets)
+
+# Copy Embedder
+add_custom_target(CopyEmbedder COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/Embedder.exe ${CMAKE_CURRENT_LIST_DIR})
+add_dependencies(CopyEmbedder Embedder)
+
+# Run Embedder
+add_custom_target(RunEmbedder WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR} COMMAND ${CMAKE_CURRENT_LIST_DIR}/Embedder.exe
+-f
+"TLib/Embed/Shaders/sdf_text.frag"
+"TLib/Embed/Shaders/2d.frag"
+"TLib/Embed/Shaders/2d.vert"
+-o "TLib/Embed/Embed.hpp" --ow)
+add_dependencies(RunEmbedder CopyEmbedder)
+add_dependencies(TLib RunEmbedder)
+
+##
 #### Make package
 
-install(TARGETS TLib embed cmrc-base EXPORT TLib-targets)
+install(TARGETS TLib EXPORT TLib-targets)
 # install package
 install(EXPORT TLib-targets
     FILE TLib-targets.cmake

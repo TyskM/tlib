@@ -21,6 +21,9 @@ struct Renderer2D
 #pragma region Public
 public:
 
+    // When false, ignore layer parameter and draw everthing back to front
+    static inline bool sortDraws = false;
+
     static constexpr Vector2f OriginCenter          = { FLT_MAX, FLT_MAX };
     static constexpr int      DefaultSpriteLayer    = 0;
     static constexpr int      DefaultPrimitiveLayer = 1;
@@ -304,14 +307,14 @@ private:
 
         if (!defaultShader.created())
         {
-            defaultShader.create( TLibEmbed::getFileAsString("TLib/Embed/Shaders/2d.vert").c_str(),
-                                  TLibEmbed::getFileAsString("TLib/Embed/Shaders/2d.frag").c_str());
+            defaultShader.create( myEmbeds["TLib/Embed/Shaders/2d.vert"].asString().c_str(),
+                                  myEmbeds["TLib/Embed/Shaders/2d.frag"].asString().c_str());
         }
 
         if (!textShader.created())
         {
-            textShader.create( TLibEmbed::getFileAsString("TLib/Embed/Shaders/2d.vert").c_str(),
-                               TLibEmbed::getFileAsString("TLib/Embed/Shaders/sdf_text.frag").c_str());
+            textShader.create( myEmbeds["TLib/Embed/Shaders/2d.vert"].asString().c_str(),
+                               myEmbeds["TLib/Embed/Shaders/sdf_text.frag"].asString().c_str());
         }
 
         setSDFTextEdge(0.04f);
@@ -355,7 +358,8 @@ private:
     {
         if (drawCmds.empty()) { return; }
 
-        std::sort(drawCmds.begin(), drawCmds.end());
+        if (sortDraws)
+        { std::sort(drawCmds.begin(), drawCmds.end()); }
 
         Texture*   lastTexture  = drawCmds[0].texture;
         Shader*    lastShader   = drawCmds[0].shader;

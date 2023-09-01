@@ -15,15 +15,11 @@ cmake_policy(VERSION 2.8.3...3.24)
 # Commands may need to know the format version.
 set(CMAKE_IMPORT_FILE_VERSION 1)
 
-if(CMAKE_VERSION VERSION_LESS 3.0.0)
-  message(FATAL_ERROR "This file relies on consumers using CMake 3.0.0 or greater.")
-endif()
-
 # Protect against multiple inclusion, which would fail when already imported targets are added once more.
 set(_cmake_targets_defined "")
 set(_cmake_targets_not_defined "")
 set(_cmake_expected_targets "")
-foreach(_cmake_expected_target IN ITEMS TLib::TLib TLib::embed TLib::cmrc-base)
+foreach(_cmake_expected_target IN ITEMS TLib::TLib)
   list(APPEND _cmake_expected_targets "${_cmake_expected_target}")
   if(TARGET "${_cmake_expected_target}")
     list(APPEND _cmake_targets_defined "${_cmake_expected_target}")
@@ -55,37 +51,15 @@ add_library(TLib::TLib STATIC IMPORTED)
 
 set_target_properties(TLib::TLib PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_20"
-  INTERFACE_INCLUDE_DIRECTORIES "G:/Resources/Dev/CPP/TLib;G:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/_cmrc/include"
-  INTERFACE_LINK_LIBRARIES "\$<LINK_ONLY:TLib::embed>;EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;cereal::cereal;Boost::boost;Boost::container;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp;freetype"
+  INTERFACE_INCLUDE_DIRECTORIES "G:/Resources/Dev/CPP/TLib"
+  INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;cereal::cereal;Boost::boost;Boost::container;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp;freetype"
 )
 
-# Create imported target TLib::embed
-add_library(TLib::embed STATIC IMPORTED)
-
-set_target_properties(TLib::embed PROPERTIES
-  INTERFACE_LINK_LIBRARIES "TLib::cmrc-base"
-)
-
-# Create imported target TLib::cmrc-base
-add_library(TLib::cmrc-base INTERFACE IMPORTED)
-
-set_target_properties(TLib::cmrc-base PROPERTIES
-  INTERFACE_COMPILE_FEATURES "cxx_nullptr"
-  INTERFACE_INCLUDE_DIRECTORIES "G:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/_cmrc/include"
-)
-
-# Import target "TLib::TLib" for configuration "Debug"
-set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
+# Import target "TLib::TLib" for configuration "Release"
+set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(TLib::TLib PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
-  IMPORTED_LOCATION_DEBUG "G:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/TLib.lib"
-  )
-
-# Import target "TLib::embed" for configuration "Debug"
-set_property(TARGET TLib::embed APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-set_target_properties(TLib::embed PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
-  IMPORTED_LOCATION_DEBUG "G:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/embed.lib"
+  IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
+  IMPORTED_LOCATION_RELEASE "G:/Resources/Dev/CPP/TLib/out/build/x64-windows-release-static/TLib.lib"
   )
 
 # This file does not depend on other imported targets which have
