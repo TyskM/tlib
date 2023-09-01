@@ -1,10 +1,10 @@
 #pragma once
 
 #include <TLib/String.hpp>
+#include <TLib/Containers/Vector.hpp>
 
 #include <fstream>
 #include <stdexcept>
-#include <vector>
 #include <filesystem>
 
 namespace fs = std::filesystem;
@@ -16,16 +16,34 @@ struct FileWriteError : public std::runtime_error { using std::runtime_error::ru
 // Reads a file into a string
 String readFile(const Path& filePath)
 {
-	// http://insanecoding.blogspot.de/2011/11/how-to-read-in-file-in-c.html
-	std::ifstream in(filePath, std::ios::in | std::ios::binary);
-	if (!in) throw FileReadError("Failed to read file: " + filePath.string());
-	return String(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+    // http://insanecoding.blogspot.de/2011/11/how-to-read-in-file-in-c.html
+    std::ifstream in(filePath, std::ios::in | std::ios::binary);
+    if (!in) throw FileReadError("Failed to read file: " + filePath.string());
+    return String(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+}
+
+Vector<char> readFileBytes(const Path& filePath)
+{
+    std::ifstream in(filePath, std::ios_base::binary);
+    if (!in) throw FileReadError("Failed to read file: " + filePath.string());
+
+    in.seekg(0, in.end);
+    size_t length = in.tellg();
+    in.seekg(0, in.beg);
+
+    Vector<char> buffer;
+    if (length > 0) {
+        buffer.resize(length);
+        in.read(&buffer[0], length);
+    }
+    return buffer;
 }
 
 void writeToFile(const Path& filePath, const String& value)
 {
-    fs::create_directories(filePath.parent_path());
-    std::ofstream out(filePath, std::ios::out | std::ios::binary);
+    if (fs::is_directory(filePath.parent_path()))
+    { fs::create_directories(filePath.parent_path()); }
+    std::ofstream out(filePath, std::ios::out | std::ios::binary | std::ios::trunc);
     if (!out) throw FileWriteError("Failed to write file: " + filePath.string());
     out << value;
     out.close();
