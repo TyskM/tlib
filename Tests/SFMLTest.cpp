@@ -70,7 +70,7 @@ struct SFMLTest
 
             if (timer.getElapsedTime().asSeconds() > 1.f)
             {
-                win.setTitle(std::string("FPS: ") + std::to_string(fpscounter));
+                win.setTitle(std::string("SFML FPS: ") + std::to_string(fpscounter));
                 fpscounter = 0;
                 timer.restart();
             }

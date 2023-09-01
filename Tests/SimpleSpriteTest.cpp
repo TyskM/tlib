@@ -80,7 +80,7 @@ struct TLibTest
 
             if (timer.getElapsedTime().asSeconds() > 1.f)
             {
-                win.setTitle(String("FPS: ") + std::to_string(fpscounter));
+                win.setTitle(String("TLib FPS: ") + std::to_string(fpscounter));
                 fpscounter = 0;
                 timer.restart();
             }
