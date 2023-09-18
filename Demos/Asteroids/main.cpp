@@ -201,8 +201,8 @@ struct Game
                         Asteroid newa2 = newa1;
 
                         const float turnAmount = 0.133333f;
-                        newa1.vel.rotate((math::pi * 2.f) *  turnAmount);
-                        newa2.vel.rotate((math::pi * 2.f) * -turnAmount);
+                        newa1.vel.rotate((glm::pi<float>() * 2.f) *  turnAmount);
+                        newa2.vel.rotate((glm::pi<float>() * 2.f) * -turnAmount);
 
                         newAsteroids.push_back(newa1);
                         newAsteroids.push_back(newa2);

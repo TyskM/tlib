@@ -63,9 +63,7 @@ struct SFMLTest
                 }
                 if (count == 0) break;
             }
-            
-            
-            
+
             win.display();
 
             if (timer.getElapsedTime().asSeconds() > 1.f)

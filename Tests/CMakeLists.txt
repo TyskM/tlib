@@ -14,6 +14,7 @@ set(TLib_Tests
         Text
         Model
         GUI
+        Box2D
 )
 
 enable_testing()

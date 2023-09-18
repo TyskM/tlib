@@ -23,6 +23,70 @@
 #include <TLib/Media/GUI/Widgets/Tab/TabbedPane.hpp>
 #include <TLib/Media/GUI/Widgets/ScrollPane/ScrollPane.hpp>
 
+namespace agui
+{
+    struct ImageButton : public Button
+    {
+    protected:
+        agui::Image* defaultImage  = nullptr;
+        agui::Image* hoverImage    = nullptr;
+        agui::Image* clickImage    = nullptr;
+        agui::Image* disabledImage = nullptr;
+
+        virtual void paintBackground(const agui::PaintEvent& paintEvent)
+        {
+            if (!paintEvent.isEnabled() && disabledImage)
+            {
+                paintEvent.graphics()->drawNinePatchImage(
+                    disabledImage, agui::Point(0, 0), getSize(), 1.0f);
+                return;
+            }
+
+            switch (getButtonState())
+            {
+            case DEFAULT:
+                if (!defaultImage) { return; }
+                paintEvent.graphics()->drawNinePatchImage(
+                    defaultImage, agui::Point(0, 0), getSize(), 1.0f);
+                return; break;
+
+            case HOVERED:
+                if (!hoverImage) { return; }
+                paintEvent.graphics()->drawNinePatchImage(
+                    hoverImage, agui::Point(0, 0), getSize(), 1.0f);
+                return; break;
+
+            case CLICKED:
+                if (!clickImage) { return; }
+                paintEvent.graphics()->drawNinePatchImage(
+                    clickImage, agui::Point(0, 0), getSize(), 1.0f);
+                return; break;
+
+            default: break;
+            }
+        }
+
+        virtual void paintComponent(const agui::PaintEvent& paintEvent)
+        {
+            resizableText.drawTextArea(paintEvent.graphics(), getFont(),
+                getInnerRectangle(), getFontColor(), getAreaText(), getTextAlignment());
+        }
+
+    public:
+        void setImages(
+            agui::Image* defaultImage,
+            agui::Image* hoverImage,
+            agui::Image* clickImage,
+            agui::Image* disabledImage)
+        {
+            this->defaultImage  = defaultImage;
+            this->hoverImage    = hoverImage;
+            this->clickImage    = clickImage;
+            this->disabledImage = disabledImage;
+        }
+    };
+}
+
 struct UI
 {
     class SimpleActionListener : public agui::ActionListener
@@ -33,7 +97,6 @@ struct UI
             tlog::info("Wow, you did something!!");
         }
     };
-
 
     UPtr<agui::Gui>          gui             = NULL;
     UPtr<agui::TLibInput>    inputHandler    = NULL;
@@ -57,6 +120,7 @@ struct UI
     UPtr<agui::ListBox         > listBox;
     UPtr<agui::ScrollPane      > scrollPane;
     UPtr<agui::Button          > scrollButtons[15];
+    UPtr<agui::ImageButton     > imgButton;
 
     void init()
     {
@@ -72,18 +136,19 @@ struct UI
         defaultFont.reset(agui::Font::load("assets/roboto.ttf", 16));
         agui::Widget::setGlobalFont(defaultFont.get());
 
-        frame               = makeUnique<agui::Frame           >();
-        flow                = makeUnique<agui::FlowLayout      >();
-        button              = makeUnique<agui::Button          >();
-        checkBox            = makeUnique<agui::CheckBox        >();
-        dropDown            = makeUnique<agui::DropDown        >();
-        textField           = makeUnique<agui::TextField       >();
-        rGroup              = makeUnique<agui::RadioButtonGroup>();
-        slider              = makeUnique<agui::Slider          >();
-        exTextBox           = makeUnique<agui::ExtendedTextBox >();
-        tabbedPane          = makeUnique<agui::TabbedPane      >();
-        listBox             = makeUnique<agui::ListBox         >();
-        scrollPane          = makeUnique<agui::ScrollPane      >();
+        frame       = makeUnique<agui::Frame           >();
+        flow        = makeUnique<agui::FlowLayout      >();
+        button      = makeUnique<agui::Button          >();
+        checkBox    = makeUnique<agui::CheckBox        >();
+        dropDown    = makeUnique<agui::DropDown        >();
+        textField   = makeUnique<agui::TextField       >();
+        rGroup      = makeUnique<agui::RadioButtonGroup>();
+        slider      = makeUnique<agui::Slider          >();
+        exTextBox   = makeUnique<agui::ExtendedTextBox >();
+        tabbedPane  = makeUnique<agui::TabbedPane      >();
+        listBox     = makeUnique<agui::ListBox         >();
+        scrollPane  = makeUnique<agui::ScrollPane      >();
+        imgButton   = makeUnique<agui::ImageButton     >();
 
         for (int i = 0; i < std::size(tab); i++)
         { tab[i] = makeUnique<agui::Tab>(); }
