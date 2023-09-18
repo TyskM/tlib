@@ -16,22 +16,34 @@
 #include <glm/gtx/rotate_vector.hpp>
 #include <span>
 
+struct Renderer2DOrigin
+{
+    Renderer2DOrigin() = default;
+    Renderer2DOrigin(const Vector2f& pos, bool useWorldCoords = false) : pos{pos}, useWorldCoords{useWorldCoords} { }
+
+    // Uses local coords if this is false
+    bool useWorldCoords = false;
+
+    Vector2f pos = { FLT_MAX, FLT_MAX };
+};
+
 struct Renderer2D
 {
 #pragma region Public
 public:
-
-    // When false, ignore layer parameter and draw everthing back to front
-    static inline bool sortDraws = false;
-
     static constexpr Vector2f OriginCenter          = { FLT_MAX, FLT_MAX };
     static constexpr int      DefaultSpriteLayer    = 0;
     static constexpr int      DefaultPrimitiveLayer = 1;
     static constexpr int      DefaultTextLayer      = 2;
 
-    static bool created() { return inited; }
-    static void create()  { init();        }
-    static void render()  { flush();       }
+    static bool created()      { return inited; }
+    static void create()       { init();        }
+
+    // Ignore layer parameter and draw everthing back to front
+    static void render()       { flush(false);  }
+
+    // Sort everything by the layer parameter before drawing
+    static void renderSorted() { flush(true); }
 
     static void setView(const Camera2D& camera)
     {
@@ -41,9 +53,10 @@ public:
         textShader   .setMat4f("projection", mat);
 
         frustum = Frustum(mat);
+        auto fbSize = Renderer::getFramebufferSize();
 
-        glViewport(0, 0, /* (fbSize.y - bounds.height) TODO: used to use this, remember why lmao */
-                   bounds.width, bounds.height);
+        glViewport(0, 0, // because glViewport uses bottom left as origin
+                   fbSize.x, fbSize.y);
 
         view = camera;
     }
@@ -55,26 +68,80 @@ public:
     static void clearColor(const ColorRGBAf& color = { 0.1f, 0.1f, 0.1f, 1.f })
     { Renderer::clearColor(color); }
 
+    // Rotation is in radians
     static void drawTexture(      Texture&            tex,
                             const Rectf&              dstrect,
                             const int                 layer    = DefaultSpriteLayer,
                             const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
                             const float               rotation = 0.f,
-                            const Vector2f            origin   = OriginCenter)
+                            const Renderer2DOrigin&   origin   = OriginCenter)
     {
         sprite_batch(tex, Rectf(Vector2f{ 0.f,0.f },
                                 Vector2f(tex.getSize())), dstrect, layer, color, rotation, origin);
     }
 
+    // Rotation is in radians
+    static void drawTexture(      SubTexture&         subTex,
+                            const Rectf&              dstrect,
+                            const int                 layer    = DefaultSpriteLayer,
+                            const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
+                            const float               rotation = 0.f,
+                            const Renderer2DOrigin&   origin   = OriginCenter)
+    {
+        ASSERT(subTex.texture);
+        sprite_batch(*subTex.texture, Rectf(subTex.rect), dstrect, layer, color, rotation, origin);
+    }
+
+    // Rotation is in radians
     static void drawTexture(      Texture&            tex,
                             const Rectf&              srcrect,
                             const Rectf&              dstrect,
                             const int                 layer    = DefaultSpriteLayer,
                             const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
                             const float               rotation = 0.f,
-                            const Vector2f            origin   = OriginCenter)
+                            const Renderer2DOrigin&   origin   = OriginCenter)
     {
         sprite_batch(tex, srcrect, dstrect, layer, color, rotation, origin);
+    }
+
+    // Rotation is in radians
+    static void drawTexture(      Texture&            tex,
+                            const Rectf&              srcrect,
+                            const Vector2f&           pos,
+                            const Vector2f&           scale    = { 1.f, 1.f },
+                            const int                 layer    = DefaultSpriteLayer,
+                            const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
+                            const float               rotation = 0.f,
+                            const Renderer2DOrigin&   origin   = OriginCenter)
+    {
+        Vector2f texSize     = Vector2f(tex.getSize()) * scale;
+        Vector2f halfTexSize = texSize/2.f;
+
+        sprite_batch(tex, srcrect,
+                          Rectf(pos - halfTexSize, texSize), layer, color, rotation, origin);
+    }
+
+    // Rotation is in radians
+    static void drawTexture(      Texture&            tex,
+                            const Vector2f&           pos,
+                            const Vector2f&           scale    = { 1.f, 1.f },
+                            const int                 layer    = DefaultSpriteLayer,
+                            const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
+                            const float               rotation = 0.f,
+                            const Renderer2DOrigin&   origin   = OriginCenter)
+    {
+        drawTexture(tex, Rectf(Vector2f{0.f,0.f}, Vector2f(tex.getSize())),
+                    pos, scale, layer, color, rotation, origin);
+    }
+
+    // loop: will draw a line between first and last point
+    static void drawLines(const std::span<const Vector2f>& points,
+                          const int                        layer    = DefaultPrimitiveLayer,
+                          const ColorRGBAf&                color    = ColorRGBAf::white(),
+                          const float                      width    = 1,
+                          GLDrawMode                       drawMode = GLDrawMode::Lines)
+    {
+        prim_batch(points, layer, color, width, drawMode);
     }
 
     static void drawLine(const Vector2f&   start,
@@ -216,6 +283,12 @@ public:
     static inline float getSDFTextEdge()
     { return sdfTextEdge; }
 
+    static inline Vector2f getRectDefaultOrigin(const Rectf& rect)
+    {
+        return Vector2f(rect.x + rect.width  / 2,
+                        rect.y + rect.height / 2);
+    }
+
 #pragma endregion
 
 #pragma region Impl
@@ -354,11 +427,11 @@ private:
         batchBufferIndices.clear();
     }
 
-    static void flush()
+    static void flush(bool sort)
     {
         if (drawCmds.empty()) { return; }
 
-        if (sortDraws)
+        if (sort)
         { std::sort(drawCmds.begin(), drawCmds.end()); }
 
         Texture*   lastTexture  = drawCmds[0].texture;
@@ -408,16 +481,17 @@ private:
         y = xcopy * sinv + ycopy * cosv;
     }
 
-    static DrawCmd& sprite_batch(      Texture&    texture,
-                                 const Rectf&      srcrect,
-                                 const Rectf&      dstrect,
-                                 const int         layer    = 0,
-                                 const ColorRGBAf& color    = { 1.f, 1.f, 1.f, 1.f },
-                                 const float       rotation = 0.f,
-                                 Vector2f          origin   = OriginCenter,
-                                 const bool        flipuvx  = false,
-                                 const bool        flipuvy  = false,
-                                 Shader&           shader   = defaultShader)
+    // Rotation is in radians
+    static DrawCmd& sprite_batch(      Texture&          texture,
+                                 const Rectf&            srcrect,
+                                 const Rectf&            dstrect,
+                                 const int               layer    = 0,
+                                 const ColorRGBAf&       color    = { 1.f, 1.f, 1.f, 1.f },
+                                 const float             rotation = 0.f,
+                                 const Renderer2DOrigin& origin   = OriginCenter,
+                                 const bool              flipuvx  = false,
+                                 const bool              flipuvy  = false,
+                                 Shader&                 shader   = defaultShader)
     {
         ASSERT(inited); // Forgot to call Renderer2D::init()
         drawCmds.emplace_back();
@@ -435,7 +509,6 @@ private:
 
         cmd.posIndex = posAndCoords.size();
         cmd.posSize  = 4;
-
 
         float xpluswidth  = dstrect.x + dstrect.width;
         float yplusheight = dstrect.y + dstrect.height;
@@ -466,25 +539,32 @@ private:
 
         if (rotation != 0)
         {
-            if (origin.x == FLT_MAX) {
-                origin = Vector2f(dstrect.x + dstrect.width  / 2,
-                                  dstrect.y + dstrect.height / 2);
+            Vector2f realOrigin;
+
+            // If origin is default value, make it center of texture
+            if (origin.pos.x == FLT_MAX)
+            { realOrigin = getRectDefaultOrigin(dstrect); }
+            else
+            {
+                if (origin.useWorldCoords)
+                { realOrigin = origin.pos; }
+                else
+                { realOrigin = Vector2f(dstrect.x, dstrect.y) + origin.pos; }
             }
 
             for (size_t i = posAndCoords.size() - 4; i < posAndCoords.size(); i++)
             {
                 auto& v = posAndCoords[i];
-                v.x -= origin.x; v.y -= origin.y;
+                v.x -= realOrigin.x; v.y -= realOrigin.y;
                 rotate(v.x, v.y, rotation);
-                v.x += origin.x; v.y += origin.y;
+                v.x += realOrigin.x; v.y += realOrigin.y;
             }
         }
 
         return cmd;
     }
 
-
-    static void prim_batch(const std::span<Vector2f>&  points,
+    static void prim_batch(const std::span<const Vector2f>&  points,
                            const int                   layer = DefaultPrimitiveLayer,
                            const ColorRGBAf&           color = ColorRGBAf::white(),
                            const float                 width = 1,
