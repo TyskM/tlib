@@ -7,13 +7,14 @@
 struct Camera2D
 {
 protected:
-    Rectf    bounds  = {0, 0, 6, 6};
-    Vector2f zoom    = {1.f, 1.f};
-    float    znear   = -1.f;
-    float    zfar    =  1.f;
+    Rectf    bounds   = {0, 0, 6, 6};
+    Vector2f zoom     = {1.f, 1.f};
+    float    znear    = -1.f;
+    float    zfar     =  1.f;
 
 public:
     Camera2D(float x, float y, float width, float height) : bounds{x, y, width, height} { }
+    Camera2D(const Rectf& bounds) : bounds{bounds} { }
     Camera2D() = default;
 
     [[nodiscard]]
@@ -41,11 +42,15 @@ public:
     inline void setFarClipDistance(const float dist) { zfar = dist; }
 
     [[nodiscard]]
-    Vector2f localToWorldCoords(Vector2f localpos)
+    Vector2f localToWorldCoords(const Vector2f& localpos)
     {
         glm::mat4 mat = getMatrix();
         mat = glm::inverse(mat);
-        glm::vec3 ndc = glm::vec3(localpos.x / bounds.width, 1.0 - localpos.y / bounds.height, 0) * 2.f - 1.f;
+        
+        glm::vec3 ndc = glm::vec3(
+                  localpos.x / bounds.width,
+            1.f - localpos.y / bounds.height, 0) * 2.f - 1.f;
+        
         glm::vec4 worldPosition = mat * glm::vec4(ndc, 1);
 
         return { worldPosition.x, worldPosition.y };

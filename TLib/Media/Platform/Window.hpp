@@ -222,6 +222,12 @@ struct Window : NonAssignable
     void setTitle(const String& title)
     { SDL_SetWindowTitle(window, title.c_str()); }
 
+    void setSize(const Vector2i& size)
+    { SDL_SetWindowSize(window, size.x, size.y); }
+
+    void setSize(int x, int y)
+    { SDL_SetWindowSize(window, x, y); }
+
     [[nodiscard]] String getTitle()
     { return SDL_GetWindowTitle(window); }
 

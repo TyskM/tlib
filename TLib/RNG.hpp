@@ -2,6 +2,7 @@
 #include <cassert>
 #include <random>
 #include <stdexcept>
+#include <TLib/Containers/Vector.hpp>
 
 // Basic rng with convenience functions
 // Relies on std::random_device and std::mt19937
@@ -40,10 +41,10 @@ public:
 
     // Returns a random object from a std::vector.
     // It will explode if the vector is empty
-    template <typename T>
-    T choice(std::vector<T> items)
+    template <typename Cont>
+    Cont::value_type& choice(Cont items)
     {
-        assert(items.size() > 0);
-        return items[randRangeInt(0, items.size() - 1)];
+        ASSERT(items.size() > 0);
+        return items[randRangeInt<size_t>(size_t(0), items.size() - 1)];
     }
 };

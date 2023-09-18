@@ -40,11 +40,11 @@ struct Vector2
     { return atan2(y, x); }
 
     // In radians
-    T angleTo(const Vector2<T>& other)
+    T angleTo(const Vector2<T>& other) const
     { return atan2(cross(other), dot(other)); }
 
     // In radians
-    T angleToRel(const Vector2<T>& other)
+    T angleToRel(const Vector2<T>& other) const
     { return (other - *this).angle(); }
 
     void rotate(T radians)
@@ -72,7 +72,7 @@ struct Vector2
         *this = normalized();
     }
 
-    Vector2<T> normalized()
+    Vector2<T> normalized() const
     {
         Vector2<T> rv = *this;
         T len = length();
@@ -104,6 +104,10 @@ struct Vector2
 
     Vector2<T> relMultiply(const Vector2<T> other, T amount)
     { return (*this - other) * amount + other; }
+
+    [[nodiscard]]
+    bool isNan() const
+    { return isnan(x) || isnan(y); }
 
     std::string toString() const
     { return this->operator std::string(); }
@@ -365,6 +369,12 @@ struct Rect
         width  = static_cast<T>(other.width);
         height = static_cast<T>(other.height);
     }
+
+    Vector2<T> getPos() const
+    { return Vector2<T>(x, y); }
+
+    Vector2<T> getSize() const
+    { return Vector2<T>(width, height); }
 
     bool contains(Vector2<T> value) const
     { return contains(value.x, value.y); }

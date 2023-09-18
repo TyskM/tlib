@@ -67,7 +67,7 @@ enum class UVMode
 // OpenGL Texture
 struct Texture : NonCopyable
 {
-private:
+public:
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
     static constexpr TextureFiltering   defaultTexFiltering   = TextureFiltering::Linear;
     static constexpr TexPixelFormats    defaultFormat         = TexPixelFormats::RGBA;
@@ -79,6 +79,7 @@ private:
         { {0,   0, 0,   255}, {255, 0, 255, 255} }
     };
 
+private:
     GLuint glHandle        =  0;
     int    width           =  0;
     int    height          =  0;
