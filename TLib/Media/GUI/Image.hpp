@@ -47,118 +47,118 @@
 namespace agui
 {
 
-	class AGUI_CORE_DECLSPEC ImageLoader;
-		/**
+    class AGUI_CORE_DECLSPEC ImageLoader;
+     /**
      * Abstract class for Images.
-	 *
-	 * Must implement:
-	 *
-	 * getPixel
-	 *
-	 * setPixel
-	 *
-	 * getWidth
-	 *
-	 * getHeight
-	 *
-	 * isAutoFreeing
-	 *
-	 * free
+     *
+     * Must implement:
+     *
+     * getPixel
+     *
+     * setPixel
+     *
+     * getWidth
+     *
+     * getHeight
+     *
+     * isAutoFreeing
+     *
+     * free
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC Image {
-		Point leftTop;
-		Point rightBottom;
-		static ImageLoader* loader;
+    class AGUI_CORE_DECLSPEC Image {
+        Point leftTop;
+        Point rightBottom;
+        static ImageLoader* loader;
 
-	public:
-	/**
-	 * Sets the margins for a NinePatch image. The rectangle formed by the parameters
-	 * determines the area that will not be stretched. The center rectangle that remains will be stretched.
-	 @see drawNinePatchImage
+    public:
+    /**
+     * Sets the margins for a NinePatch image. The rectangle formed by the parameters
+     * determines the area that will not be stretched. The center rectangle that remains will be stretched.
+     @see drawNinePatchImage
      * @since 0.1.0
      */
-		void setMargins(int top, int left, int bottom, int right);
-	/**
-	 * Sets the margins for a NinePatch image. The rectangle formed by the parameters
-	 * determines the area that will not be stretched. The center rectangle that remains will be stretched.
-	 @see drawNinePatchImage
+        void setMargins(int top, int left, int bottom, int right);
+    /**
+     * Sets the margins for a NinePatch image. The rectangle formed by the parameters
+     * determines the area that will not be stretched. The center rectangle that remains will be stretched.
+     @see drawNinePatchImage
      * @since 0.1.0
      */
-		void setMargins(int top, int left);
-	/**
-	 * @return The top left margin point.
+        void setMargins(int top, int left);
+    /**
+     * @return The top left margin point.
      * @since 0.1.0
      */
-		const Point& getLeftTopMargin() const;
-	/**
-	 * @return The bottom right margin point.
+        const Point& getLeftTopMargin() const;
+    /**
+     * @return The bottom right margin point.
      * @since 0.1.0
      */
-		const Point& getRightBottomMargin() const;
-	/**
-	 * @return The margin of the parameter side.
+        const Point& getRightBottomMargin() const;
+    /**
+     * @return The margin of the parameter side.
      * @since 0.1.0
      */
-		int getMargin(SideEnum side) const;
-	/**
-	 * Sets the loader which will load a back end specific Image.
+        int getMargin(SideEnum side) const;
+    /**
+     * Sets the loader which will load a back end specific Image.
      * @since 0.1.0
      */
-		static void setImageLoader(ImageLoader* manager);
-	/**
-	 * @return The width of the image in pixels.
+        static void setImageLoader(ImageLoader* manager);
+    /**
+     * @return The width of the image in pixels.
      * @since 0.1.0
      */
-		virtual int getWidth() const = 0;
-	/**
-	 * @return The height of the image in pixels.
+        virtual int getWidth() const = 0;
+    /**
+     * @return The height of the image in pixels.
      * @since 0.1.0
      */
-		virtual int getHeight() const = 0;
-	/**
-	 * @return The Color of the pixel at x , y. (May be very slow).
+        virtual int getHeight() const = 0;
+    /**
+     * @return The Color of the pixel at x , y. (May be very slow).
      * @since 0.1.0
      */
-		virtual Color getPixel(int x, int y) const = 0;
-	/**
-	 * Sets the pixel at x , y to the parameter color. (May be very slow).
+        virtual Color getPixel(int x, int y) const = 0;
+    /**
+     * Sets the pixel at x , y to the parameter color. (May be very slow).
      * @since 0.1.0
      */
-		virtual void  setPixel(int x, int y, const Color& color) = 0;
-	/**
-	 * Determines if the Image will destroy the back end specific image when
-	 * the image is changed or deleted.
+        virtual void  setPixel(int x, int y, const Color& color) = 0;
+    /**
+     * Determines if the Image will destroy the back end specific image when
+     * the image is changed or deleted.
      * @since 0.1.0
      */
-		virtual bool isAutoFreeing() const = 0;
-	/**
-	 * Frees the back end specific image.
+        virtual bool isAutoFreeing() const = 0;
+    /**
+     * Frees the back end specific image.
      * @since 0.1.0
      */
-		virtual void free() = 0;
-	/**
-	 * @return A back end specific Image or NULL.
-	 * @param fileName The path to the image.
-	 * @param convertMask Determines if the color (255, 0, 255) should be converted to (0,0,0,0).
-	 * @param convertToDisplayFormat Determines if the image should be converted to display format. 
-	 * Not applicable in most situations.
+        virtual void free() = 0;
+    /**
+     * @return A back end specific Image or NULL.
+     * @param fileName The path to the image.
+     * @param convertMask Determines if the color (255, 0, 255) should be converted to (0,0,0,0).
+     * @param convertToDisplayFormat Determines if the image should be converted to display format. 
+     * Not applicable in most situations.
      * @since 0.1.0
      */
-		static Image* load(const std::string& fileName, bool convertMask = false,
-			bool convertToDisplayFormat = false);
-	/**
-	 * Default constructor.
+        static Image* load(const std::string& fileName, bool convertMask = false,
+            bool convertToDisplayFormat = false);
+    /**
+     * Default constructor.
      * @since 0.1.0
      */
-		Image();
-	/**
-	 * Default destructor.
+        Image();
+    /**
+     * Default destructor.
      * @since 0.1.0
      */
-		virtual ~Image();
-	};
+        virtual ~Image();
+    };
 
 }
 #endif

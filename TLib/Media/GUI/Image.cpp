@@ -44,78 +44,78 @@
 namespace agui
 {
 
-	void Image::setMargins( int top, int left, int bottom, int right )
-	{
-		leftTop = Point(left,top);
-		rightBottom = Point(right,bottom);
-	}
+    void Image::setMargins( int top, int left, int bottom, int right )
+    {
+        leftTop = Point(left,top);
+        rightBottom = Point(right,bottom);
+    }
 
 
-	void Image::setMargins( int top, int left )
-	{
-		leftTop = Point(left,top);
-		rightBottom = Point(left - 1,
-			top - 1);
+    void Image::setMargins( int top, int left )
+    {
+        leftTop = Point(left,top);
+        rightBottom = Point(left - 1,
+            top - 1);
 
-	}
+    }
 
-	Image::~Image()
-	{
-	}
+    Image::~Image()
+    {
+    }
 
-	Image::Image()
-	{
-	}
+    Image::Image()
+    {
+    }
 
-	ImageLoader* Image::loader = NULL;
+    ImageLoader* Image::loader = NULL;
 
 
-	void Image::setImageLoader( ImageLoader* manager )
-	{
-		loader = manager;
-	}
+    void Image::setImageLoader( ImageLoader* manager )
+    {
+        loader = manager;
+    }
 
-	const Point& Image::getLeftTopMargin() const
-	{
-		return leftTop;
-	}
+    const Point& Image::getLeftTopMargin() const
+    {
+        return leftTop;
+    }
 
-	int Image::getMargin( SideEnum side ) const
-	{
-		switch(side)
-		{
-		case SIDE_TOP:
-			return leftTop.getY();
-			break;
-		case SIDE_LEFT:
-			return leftTop.getX();
-			break;
-		case SIDE_BOTTOM:
-			return rightBottom.getY();
-			break;
-		case SIDE_RIGHT:
-			return rightBottom.getX();
-			break;
-		default:
-			return 0;
-		}
-	}
+    int Image::getMargin( SideEnum side ) const
+    {
+        switch(side)
+        {
+        case SIDE_TOP:
+            return leftTop.getY();
+            break;
+        case SIDE_LEFT:
+            return leftTop.getX();
+            break;
+        case SIDE_BOTTOM:
+            return rightBottom.getY();
+            break;
+        case SIDE_RIGHT:
+            return rightBottom.getX();
+            break;
+        default:
+            return 0;
+        }
+    }
 
-	const Point& Image::getRightBottomMargin() const
-	{
-		return rightBottom;
-	}
+    const Point& Image::getRightBottomMargin() const
+    {
+        return rightBottom;
+    }
 
-	Image* Image::load( const std::string& fileName, bool convertMask /*= false*/,
-		bool convertToDisplayFormat )
-	{
-		if(!loader)
-		{
-			throw Exception("Image Loader not set!");
-		}
-		Image* img = loader->loadImage(fileName,convertMask,convertToDisplayFormat);
-		img->setMargins(img->getWidth() / 2, img->getHeight() / 2);
-		return img;
-	}
+    Image* Image::load( const std::string& fileName, bool convertMask /*= false*/,
+        bool convertToDisplayFormat )
+    {
+        if(!loader)
+        {
+            throw Exception("Image Loader not set!");
+        }
+        Image* img = loader->loadImage(fileName,convertMask,convertToDisplayFormat);
+        img->setMargins(img->getWidth() / 2, img->getHeight() / 2);
+        return img;
+    }
 
 }

@@ -56,102 +56,102 @@
 #include <TLib/Media/GUI/TapListener.hpp>
 namespace agui
 {
-	class AGUI_CORE_DECLSPEC TopContainer;
-	class AGUI_CORE_DECLSPEC ToolTip;
-	/**
+    class AGUI_CORE_DECLSPEC TopContainer;
+    class AGUI_CORE_DECLSPEC ToolTip;
+    /**
      * @mainpage
      * @section Welcome
      * This is the documentation for the classes in the Agui Library.
-	 *
-	 * Agui is a cross platform and back end independent library for Graphical User Interfaces in games. 
-	 * This means that any code you write with
-	 * it will work in whatever environment you are working with. At this time, only an Allegro 5
-	 * back end is developed, but you are free to develop your own.
-	 *
-	 * In addition, every class in Agui that uses text uses UTF8. 
-	 * This means that Unicode is natively supported throughout.
+     *
+     * Agui is a cross platform and back end independent library for Graphical User Interfaces in games. 
+     * This means that any code you write with
+     * it will work in whatever environment you are working with. At this time, only an Allegro 5
+     * back end is developed, but you are free to develop your own.
+     *
+     * In addition, every class in Agui that uses text uses UTF8. 
+     * This means that Unicode is natively supported throughout.
      */
 
-	/**
+    /**
      * Class for a Gui.
-	 *
-	 * You should create one of these for every Gui you need.
-	 *
-	 * All desktop Widgets must be added through this.
-	 *
-	 * This class requires you to setInput and setGraphics for it to work correctly.
+     *
+     * You should create one of these for every Gui you need.
+     *
+     * All desktop Widgets must be added through this.
+     *
+     * This class requires you to setInput and setGraphics for it to work correctly.
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC Gui
-	{
-		FocusManager focusMan;
-		double currentTime;
-		std::vector<KeyboardListener*> keyPreviewListeners;
-		std::vector<MouseListener*> mousePreviewListeners;
+    class AGUI_CORE_DECLSPEC Gui
+    {
+        FocusManager focusMan;
+        double currentTime;
+        std::vector<KeyboardListener*> keyPreviewListeners;
+        std::vector<MouseListener*> mousePreviewListeners;
         std::vector<TapListener*> tapListeners;
-		Input* input;
-		Graphics* graphicsContext;
-		std::stack<Widget*> flaggedWidgets;
-		TopContainer* baseWidget;
-		double lasttickTime;
-		double lastToolTipTime;
-		double toolTipShowLength;
-		ToolTip* toolTip;
-		int maxToolTipWidth;
-		bool hasHiddenToolTip;
-		std::stack<Widget*> q;
-		std::queue<MouseInput> queuedMouseDown;
-		MouseInput emptyMouse;
-		MouseEvent relArgs;
-		bool destroyingFlaggedWidgets;
-		CursorProvider* cursorProvider;
-	
-		double timerInterval;
+        Input* input;
+        Graphics* graphicsContext;
+        std::stack<Widget*> flaggedWidgets;
+        TopContainer* baseWidget;
+        double lasttickTime;
+        double lastToolTipTime;
+        double toolTipShowLength;
+        ToolTip* toolTip;
+        int maxToolTipWidth;
+        bool hasHiddenToolTip;
+        std::stack<Widget*> q;
+        std::queue<MouseInput> queuedMouseDown;
+        MouseInput emptyMouse;
+        MouseEvent relArgs;
+        bool destroyingFlaggedWidgets;
+        CursorProvider* cursorProvider;
+    
+        double timerInterval;
 
-		KeyEnum tabNextKey;
-		ExtendedKeyEnum tabNextExtKey;
-		bool    tabNextShift;
-		bool    tabNextControl;
-		bool    tabNextAlt;
-		KeyEnum tabPreviousKey;
-		ExtendedKeyEnum tabPreviousExtKey;
-		bool    tabPreviousShift;
-		bool    tabPreviousControl;
-		bool    tabPreviousAlt;
+        KeyEnum tabNextKey;
+        ExtendedKeyEnum tabNextExtKey;
+        bool    tabNextShift;
+        bool    tabNextControl;
+        bool    tabNextAlt;
+        KeyEnum tabPreviousKey;
+        ExtendedKeyEnum tabPreviousExtKey;
+        bool    tabPreviousShift;
+        bool    tabPreviousControl;
+        bool    tabPreviousAlt;
 
-		//used to focus a tabable widget
-		bool passedFocus; 
+        //used to focus a tabable widget
+        bool passedFocus; 
 
-		bool tabbingEnabled;
+        bool tabbingEnabled;
         bool focusEnabled;
 
-		//modal variable
+        //modal variable
 
-		MouseEvent mouseEvent;
-		double doubleClickExpireTime;
-		double doubleClickInterval;
-		Widget* lastMouseDownControl;
-		Widget* previousWidgetUnderMouse;
-		Widget* widgetUnderMouse;
-		Widget* controlWithLock;
-		Widget* lastHoveredControl;
-		Widget *mouseUpControl;
-		bool canDoubleClick;
+        MouseEvent mouseEvent;
+        double doubleClickExpireTime;
+        double doubleClickInterval;
+        Widget* lastMouseDownControl;
+        Widget* previousWidgetUnderMouse;
+        Widget* widgetUnderMouse;
+        Widget* controlWithLock;
+        Widget* lastHoveredControl;
+        Widget *mouseUpControl;
+        bool canDoubleClick;
 
-		double hoverInterval;
-		double timeUntilNextHover;
+        double hoverInterval;
+        double timeUntilNextHover;
 
-		KeyEvent keyEvent;
-		MouseButtonEnum lastMouseButton;
+        KeyEvent keyEvent;
+        MouseButtonEnum lastMouseButton;
 
-		bool wantWidgetLocationChanged;
-		bool enableExistanceCheck;
+        bool wantWidgetLocationChanged;
+        bool enableExistanceCheck;
 
-		bool useTransform;
-		Transform transform;
+        bool useTransform;
+        Transform transform;
 
-		bool delayMouseDown;
+        bool delayMouseDown;
         
         Point lastDragPos;
         Point startDragPos;
@@ -160,354 +160,360 @@ namespace agui
         double lastInertiaTime;
         Widget* inertiaReceiver;
 
-		std::queue<Widget*> frontWidgets;
-		std::queue<Widget*> backWidgets;
+        std::queue<Widget*> frontWidgets;
+        std::queue<Widget*> backWidgets;
         
     
         void haltInertia();
         void processInertia();
         void beginInertia(Widget* target, float speed);
 
-	/**
+    /**
      * Converts the mouse event's position into one that is relative to the parameter widget.
      * @since 0.1.0
      */
-		void makeRelArgs(Widget *source);
-	/**
+        void makeRelArgs(Widget *source);
+    /**
      * Handles the hover event.
      * @since 0.1.0
      */
-		void handleHover();
-	/**
+        void handleHover();
+    /**
      * Handles the double click event.
      * @since 0.1.0
      */
-		void handleDoubleClick();
-	/**
+        void handleDoubleClick();
+    /**
      * Invalidates the double click event.
      * @since 0.1.0
      */
-		void resetDoubleClickTime();
-	/**
+        void resetDoubleClickTime();
+    /**
      * Invalidates the hover event.
      * @since 0.1.0
      */
-		void resetHoverTime();
+        void resetHoverTime();
 
-	/**
+    /**
      * Sets the key event.
      * @since 0.1.0
      */
-		void setKeyEvent(const KeyboardInput &keyboard,bool handled);
-	/**
+        void setKeyEvent(const KeyboardInput &keyboard,bool handled);
+    /**
      * Sets the last mouse down widget.
      * @since 0.1.0
      */
-		void setLastMouseDownControl(Widget* control);
-	/**
+        void setLastMouseDownControl(Widget* control);
+    /**
      * Sets the mouse event.
      * @since 0.1.0
      */
-		void setMouseEvent(const MouseInput &mouse);
-	/**
+        void setMouseEvent(const MouseInput &mouse);
+    /**
      * Sets which mouse button is pressed.
      * @since 0.1.0
      */
-		void setMouseButtonDown(MouseButtonEnum button);
-	/**
+        void setMouseButtonDown(MouseButtonEnum button);
+    /**
      * Finds which widget is under the mouse using recursion.
      * @since 0.1.0
      */
-		Widget* recursiveGetWidgetUnderMouse(Widget* root,
-			const MouseEvent &mouse);
+        Widget* recursiveGetWidgetUnderMouse(Widget* root,
+            const MouseEvent &mouse);
 
-	/**
+    /**
      * Handles the Gui's timed events.
      * @since 0.1.0
      */
-		void handleTimedEvents();
+        void handleTimedEvents();
 
-	/**
+    /**
      * Handles the ToolTip hide logic.
      * @since 0.2.0
      */
-		void handleToolTip();
+        void handleToolTip();
 
-	/**
+    /**
      * @return last mouse down widget.
      * @since 0.1.0
      */
-		Widget* getLastMouseDownControl() const;
-	/**
+        Widget* getLastMouseDownControl() const;
+    /**
      * @return Which mouse button is pressed.
      * @since 0.1.0
      */
-		MouseButtonEnum getMouseButtonDown() const;
-	/**
+        MouseButtonEnum getMouseButtonDown() const;
+    /**
      * @return The mouse event.
      * @since 0.1.0
      */
-		MouseEvent getMouseEvent() const;
-	/**
+        MouseEvent getMouseEvent() const;
+    /**
      * @return True if the parameter widget is a child of the modal widget.
      * @since 0.1.0
      */
-		bool widgetIsModalChild(Widget* widget) const;
+        bool widgetIsModalChild(Widget* widget) const;
 
-	/**
+    /**
      * @return True if the focused widget was passed.
      * @since 0.1.0
      */
-		bool recursiveFocusNext( Widget* target, Widget* focused);
-	/**
+        bool recursiveFocusNext( Widget* target, Widget* focused);
+    /**
      * Focuses the next tabable widget in the Gui.
      * @since 0.1.0
      */
-		virtual void focusNextTabableWidget();
+        virtual void focusNextTabableWidget();
 
-		/**
+        /**
      * @return True if the focused widget was passed.
      * @since 0.1.0
      */
-		bool recursiveFocusPrevious( Widget* target, Widget* focused);
-	/**
+        bool recursiveFocusPrevious( Widget* target, Widget* focused);
+    /**
      * Focuses the previous tabable widget in the Gui.
      * @since 0.1.0
      */
-		virtual void focusPreviousTabableWidget();
+        virtual void focusPreviousTabableWidget();
 
-		//events
-	/**
+        //events
+    /**
      * Handles mouse move and mouse wheel events.
-	 *
-	 * If a widget's location, size, or visibility has changed, the Gui will call this
-	 * with isLocationEvent = true.
+     *
+     * If a widget's location, size, or visibility has changed, the Gui will call this
+     * with isLocationEvent = true.
      * @since 0.1.0
      */
-		void handleMouseAxes(const MouseInput &mouse,bool isLocationEvent = false);
-	/**
+        void handleMouseAxes(const MouseInput &mouse,bool isLocationEvent = false);
+    /**
      * Handles a mouse button being pushed down.
      * @since 0.1.0
      */
-		void handleMouseDown(const MouseInput &mouse);
-			/**
+        void handleMouseDown(const MouseInput &mouse);
+            /**
      * Handles a mouse button being released.
      * @since 0.1.0
      */
-		void handleMouseUp(const MouseInput &mouse);
-			/**
+        void handleMouseUp(const MouseInput &mouse);
+            /**
      * Handles a key being pushed down.
      * @since 0.1.0
      */
-		void handleKeyDown(const KeyboardInput &keyboard);
-			/**
+        void handleKeyDown(const KeyboardInput &keyboard);
+            /**
      * Handles a key being released.
      * @since 0.1.0
      */
-		void handleKeyUp(const KeyboardInput &keyboard);
-	/**
+        void handleKeyUp(const KeyboardInput &keyboard);
+    /**
      * Handles a key being held and not released thereby triggering a repeat.
      * @since 0.1.0
      */
-		void handleKeyRepeat(const KeyboardInput &keyboard);
-	/**
-	 * Calls Widget::logic() for every widget starting at base widget.
+        void handleKeyRepeat(const KeyboardInput &keyboard);
+    /**
+     * Calls Widget::logic() for every widget starting at base widget.
      * @since 0.1.0
      */
-		void recursiveDoLogic(Widget* baseWidget);
-	/**
-	 * Removes the widget from the Gui. It essentially NULLs all pointers of the parameter widget used by the Gui
-	 * to avoid crashes if a widget was under the mouse at the time of its death.
+        void recursiveDoLogic(Widget* baseWidget);
+    /**
+     * Removes the widget from the Gui. It essentially NULLs all pointers of the parameter widget used by the Gui
+     * to avoid crashes if a widget was under the mouse at the time of its death.
      * @since 0.1.0
      */
-		void _removeWidget(Widget *widget);
+        void _removeWidget(Widget *widget);
 
-	/**
-	 * Handles tabbing.
+    /**
+     * Handles tabbing.
      * @since 0.1.0
      */
-		bool handleTabbing();
+        bool handleTabbing();
      /**
-	 * @return True if the parameter widget exists.
+     * @return True if the parameter widget exists.
      * @since 0.1.0
      */
-		bool widgetExists(const Widget* root, const Widget* target) const;
+        bool widgetExists(const Widget* root, const Widget* target) const;
 
-	/**
-	 * @return The focused widget or NULL if none are focused.
+    /**
+     * @return The focused widget or NULL if none are focused.
      * @since 0.1.0
      */
-		Widget* getFocusedWidget() const;
+        Widget* getFocusedWidget() const;
 
-	/**
-	 * Dispatches a keyboard event to the listeners. If a listener handles it,
-	 * the focused widget will not receive it.
+    /**
+     * Dispatches a keyboard event to the listeners. If a listener handles it,
+     * the focused widget will not receive it.
      * @since 0.1.0
      */
-		void _dispatchKeyPreview(KeyEvent &keyEvent, KeyEvent::KeyboardEventEnum type);
+        void _dispatchKeyPreview(KeyEvent &keyEvent, KeyEvent::KeyboardEventEnum type);
 
-		/**
-	 * Dispatches a mouse event to the listeners. If a listener handles it,
-	 * the intended widget will not receive it.
-	 *Only sends basic OS events. Not events like Drag,Enter,Leave,etc
+        /**
+     * Dispatches a mouse event to the listeners. If a listener handles it,
+     * the intended widget will not receive it.
+     *Only sends basic OS events. Not events like Drag,Enter,Leave,etc
      * @since 0.2.0
      */
-		void _dispatchMousePreview(const MouseInput& input, MouseEvent::MouseEventEnum type);
+        void _dispatchMousePreview(const MouseInput& input, MouseEvent::MouseEventEnum type);
 
-	/**
-	 * Dispatches the queued keyboard events.
+    /**
+     * Dispatches the queued keyboard events.
      * @since 0.1.0
      */
-		void _dispatchKeyboardEvents();
-	/**
-	 * Dispatches the queued mouse events.
+        void _dispatchKeyboardEvents();
+    /**
+     * Dispatches the queued mouse events.
      * @since 0.1.0
      */
-		void _dispatchMouseEvents();
+        void _dispatchMouseEvents();
 
-		
-	public:
-			/**
+        
+    public:
+            /**
      * Releases widget under mouse
      * @since 0.2.0
      */
-		void _modalChanged();
-	/**
+        void _modalChanged();
+    /**
      * @return last found widget under the mouse.
      * @since 0.1.0
      */
-		virtual Widget* getWidgetUnderMouse() const;
-	/**
-	 * Calls _removeWidget.
+        virtual Widget* getWidgetUnderMouse() const;
+    /**
+     * Calls _removeWidget.
      * @since 0.1.0
      */
-		void _dispatchWidgetDestroyed(Widget* widget);
-	/**
-	 * Called by a widget when its location, size, or visibility changes.
+        void _dispatchWidgetDestroyed(Widget* widget);
+    /**
+     * Called by a widget when its location, size, or visibility changes.
      * @since 0.1.0
      */
-		void _widgetLocationChanged();
-	/**
-	 * @return True if the Gui is responsible for dequeuing and calling delete on the flagged widgets.
+        void _widgetLocationChanged();
+    /**
+     * @return True if the Gui is responsible for dequeuing and calling delete on the flagged widgets.
      * @since 0.1.0
      */
-		bool isDestroyingFlaggedWidgets() const;
-	/**
-	 * Set to false if the user is responsible for dequeuing and calling delete on the flagged widgets.
-	 * Otherwise the Gui will do it on the next logic loop.
+        bool isDestroyingFlaggedWidgets() const;
+    /**
+     * Set to false if the user is responsible for dequeuing and calling delete on the flagged widgets.
+     * Otherwise the Gui will do it on the next logic loop.
      * @since 0.1.0
      */
-		void setDestroyFlaggedWidgets(bool destroying);
-	/**
-	 * Set to true to enable tabbing.
+        void setDestroyFlaggedWidgets(bool destroying);
+    /**
+     * Set to true to enable tabbing.
      * @since 0.1.0
      */
-		void setTabbingEnabled(bool tabbing);
-	/**
-	 * @return True if tabbing is enabled.
+        void setTabbingEnabled(bool tabbing);
+    /**
+     * @return True if tabbing is enabled.
      * @since 0.1.0
      */
-		bool isTabbingEnabled() const;
-	/**
-	 * @return A reference to the stack of flagged widget.
-	 * only needed if the user is deleting them.
+        bool isTabbingEnabled() const;
+    /**
+     * @return A reference to the stack of flagged widget.
+     * only needed if the user is deleting them.
      * @since 0.1.0
      */
-		std::stack<Widget*>& getFlaggedWidgets();
-	/**
-	 * Called by a widget when it wants to be flagged for destruction.
+        std::stack<Widget*>& getFlaggedWidgets();
+    /**
+     * Called by a widget when it wants to be flagged for destruction.
      * @since 0.1.0
      */
-		void flagWidget(Widget *widget);
-	/**
-	 * Destroys the flagged widgets.
+        void flagWidget(Widget *widget);
+    /**
+     * Destroys the flagged widgets.
      * @since 0.1.0
      */
-		void destroyFlaggedWidgets();
-	/**
-	 * Sets the tab next key. Default is KEY_TAB.
+        void destroyFlaggedWidgets();
+    /**
+     * Sets the tab next key. Default is KEY_TAB.
      * @since 0.1.0
      */
-		virtual void setTabNextKey(KeyEnum key,
-			ExtendedKeyEnum extKey = EXT_KEY_NONE,
-			bool shift = false,
-			bool control = false, 
-			bool alt = false);
-	/**
-	 * Sets the tab previous key. Default is KEY_TAB + control.
+        virtual void setTabNextKey(KeyEnum key,
+            ExtendedKeyEnum extKey = EXT_KEY_NONE,
+            bool shift = false,
+            bool control = false, 
+            bool alt = false);
+    /**
+     * Sets the tab previous key. Default is KEY_TAB + control.
      * @since 0.1.0
      */
-		virtual void setTabPreviousKey(KeyEnum key,
-			ExtendedKeyEnum extKey = EXT_KEY_NONE,
-			bool shift = false,
-			bool control = false,
-			bool alt = false);
-	/**
-	 * Sets how long the mouse must be over a widget without moving for the widget to receive a hover event in seconds.
+        virtual void setTabPreviousKey(KeyEnum key,
+            ExtendedKeyEnum extKey = EXT_KEY_NONE,
+            bool shift = false,
+            bool control = false,
+            bool alt = false);
+    /**
+     * Sets how long the mouse must be over a widget without moving for the widget to receive a hover event in seconds.
      * @since 0.1.0
      */
-		void setHoverInterval(double time);
-		/**
-	 * @return How long the mouse must be over a widget without moving for the widget to receive a hover event in seconds.
+        void setHoverInterval(double time);
+        /**
+     * @return How long the mouse must be over a widget without moving for the widget to receive a hover event in seconds.
      * @since 0.1.0
      */
-		double getHoverInterval() const;
-	/**
-	 * @return How long after a first click will a second click result in a double click event in seconds.
+        double getHoverInterval() const;
+    /**
+     * @return How long after a first click will a second click result in a double click event in seconds.
      * @since 0.1.0
      */
-		double getDoubleClickInterval() const;
-	/**
-	 * Sets how long after a first click will a second click result in a double click event in seconds.
+        double getDoubleClickInterval() const;
+    /**
+     * Sets how long after a first click will a second click result in a double click event in seconds.
      * @since 0.1.0
      */
-		void setDoubleClickInterval(double time);
-	/**
-	 * Resizes the Top widget to the size of the display. Needs the graphics context to be set.
+        void setDoubleClickInterval(double time);
+    /**
+     * Resizes the Top widget to the size of the display. Needs the graphics context to be set.
      * @since 0.1.0
      */
-		void resizeToDisplay();
-	/**
-	 * Adds the parameter widget to the desktop if it has no parent.
+        void resizeToDisplay();
+    /**
+     * Adds the parameter widget to the desktop if it has no parent.
      * @since 0.1.0
      */
-		void add(Widget* widget);
-	/**
-	 * Removes the parameter widget from the desktop if it is on the desktop.
+        void add(Widget* widget);
+    /**
+     * Removes the parameter widget from the desktop if it is on the desktop.
      * @since 0.1.0
      */
-		void remove(Widget* widget);
-	/**
-	 * @return True if the parameter widget exists.
-     * @since 0.1.0
-     */
-		bool widgetExists(Widget* target);
-	/**
-	 * Should be called every time your game loop updates.
-	 *
-	 * It will poll the Input, dequeue all queued mouse and keyboard events, and
-	 * call Widget::logic on every widget in the Gui.
-     * @since 0.1.0
-     */
-		virtual void logic();
+        void remove(Widget* widget);
 
-	/**
-	 * Adds a key preview listener. If a key preview listener handles the event, the focused widget will not receive it.
+    /**
+     * Removes all widgets. Useless comments woooo
+     * @since TLib
+     */
+        void removeAll();
+    /**
+     * @return True if the parameter widget exists.
      * @since 0.1.0
      */
-		void addKeyPreviewListener(KeyboardListener* listener);
-	/**
-	 * Removes a key preview listener. If a key preview listener handles the event, the focused widget will not receive it.
+        bool widgetExists(Widget* target);
+    /**
+     * Should be called every time your game loop updates.
+     *
+     * It will poll the Input, dequeue all queued mouse and keyboard events, and
+     * call Widget::logic on every widget in the Gui.
      * @since 0.1.0
      */
-		void removeKeyPreviewListener( KeyboardListener* listener );
-	/**
-	 * Adds a mouse preview listener. If a mouse preview listener handles the event, the intended widget will not receive it.
+        virtual void logic();
+
+    /**
+     * Adds a key preview listener. If a key preview listener handles the event, the focused widget will not receive it.
+     * @since 0.1.0
+     */
+        void addKeyPreviewListener(KeyboardListener* listener);
+    /**
+     * Removes a key preview listener. If a key preview listener handles the event, the focused widget will not receive it.
+     * @since 0.1.0
+     */
+        void removeKeyPreviewListener( KeyboardListener* listener );
+    /**
+     * Adds a mouse preview listener. If a mouse preview listener handles the event, the intended widget will not receive it.
      * @since 0.2.0
      */
-		void addMousePreviewListener(MouseListener* listener);
-	/**
-	 * Removes a mouse preview listener. If a mouse preview listener handles the event, the intended widget will not receive it.
+        void addMousePreviewListener(MouseListener* listener);
+    /**
+     * Removes a mouse preview listener. If a mouse preview listener handles the event, the intended widget will not receive it.
      * @since 0.2.0
      */
        void removeMousePreviewListener( MouseListener* listener );
@@ -522,152 +528,155 @@ namespace agui
     */
        void removeTapListener( TapListener* listener );
         
-	/**
-	 * @return The amount of time in seconds the application has been running.
-	 *
-	 * Useful for timed events.
+    /**
+     * @return The amount of time in seconds the application has been running.
+     *
+     * Useful for timed events.
      * @since 0.1.0
      */
         double getElapsedTime() const;
-	/**
-	 * Default constructor.
+    /**
+     * Default constructor.
      * @since 0.1.0
      */
-		Gui(void);
-	/**
-	 * Will paint every widget in the Gui and their children.
-	 * 
-	 * Call this each time you render.
+        Gui(void);
+    /**
+     * Will paint every widget in the Gui and their children.
+     * 
+     * Call this each time you render.
      * @since 0.1.0
      */
-		void render();
-	 /**
-	 * Set the graphics context for the Gui. Will resize the Gui to the display size.
+        void render();
+     /**
+     * Set the graphics context for the Gui. Will resize the Gui to the display size.
      * @since 0.1.0
      */
-		void setGraphics(Graphics *context);
-	/**
-	 * Set the input for the Gui. Will resize the Gui to the display size.
+        void setGraphics(Graphics *context);
+    /**
+     * Set the input for the Gui. Will resize the Gui to the display size.
      * @since 0.1.0
      */
-		void setInput(Input* input);
-	/**
-	 * Set the size of the desktop. Call this when your display resizes.
+        void setInput(Input* input);
+    /**
+     * Set the size of the desktop. Call this when your display resizes.
      * @since 0.1.0
      */
-		void setSize(int width, int height);
-	/**
-	 * @return The top most, desktop widget of the Gui. Every widget in the Gui is a child of this.
+        void setSize(int width, int height);
+
+        Dimension getSize() const;
+
+    /**
+     * @return The top most, desktop widget of the Gui. Every widget in the Gui is a child of this.
      * @since 0.1.0
      */
-		TopContainer* getTop() const;
+        TopContainer* getTop() const;
 
-	/**
-	 * Set the ToolTip used when showing ToolTip text.
+    /**
+     * Set the ToolTip used when showing ToolTip text.
      * @since 0.2.0
      */
-		void setToolTip(ToolTip* toolTip);
-	/**
-	 * @return The ToolTip used if it is set.
+        void setToolTip(ToolTip* toolTip);
+    /**
+     * @return The ToolTip used if it is set.
      * @since 0.2.0
      */
-		ToolTip* getToolTip() const;
+        ToolTip* getToolTip() const;
 
-	/**
-	 * Shows the ToolTip for the specified Widget.
+    /**
+     * Shows the ToolTip for the specified Widget.
      * @since 0.2.0
      */
-		void showToolTip(Widget* widget, int x, int y);
+        void showToolTip(Widget* widget, int x, int y);
 
-		/**
-	 * @return True if the tooltip is showing.
+        /**
+     * @return True if the tooltip is showing.
      * @since 0.2.0
      */
-		bool isToolTipVisible() const;
+        bool isToolTipVisible() const;
 
-	/**
-	 * Hides the ToolTip.
+    /**
+     * Hides the ToolTip.
      * @since 0.2.0
      */
-		void hideToolTip();
+        void hideToolTip();
 
-		/**
-	 * Set the maximum width used when showing the ToolTip.
-	 * The width can be <= 0 to autosize. If the text is less
-	 * than this maximum, the ToolTip's width will be the minimum
-	 * needed to show the text correctly.
+        /**
+     * Set the maximum width used when showing the ToolTip.
+     * The width can be <= 0 to autosize. If the text is less
+     * than this maximum, the ToolTip's width will be the minimum
+     * needed to show the text correctly.
      * @since 0.2.0
      */
-		void setMaxToolTipWidth(int width);
-	/**
-	 * @return The maximum width of the ToolTip.
+        void setMaxToolTipWidth(int width);
+    /**
+     * @return The maximum width of the ToolTip.
      * @since 0.2.0
      */
-		int getMaxToolTipWidth() const;
+        int getMaxToolTipWidth() const;
 
-		/**
-	 * Set whether or not widget exist checks will be made
-	 * when a mouse event occurs. Disable for speedup.
+        /**
+     * Set whether or not widget exist checks will be made
+     * when a mouse event occurs. Disable for speedup.
      * @since 0.2.0
      */
-		void setExistanceCheck(bool check);
-	/**
-	* @return True if widget exist checks will be made
-	* when a mouse event occurs. Disable for speedup.
+        void setExistanceCheck(bool check);
+    /**
+    * @return True if widget exist checks will be made
+    * when a mouse event occurs. Disable for speedup.
      * @since 0.2.0
      */
-		int isDoingExistanceCheck() const;
+        int isDoingExistanceCheck() const;
 
-		/**
-	 * @return The maximum amount of time a ToolTip will show for.
+        /**
+     * @return The maximum amount of time a ToolTip will show for.
      * @since 0.2.0
      */
 
-		double getToolTipShowLength() const;
-	/**
-	 * @Set the maximum amount of time a ToolTip will show for.
+        double getToolTipShowLength() const;
+    /**
+     * @Set the maximum amount of time a ToolTip will show for.
      * @since 0.2.0
      */
-		void setToolTipShowLength(double val);
+        void setToolTipShowLength(double val);
 
-			/**
-	 * Invalidates the tooltip time.
+            /**
+     * Invalidates the tooltip time.
      * @since 0.2.0
      */
-		void invalidateToolTip();
+        void invalidateToolTip();
 
-		
-	/**
-	 * @Set the backend specific cursor provider.
+        
+    /**
+     * @Set the backend specific cursor provider.
      * @since 0.2.0
      */
-		void setCursorProvider(CursorProvider* provider);
+        void setCursorProvider(CursorProvider* provider);
 
-	/**
-	 * @Set the transform to use on the mouse.
-	 * @See setUseTransform
+    /**
+     * @Set the transform to use on the mouse.
+     * @See setUseTransform
      * @since 0.2.0
      */
-		void setTransform(const Transform& transform);
+        void setTransform(const Transform& transform);
 
-	/**
-	 * @Return the transform to use on the mouse.
-	 * @See setUseTransform
+    /**
+     * @Return the transform to use on the mouse.
+     * @See setUseTransform
      * @since 0.2.0
      */
-		const Transform& getTransform() const;
+        const Transform& getTransform() const;
 
-			/**
-	 * @Set whether or not to use a transformation on the mouse coordinates.
+            /**
+     * @Set whether or not to use a transformation on the mouse coordinates.
      * @since 0.2.0
      */
-		void setUseTransform(bool use);
+        void setUseTransform(bool use);
 
-	/**
-	 * @Return true if the transform is used on the mouse.
+    /**
+     * @Return true if the transform is used on the mouse.
      * @since 0.2.0
      */
-		bool isUsingTransform() const;
+        bool isUsingTransform() const;
         
    /**
    * @Set whether or not to use a transformation on the mouse coordinates.
@@ -681,89 +690,89 @@ namespace agui
    */
     bool isFocusEnabled() const;
 
-					/**
-	 * @Set whether or not the mouse down events are delayed by 1 logic() update.
-	 * Fixes a small issue on touch pads when enabled.
+                    /**
+     * @Set whether or not the mouse down events are delayed by 1 logic() update.
+     * Fixes a small issue on touch pads when enabled.
      * @since 0.2.0
      */
-		void setDelayMouseDownEvents(bool delay);
+        void setDelayMouseDownEvents(bool delay);
 
-	/**
-	 * @Return true if the mouse down events are delayed by 1 logic() update.
+    /**
+     * @Return true if the mouse down events are delayed by 1 logic() update.
      * @since 0.2.0
      */
-		bool isDelayingMouseDownEvents() const;
+        bool isDelayingMouseDownEvents() const;
 
-		
-	/**
-	 * @Return false if the widget under mouse is the top or NULL.
+        
+    /**
+     * @Return false if the widget under mouse is the top or NULL.
      * @since 0.2.0
      */
-		bool isWidgetUnderMouse() const;
+        bool isWidgetUnderMouse() const;
 
 
 
-	
-	/**
-	 * @return True if the cursor provider is set and it successfully set the cursor
-     * @since 0.2.0
-     */
-
-		bool setCursor(CursorProvider::CursorEnum cursor);
-
-		/**
-	 * @return The widget with drag focus or NULL
+    
+    /**
+     * @return True if the cursor provider is set and it successfully set the cursor
      * @since 0.2.0
      */
 
-		Widget* getLockWidget();
+        bool setCursor(CursorProvider::CursorEnum cursor);
 
-			/**
+        /**
+     * @return The widget with drag focus or NULL
+     * @since 0.2.0
+     */
+
+        Widget* getLockWidget();
+
+            /**
      * Allows you to manually null the Widget under the mouse.
      * @since 0.2.1
      */
-		void setWidgetUnderMouseToNull();
+        void setWidgetUnderMouseToNull();
 
-	/**
+    /**
      * @return True if widget location changes are tracked accurately.
      * @since 0.2.1
      */
-		bool isWidgetLocationChangesEnabled() const;
+        bool isWidgetLocationChangesEnabled() const;
 
-	/**
+    /**
      * @return The Input set for this Gui.
      * @since 0.2.1
      */
-		Input* getInput();
+        Input* getInput();
 
-	/**
+    /**
      * @return The Graphics set for this Gui.
      * @since 0.2.1
      */
-		Graphics* getGraphics();
+        Graphics* getGraphics();
 
-	/**
+    /**
      * Teleport the mouse position of this Gui. Forces a logic call.
      * @since 0.2.1
      */
-		void teleportMouse(int x, int y);
+        void teleportMouse(int x, int y);
 
-			/**
-	 * Sets whether or not the expensive call to check if the widget
-	 * under the mouse changed when widgets resize, move etc is called.
+            /**
+     * Sets whether or not the expensive call to check if the widget
+     * under the mouse changed when widgets resize, move etc is called.
      * @since 0.2.0
      */
 
-		void toggleWidgetLocationChanged(bool on);
+        void toggleWidgetLocationChanged(bool on);
 
 
-		void bringWidgetToFront(Widget* w);
-		void sendWidgetToBack(Widget* w);
-	/**
-	 * Default destructor.
+        void bringWidgetToFront(Widget* w);
+        void sendWidgetToBack(Widget* w);
+    /**
+     * Default destructor.
      * @since 0.1.0
      */
-		virtual ~Gui(void);
-	};
+        virtual ~Gui(void);
+    };
 }
 #endif
