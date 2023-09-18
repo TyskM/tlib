@@ -5,7 +5,6 @@
     tests: sfml
 ]]
 
-
 cmake_minimum_required(VERSION 3.15)
 project(TLib VERSION 0.1.0)
 
@@ -48,17 +47,6 @@ $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 $<INSTALL_INTERFACE:TLib> # <prefix>/TLib
 )
 
-### Setup CMRC for embedding files
-#find_package(CMakeRC)
-# Add embeded files here
-#file(GLOB_RECURSE EMBED_FILES CONFIGURE_DEPENDS TLib/Embed/Shaders/*.vert TLib/Embed/Shaders/*.frag) # Shader files
-#cmrc_add_resource_library(embed ${EMBED_FILES})
-#target_link_libraries(TLib PRIVATE embed)
-#target_include_directories(TLib PUBLIC
-#    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/_cmrc/include>
-#    $<INSTALL_INTERFACE:TLib> # <prefix>/TLib
-#)
-
 include(CMakeFindDependencyMacro)
 
 #### Dependencies
@@ -89,6 +77,9 @@ set(Boost_USE_MULTITHREADED      ON)
 set(Boost_USE_STATIC_RUNTIME     ON)  # link Boost Static libraries
 find_dependency(Boost REQUIRED COMPONENTS container)
 target_link_libraries(TLib PUBLIC Boost::boost Boost::container)
+
+find_dependency(box2d CONFIG REQUIRED)
+target_link_libraries(TLib PUBLIC box2d::box2d)
 
 ### Graphics stuff
 

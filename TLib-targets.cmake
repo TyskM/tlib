@@ -52,14 +52,14 @@ add_library(TLib::TLib STATIC IMPORTED)
 set_target_properties(TLib::TLib PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_20"
   INTERFACE_INCLUDE_DIRECTORIES "G:/Resources/Dev/CPP/TLib"
-  INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;cereal::cereal;Boost::boost;Boost::container;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp;freetype"
+  INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;cereal::cereal;Boost::boost;Boost::container;box2d::box2d;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp;freetype"
 )
 
-# Import target "TLib::TLib" for configuration "Release"
-set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
+# Import target "TLib::TLib" for configuration "Debug"
+set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
 set_target_properties(TLib::TLib PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-  IMPORTED_LOCATION_RELEASE "G:/Resources/Dev/CPP/TLib/out/build/x64-windows-release-static/TLib.lib"
+  IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
+  IMPORTED_LOCATION_DEBUG "G:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/TLib.lib"
   )
 
 # This file does not depend on other imported targets which have
