@@ -2,6 +2,7 @@
 #pragma once
 #include <TLib/Media/GUI/Graphics.hpp>
 #include <TLib/Media/GUI/Backends/TLib/TLibFont.hpp>
+#include <TLib/Media/GUI/Backends/TLib/TLibImage.hpp>
 #include <TLib/Media/Renderer2D.hpp>
 
 #include <locale>
@@ -74,6 +75,7 @@ namespace agui
 
         virtual void _endPaint()
         {
+            Renderer2D::render();
             Renderer2D::setView(origCamera);
             endClip();
         }
@@ -98,8 +100,20 @@ namespace agui
             const Dimension& regionSize,
             const float&     opacity = 1.0f)
         {
-            // TODO: implement
-            //Renderer2D::drawTexture()
+            Texture* tex = reinterpret_cast<const TLibImage*>(bmp)->getBitmap();
+            if (tex == nullptr) { return; }
+
+            Rectf dstRect = {
+                Vector2f(position.getX() + getOffset().getX(), position.getY() + getOffset().getY()),
+                Vector2f(tex->getSize())
+            };
+
+            Rectf srcRect = {
+                static_cast<float>(regionStart.getX()),    static_cast<float>(regionStart.getY()),
+                static_cast<float>(regionSize.getWidth()), static_cast<float>(regionSize.getHeight())
+            };
+
+            Renderer2D::drawTexture(*tex, srcRect, dstRect, 0, ColorRGBAf{ 1.f, 1.f, 1.f, opacity });
         }
 
         virtual void drawImage(
@@ -107,7 +121,15 @@ namespace agui
             const Point& position,
             const float& opacity = 1.0f)
         {
-            // TODO: implement
+            Texture* tex = reinterpret_cast<const TLibImage*>(bmp)->getBitmap();
+            if (tex == nullptr) { return; }
+
+            Rectf dstRect = {
+                Vector2f(position.getX() + getOffset().getX(), position.getY() + getOffset().getY()),
+                Vector2f(tex->getSize())
+            };
+
+            Renderer2D::drawTexture(*tex, dstRect, 0, ColorRGBAf{1.f, 1.f, 1.f, opacity});
         }
 
         virtual void drawScaledImage(
