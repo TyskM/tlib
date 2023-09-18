@@ -25,6 +25,7 @@ struct Resource
     inline void set   (T v) noexcept { value = std::clamp(v, min, max); }
     inline void add   (T v) noexcept { set(value + v); }
     inline void reduce(T v) noexcept { set(value - v); }
-    inline bool full()      noexcept { return value == max; }
-    inline bool depleted()  noexcept { return value == min; }
+
+    inline bool full()     const noexcept { return value == max; }
+    inline bool depleted() const noexcept { return value == min; }
 };

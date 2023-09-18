@@ -12,7 +12,7 @@ Entity copyEntity(ECS& ecs, Entity e)
     for (auto&& curr: ecs.storage())
     {
         if (auto& storage = curr.second; storage.contains(e))
-        { storage.emplace(r, storage.get(e)); }
+        { storage.push(r, storage.value(e)); }
     }
     return r;
 }

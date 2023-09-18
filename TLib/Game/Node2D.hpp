@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Node.hpp"
-#include "Transform2D.hpp"
+#include <TLib/Game/Node.hpp>
+#include <TLib/Game/Transform2D.hpp>
 
 struct Node2D : Node
 {
@@ -50,9 +50,9 @@ public:
     {
         if (globalTransformDirty)
         {
-            Node2D* p2d = cast<Node2D>(getParent());
-            if (p2d)
-            { globalTransform = p2d->getGlobalTransform() + getTransform(); }
+            Node2D* parent2d = cast<Node2D>(getParent());
+            if (parent2d)
+            { globalTransform = parent2d->getGlobalTransform() + getTransform(); }
             else
             { globalTransform = getTransform(); }
 
@@ -66,7 +66,7 @@ public:
         globalTransformDirty = true;
         for (auto& child : children)
         {
-            Node2D* child2d = Node::cast<Node2D>(child.get());
+            Node2D* child2d = Node::cast<Node2D>(child);
             if (child2d) { child2d->globalTransformDirty = true; }
         }
     }

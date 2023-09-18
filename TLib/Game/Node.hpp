@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Engine.hpp"
-#include <vector>
-
-using std::vector;
+#include <TLib/Containers/Vector.hpp>
+#include <TLib/Macros.hpp>
+#include <TLib/Media/Platform/Window.hpp>
 
 struct Node
 {
-    vector<SharedPtr<Node>> children;
+    Vector<Node> children;
     Node* parent;
     bool freed = false;
 
@@ -16,23 +15,20 @@ struct Node
 
     // TODO: emplace child
 
-    void addChild(const SharedPtr<Node>& node)
+    void addChild(Node& node)
     {
-        ASSERTMSG(!node->parent, "Tried adding a node who already has a parent");
-        node->parent = this;
+        ASSERTMSG(!node.parent, "Tried adding a node who already has a parent");
+        node.parent = this;
         children.push_back(node);
     }
 
-    void addChild(const Node& node)
-    { addChild(make_shared<Node>(node)); }
-
-    bool removeChild(const SharedPtr<Node>& child)
+    bool removeChild(const Node& child)
     {
         // https://stackoverflow.com/questions/14737780/how-do-i-remove-the-first-occurrence-of-a-value-from-a-vector
         auto it = std::find(children.begin(), children.end(), child);
         if (it != children.end())
         {
-            it->get()->parent = nullptr;
+            it->parent = nullptr;
             children.erase(it);
             return true;
         }
@@ -42,7 +38,7 @@ struct Node
     void clearChildren()
     {
         for (auto& c : children)
-        { c->clearChildren(); c->parent = nullptr; }
+        { c->clearChildren(); c.parent = nullptr; }
         children.clear();
     }
 
@@ -60,31 +56,27 @@ struct Node
     { return dynamic_cast<T*>(object); }
 
     template <class T>
-    static SharedPtr<T> cast(SharedPtr<Node>& object)
-    { return dynamic_cast<SharedPtr<T>>(object); }
-
-    template <typename T>
-    static SharedPtr<T> copy()
-    { return make_shared<T>(*this); }
+    static T* cast(Node& object)
+    { return dynamic_cast<T*>(&object); }
 
     virtual void input(const InputEvent& ev)
     {
         if (freed) { return; }
         for (auto& child : children)
-        { child->input(ev); }
+        { child.input(ev); }
     }
 
     virtual void update(float delta)
     {
-        std::erase_if(children, [](const auto& v) { return v->freed; });
+        eastl::erase_if(children, [](const auto& v) { return v.freed; });
         for (auto& child : children)
-        { child->update(delta); }
+        { child.update(delta); }
     }
 
     virtual void draw(float delta)
     {
         for (auto& child : children)
-        { child->draw(delta); }
+        { child.draw(delta); }
     }
 
     virtual ~Node() { clearChildren(); };

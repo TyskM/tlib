@@ -5,7 +5,7 @@
 struct Transform2D
 {
     Vector2f pos;
-    Vector2f scale ={ 1, 1 };
+    Vector2f scale = { 1, 1 };
     float    rot;
 
     Transform2D& operator+(const Transform2D& other)

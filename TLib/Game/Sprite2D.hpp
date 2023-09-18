@@ -1,16 +1,16 @@
 #pragma once
 
 #include <TLib/Game/Node2D.hpp>
-#include <TLib/Game/Engine.hpp>
 #include <TLib/Game/TextureManager.hpp>
+#include <TLib/Media/Renderer2D.hpp>
 
 struct Sprite2D : Node2D
 {
     SubTexture texture;
 
-    void getOrLoad(const String& path, TextureFiltering filtering = Texture::defaultTexFiltering, Recti region = {0,0,0,0})
+    void getOrLoad(const String& path, TextureManager& texMan, TextureFiltering filtering = Texture::defaultTexFiltering, Recti region = {0,0,0,0})
     {
-        Texture* texture = game::texMan.getOrLoad(path, filtering);
+        Texture* texture = texMan.getOrLoad(path, filtering);
         if (!texture) { return; }
         setTexture(*texture, region);
     }
@@ -27,7 +27,14 @@ struct Sprite2D : Node2D
     {
         if (texture.texture == nullptr) { return; }
         Transform2D gbt = getGlobalTransform();
-        game::renderer.drawTextureFast(texture, { gbt.pos, gbt.scale * Vector2f(texture.texture->getSize()) }, gbt.rot);
+
+        Renderer2D::drawTexture(
+            texture,
+            Rectf{gbt.pos, gbt.scale * Vector2f(texture.texture->getSize())},
+            Renderer2D::DefaultSpriteLayer,
+            ColorRGBAf::white(),
+            gbt.rot);
+
         Node2D::draw(delta);
     }
 };

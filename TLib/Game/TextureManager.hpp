@@ -1,14 +1,12 @@
 #pragma once
 
 #include <TLib/Media/Resource/Texture.hpp>
-#include <filesystem>
-#include <unordered_map>
-
-namespace fs = std::filesystem;
+#include <TLib/Files.hpp>
+#include <TLib/Containers/UnorderedMap.hpp>
 
 struct TextureManager
 {
-    std::unordered_map<std::string, Texture> textures;
+    UnorderedMap<String, Texture> textures;
 
     void clear() { textures.clear(); }
 

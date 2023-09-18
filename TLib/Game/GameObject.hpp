@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include <TLib/Containers/Vector.hpp>
 #include <TLib/Pointers.hpp>
 
 struct GameObj : SafeObj
@@ -9,7 +9,7 @@ struct GameObj : SafeObj
 };
 
 // Game Object Container
-template <typename T, typename ContainerType = std::vector<T>>
+template <typename T, typename ContainerType = Vector<T>>
 struct GOContainer
 {
     static_assert(std::is_base_of<GameObj, T>::value,
