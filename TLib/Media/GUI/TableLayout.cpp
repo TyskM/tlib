@@ -91,7 +91,7 @@ namespace agui
 		int xCount = 0;
 		int yCount = 0;
 
-        std::vector<int> columnWidths;
+        Vector<int> columnWidths;
         columnWidths.resize(this->columns);
 
         int rowsCount = 0;
@@ -119,7 +119,7 @@ namespace agui
         }
         rows = rowsCount;
 
-        std::vector<int> rowHeights;
+        Vector<int> rowHeights;
         rowHeights.resize(this->rows);
 
         xCount = 0;
@@ -190,7 +190,7 @@ namespace agui
         height += (this->rows -1) * this->verticalSpacing;
 
         // called to prevent to recursively call this function as reaction to set size
-        Widget::setSize(Dimension(width + getMargin(SIDE_LEFT) + getMargin(SIDE_RIGHT),
+        Widget::setSize(Vector2i(width + getMargin(SIDE_LEFT) + getMargin(SIDE_RIGHT),
                                   height + getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM)));
 	}
 

@@ -49,7 +49,7 @@ namespace agui {
 		setAlignment(ALIGN_TOP_LEFT);
 	}
 
-	Label::Label( const std::string &text )
+	Label::Label( const String &text )
 	{
 		setMargins(0,0,0,0);
 		setAutosizing(true);
@@ -60,7 +60,7 @@ namespace agui {
 
 	Label::~Label(void)
 	{
-		for(std::vector<LabelListener*>::iterator it = 
+		for(Vector<LabelListener*>::iterator it = 
 			labelListeners.begin();
 			it != labelListeners.end(); ++it)
 		{
@@ -77,14 +77,14 @@ namespace agui {
 	void Label::updateLabel()
 	{
 		resizableText.makeTextLines(getFont(),getText(),lines,
-			getInnerRectangle().getWidth());
+			getInnerRectangle().x);
 	}
 
 
 
 	void Label::setAlignment( AreaAlignmentEnum alignment )
 	{
-		for(std::vector<LabelListener*>::iterator it = 
+		for(Vector<LabelListener*>::iterator it = 
 			labelListeners.begin();
 			it != labelListeners.end(); ++it)
 		{
@@ -108,14 +108,14 @@ namespace agui {
 	void Label::resizeToContents()
 	{
     double computedWidth = getFont()->getTextWidth(getText()) + getMargin(SIDE_LEFT) + getMargin(SIDE_RIGHT);
-    if (this->getMaxSize().getWidth() > computedWidth)
-      computedWidth = this->getMaxSize().getWidth();
-		_setSizeInternal(Dimension(int(computedWidth), getFont()->getLineHeight() * getNumTextLines() + getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM)));
+    if (this->getMaxSize().x > computedWidth)
+      computedWidth = this->getMaxSize().x;
+		_setSizeInternal(Vector2i(int(computedWidth), getFont()->getLineHeight() * getNumTextLines() + getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM)));
 	}
 
   void Label::resizeToContentsPreserveWidth()
 	{
-    _setSizeInternal(Dimension(getWidth(), getFont()->getLineHeight() * getNumTextLines() + getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM)));
+    _setSizeInternal(Vector2i(getWidth(), getFont()->getLineHeight() * getNumTextLines() + getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM)));
 	}
 
 	bool Label::isAutosizing()
@@ -125,7 +125,7 @@ namespace agui {
 
 	void Label::setAutosizing( bool autosizing )
 	{
-		for(std::vector<LabelListener*>::iterator it = 
+		for(Vector<LabelListener*>::iterator it = 
 			labelListeners.begin();
 			it != labelListeners.end(); ++it)
 		{
@@ -140,7 +140,7 @@ namespace agui {
 		}
 	}
 
-	void Label::_setSizeInternal( const Dimension &size )
+	void Label::_setSizeInternal( const Vector2i &size )
 	{
 		if(isAutosizing())
 		{
@@ -165,7 +165,7 @@ namespace agui {
 	void Label::addLabelListener(
 		LabelListener* listener )
 	{
-		for(std::vector<LabelListener*>::iterator it = 
+		for(Vector<LabelListener*>::iterator it = 
 			labelListeners.begin();
 			it != labelListeners.end(); ++it)
 		{
@@ -186,7 +186,7 @@ namespace agui {
 	}
 
 
-	void Label::setSize( const Dimension &size )
+	void Label::setSize( const Vector2i &size )
 	{
 		if(!isAutosizing())
 		{
@@ -200,7 +200,7 @@ namespace agui {
 		Widget::setSize(width,height);
 	}
 
-	void Label::setText( const std::string &text )
+	void Label::setText( const String &text )
 	{
 		Widget::setText(text);
 		if(isAutosizing())
@@ -245,7 +245,7 @@ namespace agui {
 		return int(lines.size());
 	}
 
-	std::vector<std::string>& Label::getTextLines()
+	Vector<String>& Label::getTextLines()
 	{
 		return lines;
 	}

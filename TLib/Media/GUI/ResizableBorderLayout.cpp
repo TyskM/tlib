@@ -54,7 +54,7 @@ namespace agui
 	{
 	}
 
-	BorderLayout::BorderLayoutEnum ResizableBorderLayout::getPointRegion( const Point &p )
+	BorderLayout::BorderLayoutEnum ResizableBorderLayout::getPointRegion( const Vector2i &p )
 	{
 		if(!getWidget(CENTER))
 		{
@@ -69,8 +69,7 @@ namespace agui
 
 		if(resizingWest && west)
 		{
-			if(p.getX() >= west->getInnerWidth() + west->getLocation().getX()
-				&& p.getX() <= center->getLocation().getX())
+			if(p.x >= west->getInnerWidth() + west->getLocation().x && p.x <= center->getLocation().x)
 			{
 				return WEST;
 			}
@@ -78,8 +77,8 @@ namespace agui
 
 		if(resizingEast && east)
 		{
-			if(p.getX() <= east->getLocation().getX()
-				&& p.getX() >= center->getLocation().getX() + center->getInnerWidth())
+			if(p.x <= east->getLocation().x
+				&& p.x >= center->getLocation().x + center->getInnerWidth())
 			{
 				return EAST;
 			}
@@ -88,8 +87,8 @@ namespace agui
 
 		if(resizingNorth && north)
 		{
-			if(p.getY() >= north->getInnerHeight() + north->getLocation().getY()
-				&& p.getY() <= center->getLocation().getY())
+			if(p.y >= north->getInnerHeight() + north->getLocation().y
+				&& p.y <= center->getLocation().y)
 			{
 				return NORTH;
 			}
@@ -97,8 +96,8 @@ namespace agui
 
 		if(resizingSouth && south)
 		{
-			if(p.getY() <= south->getLocation().getY()
-				&& p.getY() >= center->getLocation().getY() + center->getInnerHeight())
+			if(p.y <= south->getLocation().y
+				&& p.y >= center->getLocation().y + center->getInnerHeight())
 			{
 				return SOUTH;
 			}
@@ -159,36 +158,36 @@ namespace agui
 		{
 			//North
 			if( mouseResult == NORTH && deltaMargin > 
-				getWidget(CENTER)->getLocation().getY() - 
-				getHorizontalSpacing() + getWidget(CENTER)->getSize().getHeight())
+				getWidget(CENTER)->getLocation().y - 
+				getHorizontalSpacing() + getWidget(CENTER)->getSize().y)
 			{
-				deltaMargin = getWidget(CENTER)->getLocation().getY() -
-					getHorizontalSpacing() + getWidget(CENTER)->getSize().getHeight();
+				deltaMargin = getWidget(CENTER)->getLocation().y -
+					getHorizontalSpacing() + getWidget(CENTER)->getSize().y;
 			}
 
 			//West
 			if( mouseResult == WEST && deltaMargin > 
-				getWidget(CENTER)->getLocation().getX() - 
-				getVerticalSpacing() + getWidget(CENTER)->getSize().getWidth())
+				getWidget(CENTER)->getLocation().x - 
+				getVerticalSpacing() + getWidget(CENTER)->getSize().x)
 			{
-				deltaMargin = getWidget(CENTER)->getLocation().getX() -
-					getVerticalSpacing() + getWidget(CENTER)->getSize().getWidth();
+				deltaMargin = getWidget(CENTER)->getLocation().x -
+					getVerticalSpacing() + getWidget(CENTER)->getSize().x;
 			}
 
 			//South
 			if(mouseResult == SOUTH && deltaMargin > getInnerHeight() -
-				getWidget(CENTER)->getLocation().getY() - getHorizontalSpacing())
+				getWidget(CENTER)->getLocation().y - getHorizontalSpacing())
 			{
 				deltaMargin = getInnerHeight() -  
-					getWidget(CENTER)->getLocation().getY() - getHorizontalSpacing();
+					getWidget(CENTER)->getLocation().y - getHorizontalSpacing();
 			}
 
 			//East
 			if(mouseResult == EAST && deltaMargin > getInnerWidth() - 
-				getWidget(CENTER)->getLocation().getX() - getVerticalSpacing())
+				getWidget(CENTER)->getLocation().x - getVerticalSpacing())
 			{
 				deltaMargin = getInnerWidth() -  
-					getWidget(CENTER)->getLocation().getX() - getVerticalSpacing();
+					getWidget(CENTER)->getLocation().x - getVerticalSpacing();
 			}
 		}
 		

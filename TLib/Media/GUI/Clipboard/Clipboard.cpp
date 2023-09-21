@@ -59,7 +59,7 @@ namespace agui
 	{
 	}
 
-	void Clipboard::copy( const std::string& input )
+	void Clipboard::copy( const String& input )
 	{
 
 #if defined(_WIN32)
@@ -69,7 +69,7 @@ namespace agui
 #endif
 	}
 
-	std::string Clipboard::paste()
+	String Clipboard::paste()
 	{
 #if defined(_WIN32)
 		return _filter(WinClipboard::paste());
@@ -79,9 +79,9 @@ namespace agui
 
 	}
 
-	std::string Clipboard::_filter( const std::string& str )
+	String Clipboard::_filter( const String& str )
 	{
-		std::string result;
+		String result;
 
 		for(size_t i = 0; i < str.length(); ++i)
 		{
@@ -95,6 +95,6 @@ namespace agui
 
 	}
 
-	std::string Clipboard::inClipboard;
+	String Clipboard::inClipboard;
 
 }

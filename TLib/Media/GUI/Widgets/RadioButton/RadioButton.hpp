@@ -73,13 +73,13 @@ namespace agui {
 
 	private:
 		int sidePadding;
-		Rectangle wordWrapRect;
-		std::vector<std::string> wordWrappedLines;
-		std::vector<RadioButtonListener*> radioButtonListeners;
+		Recti wordWrapRect;
+		Vector<String> wordWrappedLines;
+		Vector<RadioButtonListener*> radioButtonListeners;
 		bool autosizingCheckbox;
 		int radioButtonRadius;
-		Point radioButtonPosition;
-		Rectangle radioButtonRect;
+		Vector2i radioButtonPosition;
+		Recti radioButtonRect;
 		AreaAlignmentEnum textAlignment;
 		AreaAlignmentEnum radioButtonAlignment;
 		RadioButton::RadioButtonStateEnum radioButtonState;
@@ -90,22 +90,22 @@ namespace agui {
 	protected:
 		ResizableText textAreaMan;
 			 /**
-	 * @return std::vector of strings used to draw the text.
+	 * @return Vector of strings used to draw the text.
      * @since 0.1.0
      */
-		virtual const std::vector<std::string>& getTextLines() const;
+		virtual const Vector<String>& getTextLines() const;
 
 	 /**
-	 * @return Rectangle provided when drawing the text.
+	 * @return Recti provided when drawing the text.
      * @since 0.1.0
      */
-		virtual const Rectangle& getWordWrapRect() const;
+		virtual const Recti& getWordWrapRect() const;
 
 	/**
 	 * Internally sets the widget size.
      * @since 0.1.0
      */
-		void _setSizeInternal(const Dimension &size);
+		void _setSizeInternal(const Vector2i &size);
 	 /**
 	 * Internally changes the RadioButton's state.
      * @since 0.1.0
@@ -127,7 +127,7 @@ namespace agui {
      */
 		void nextCheckState();
 	/**
-	 * Generates the Rectangle used to draw the RadioButton and a position
+	 * Generates the Recti used to draw the RadioButton and a position
 	 * that can be used to draw a circle from its center to the radius.
      * @since 0.1.0
      */
@@ -136,17 +136,17 @@ namespace agui {
 	 * @return A position that can be used to draw a circle from its center to the radius.
      * @since 0.1.0
      */
-		virtual const Point& getRadioButtonPosition() const;
+		virtual const Vector2i& getRadioButtonPosition() const;
 	/**
 	 * Internally resizes the caption text.
      * @since 0.1.0
      */
 		virtual void resizeCaption();
 	/**
-	 * @return The Rectangle used to draw the RadioButton itself.
+	 * @return The Recti used to draw the RadioButton itself.
      * @since 0.1.0
      */
-		virtual const Rectangle& getRadioButtonRectangle() const;
+		virtual const Recti& getRadioButtonRectangle() const;
 
 		virtual void paintComponent(const PaintEvent &paintEvent);
 		virtual void paintBackground(const PaintEvent &paintEvent);
@@ -163,12 +163,12 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual void setSidePadding(int padding);
-		virtual void setLocation(const Point &location);
+		virtual void setLocation(const Vector2i &location);
 		virtual void setLocation(int x, int y);
 		virtual void setFont(const Font *font);
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
-		virtual void setText(const std::string &text);
+		virtual void setText(const String &text);
 		virtual void focusGained();
 		virtual void focusLost();
 		virtual void mouseEnter(MouseEvent &mouseEvent);

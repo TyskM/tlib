@@ -50,331 +50,336 @@
 #include <TLib/Media/GUI/KeyboardListener.hpp>
 
 namespace agui {
-	/**
-	 * Class that represents a ScrollPane to scroll an area that is larger than the size of the widget.
-	 *
-	 * Optional constructor widget:
-	 *
-	 * HScrollBar (Horizontal Scroll Bar)
-	 *
-	 * VScrollBar (Vertical Scroll Bar)
-	 *
-	 * Widget (Scroll Inset)
-	 *
-	 * Widget (Content Container)
+    /**
+     * Class that represents a ScrollPane to scroll an area that is larger than the size of the widget.
+     *
+     * Optional constructor widget:
+     *
+     * HScrollBar (Horizontal Scroll Bar)
+     *
+     * VScrollBar (Vertical Scroll Bar)
+     *
+     * Widget (Scroll Inset)
+     *
+     * Widget (Content Container)
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC ScrollPane : public Widget,
-		protected HScrollBarListener, 
-		protected VScrollBarListener,
-		protected WidgetListener,
-		protected MouseListener,
-		protected KeyboardListener
-	{
+    class AGUI_CORE_DECLSPEC ScrollPane : public Widget,
+        protected HScrollBarListener, 
+        protected VScrollBarListener,
+        protected WidgetListener,
+        protected MouseListener,
+        protected KeyboardListener
+    {
 
-	private:
-		ScrollPolicy hScrollPolicy;
-		ScrollPolicy vScrollPolicy;
+    private:
+        ScrollPolicy hScrollPolicy;
+        ScrollPolicy vScrollPolicy;
 
-		int hKeyScrollRate;
-		int vKeyScrollRate;
+        int hKeyScrollRate;
+        int vKeyScrollRate;
 
-		HScrollBar *pChildHScroll;
-		VScrollBar *pChildVScroll;
-		Widget     *pChildContent;
-		Widget     *pChildInset;
+        HScrollBar *pChildHScroll;
+        VScrollBar *pChildVScroll;
+        Widget     *pChildContent;
+        Widget     *pChildInset;
 
-		bool isMaintainingHScroll;
-		bool isMaintainingVScroll;
-		bool isMaintainingInset;
-		bool isMaintainingContent;
-	protected:
-	/**
+        bool isMaintainingHScroll;
+        bool isMaintainingVScroll;
+        bool isMaintainingInset;
+        bool isMaintainingContent;
+    protected:
+    /**
      * Enables or disables the ScrollBars based on the ScrollPolicy.
      * @since 0.1.0
      */
-		virtual void checkScrollPolicy();
-	/**
+        virtual void checkScrollPolicy();
+    /**
      * Will resize the ScrollBars based on the policy.
      * @since 0.1.0
      */
-		virtual void resizeSBsToPolicy();
-	/**
+        virtual void resizeSBsToPolicy();
+    /**
      * Will adjust the ScrollBar ranges based on the content width and content height.
      * @since 0.1.0
      */
-		virtual void adjustSBRanges();
-	/**
+        virtual void adjustSBRanges();
+    /**
      * Checks the policy, resizes the scroll bars, and adjusts the ranges.
      * @since 0.1.0
      */
-		virtual void updateScrollBars();
-	/**
+        virtual void updateScrollBars();
+    /**
      * Uses arrow keys to scroll when another widget has focus. 
-	 * You can call this in the ScrollPane's keyDown and keyRepeat events if you need it when it
-	 * is focused.
+     * You can call this in the ScrollPane's keyDown and keyRepeat events if you need it when it
+     * is focused.
      * @since 0.1.0
      */
-		virtual void keyAction(ExtendedKeyEnum key);
+        virtual void keyAction(ExtendedKeyEnum key);
 
-		virtual void paintBackground(const PaintEvent &paintEvent);
-		virtual void paintComponent(const PaintEvent &paintEvent);
-	/**
+        virtual void paintBackground(const PaintEvent &paintEvent);
+        virtual void paintComponent(const PaintEvent &paintEvent);
+    /**
      * It is expected that the content widget's size is the size of the content.
-	 *
-	 * This will move the content widget into view. Override this if that is not what you want.
+     *
+     * This will move the content widget into view. Override this if that is not what you want.
      * @since 0.1.0
      */
-		virtual void valueChanged(HScrollBar* source, int val);
-	/**
+        virtual void valueChanged(HScrollBar* source, int val);
+    /**
      * It is expected that the content widget's size is the size of the content.
-	 *
-	 * This will move the content widget into view. Override this if that is not what you want.
+     *
+     * This will move the content widget into view. Override this if that is not what you want.
      * @since 0.1.0
      */
-		virtual void valueChanged(VScrollBar* source,int val);
+        virtual void valueChanged(VScrollBar* source,int val);
 
-		virtual void textChanged(Widget* source, const std::string &text);
-	/**
-	 * This will resize the content widget to the content width and height and update the scrollbars.
-	 * Override this if that is not what you want.
+        virtual void textChanged(Widget* source, const String &text);
+    /**
+     * This will resize the content widget to the content width and height and update the scrollbars.
+     * Override this if that is not what you want.
      * @since 0.1.0
      */
-		virtual void sizeChanged(Widget* source, const Dimension &size);
-	/**
-	 * This will resize the content widget to the content width and height and update the scrollbars.
-	 * Override this if that is not what you want.
+        virtual void sizeChanged(Widget* source, const Vector2i &size);
+    /**
+     * This will resize the content widget to the content width and height and update the scrollbars.
+     * Override this if that is not what you want.
      * @since 0.1.0
      */
-		virtual void locationChanged(Widget* source, const Point &location);
-		virtual void mouseWheelDownCB(MouseEvent &mouseEvent);
-		virtual void mouseWheelUpCB(MouseEvent &mouseEvent);
-		virtual void mouseWheelDown(MouseEvent &mouseEvent);
-		virtual void mouseWheelUp(MouseEvent &mouseEvent);
+        virtual void locationChanged(Widget* source, const Vector2i &location);
+        virtual void mouseWheelDownCB(MouseEvent &mouseEvent);
+        virtual void mouseWheelUpCB(MouseEvent &mouseEvent);
+        virtual void mouseWheelDown(MouseEvent &mouseEvent);
+        virtual void mouseWheelUp(MouseEvent &mouseEvent);
 
-		virtual void keyDownCB(KeyEvent &keyEvent);
-		virtual void keyRepeatCB(KeyEvent &keyEvent);
-		virtual void keyUpCB(KeyEvent &keyEvent);
+        virtual void keyDownCB(KeyEvent &keyEvent);
+        virtual void keyRepeatCB(KeyEvent &keyEvent);
+        virtual void keyUpCB(KeyEvent &keyEvent);
 
 
-		virtual void childAdded(Widget* source, Widget* widget);
-		virtual void childRemoved(Widget* source, Widget* widget);
-	public:
-	/**
+        virtual void childAdded(Widget* source, Widget* widget);
+        virtual void childRemoved(Widget* source, Widget* widget);
+    public:
+    /**
      * Also flags the content Widget's children.
      * @since 0.1.0
      */
-		virtual void flagAllChildrenForDestruction();
-		virtual bool intersectionWithPoint(const Point &p) const;
+        virtual void flagAllChildrenForDestruction();
+        virtual bool intersectionWithPoint(const Vector2i &p) const;
 
-		/**
+        /**
      * Adds the parameter Widget to the content Widget.
      * @since 0.1.0
      */
-		virtual void add(Widget *widget);
-	/**
+        virtual void add(Widget *widget);
+    /**
      * Removes the parameter Widget from the content Widget.
      * @since 0.1.0
      */
-		virtual void remove(Widget *widget);
+        virtual void remove(Widget *widget);
 
-	/**
+    /**
      * @return The content width. 
-	 * Used to determine the range and visibility of the HScrollBar.
-	 *
-	 * Override this if you do not use widgets and draw your own content.
+     * Used to determine the range and visibility of the HScrollBar.
+     *
+     * Override this if you do not use widgets and draw your own content.
      * @since 0.1.0
      */
-		int getContentWidth() const;
-			/**
+        int getContentWidth() const;
+            /**
      * @return The content height. 
-	 * Used to determine the range and visibility of the VScrollBar.
-	 *
-	 * Override this if you do not use widgets and draw your own content.
+     * Used to determine the range and visibility of the VScrollBar.
+     *
+     * Override this if you do not use widgets and draw your own content.
      * @since 0.1.0
      */
-		int getContentHeight() const;
-	/**
-	 * @return True if the Horizontal Scrollbar is needed (Does not consider policy).
+        int getContentHeight() const;
+    /**
+     * @return True if the Horizontal Scrollbar is needed (Does not consider policy).
      * @since 0.1.0
      */
-		bool isHScrollNeeded() const;
-			/**
-	 * @return True if the Vertical Scrollbar is needed (Does not consider policy).
+        bool isHScrollNeeded() const;
+            /**
+     * @return True if the Vertical Scrollbar is needed (Does not consider policy).
      * @since 0.1.0
      */
-		bool isVScrollNeeded() const;
-	/**
-	 * Sets the Horizontal Scrollbar's policy. (SHOW_ALWAYS, SHOW_AUTO, SHOW_NEVER).
+        bool isVScrollNeeded() const;
+    /**
+     * Sets the Horizontal Scrollbar's policy. (SHOW_ALWAYS, SHOW_AUTO, SHOW_NEVER).
      * @since 0.1.0
      */
-		void setHScrollPolicy(ScrollPolicy policy);
-	/**
-	 * Sets the Vertical Scrollbar's policy. (SHOW_ALWAYS, SHOW_AUTO, SHOW_NEVER).
+        void setHScrollPolicy(ScrollPolicy policy);
+    /**
+     * Sets the Vertical Scrollbar's policy. (SHOW_ALWAYS, SHOW_AUTO, SHOW_NEVER).
      * @since 0.1.0
      */
-		void setVScrollPolicy(ScrollPolicy policy);
-	/**
-	 * #return The Horizontal Scrollbar's policy. (SHOW_ALWAYS, SHOW_AUTO, SHOW_NEVER).
+        void setVScrollPolicy(ScrollPolicy policy);
+    /**
+     * #return The Horizontal Scrollbar's policy. (SHOW_ALWAYS, SHOW_AUTO, SHOW_NEVER).
      * @since 0.1.0
      */
-		ScrollPolicy getHScrollPolicy() const;
-	/**
-	 * @return The Vertical Scrollbar's policy. (SHOW_ALWAYS, SHOW_AUTO, SHOW_NEVER).
+        ScrollPolicy getHScrollPolicy() const;
+    /**
+     * @return The Vertical Scrollbar's policy. (SHOW_ALWAYS, SHOW_AUTO, SHOW_NEVER).
      * @since 0.1.0
      */
-		ScrollPolicy getVScrollPolicy() const;
+        ScrollPolicy getVScrollPolicy() const;
 
-	/**
-	 * This will resize the content widget to the content width and height and update the scrollbars.
-	 * Override this if that is not what you want.
+    /**
+     * This will resize the content widget to the content width and height and update the scrollbars.
+     * Override this if that is not what you want.
      * @since 0.1.0
      */
-		virtual void setSize(const Dimension &size);
-	/**
-	 * This will resize the content widget to the content width and height and update the scrollbars.
-	 * Override this if that is not what you want.
+        virtual void setSize(const Vector2i &size);
+    /**
+     * This will resize the content widget to the content width and height and update the scrollbars.
+     * Override this if that is not what you want.
      * @since 0.1.0
      */
-		virtual void setSize(int width, int height);
+        virtual void setSize(int width, int height);
 
-	/**
-	 * Sets how many values in addition to the actual delta mouse wheel, 
-	 * the vertical scrollbar will be 
-	 * moved when a mouse wheel event is triggered.
-	 *
-	 * The widget under the mouse has priority. 
-	 * If a widget like a ListBox consumes the event, it will scroll instead.
-	 *
+    /**
+     * Sets how many values in addition to the actual delta mouse wheel, 
+     * the vertical scrollbar will be 
+     * moved when a mouse wheel event is triggered.
+     *
+     * The widget under the mouse has priority. 
+     * If a widget like a ListBox consumes the event, it will scroll instead.
+     *
      * @since 0.1.0
      */
-		virtual void setWheelScrollRate(int rate);
-		
-	/**
-	 * @return How many values in addition to the actual delta mouse wheel, 
-	 * the vertical scrollbar will be 
-	 * moved when a mouse wheel event is triggered.
-	 *
-	 * The widget under the mouse has priority. 
-	 * If a widget like a ListBox consumes the event, it will scroll instead.
+        virtual void setWheelScrollRate(int rate);
+        
+    /**
+     * @return How many values in addition to the actual delta mouse wheel, 
+     * the vertical scrollbar will be 
+     * moved when a mouse wheel event is triggered.
+     *
+     * The widget under the mouse has priority. 
+     * If a widget like a ListBox consumes the event, it will scroll instead.
      * @since 0.1.0
      */
-		virtual int getWheelScrollRate() const;
+        virtual int getWheelScrollRate() const;
 
-	/**
-	 * Sets how many values the left and right keys will move the Horizontal Scrollbar.
+    /**
+     * Sets how many values the left and right keys will move the Horizontal Scrollbar.
      * @since 0.1.0
      */
-		virtual void setHKeyScrollRate(int rate);
-	/**
-	 * @return How many values the left and right keys will move the Horizontal Scrollbar.
+        virtual void setHKeyScrollRate(int rate);
+    /**
+     * @return How many values the left and right keys will move the Horizontal Scrollbar.
      * @since 0.1.0
      */
-		virtual int getHKeyScrollRate() const;
-			/**
-	 * Sets how many values the up and down keys will move the Vertical Scrollbar.
+        virtual int getHKeyScrollRate() const;
+            /**
+     * Sets how many values the up and down keys will move the Vertical Scrollbar.
      * @since 0.1.0
      */
-		virtual void setVKeyScrollRate(int rate);
-	/**
-	 * @return How many values the up and down keys will move the Vertical Scrollbar.
+        virtual void setVKeyScrollRate(int rate);
+    /**
+     * @return How many values the up and down keys will move the Vertical Scrollbar.
      * @since 0.1.0
      */
-		virtual int getVKeyScrollRate() const;
+        virtual int getVKeyScrollRate() const;
 
-	/**
-	 * @return How much pressing the top arrow will move the thumb.
+    /**
+     * @return How much pressing the top arrow will move the thumb.
      * @since 0.1.0
      */
-		int getTopArrowAmount() const;
-	/**
-	 * @return How much pressing the bottom arrow will move the thumb.
+        int getTopArrowAmount() const;
+    /**
+     * @return How much pressing the bottom arrow will move the thumb.
      * @since 0.1.0
      */
-		int getBottomArrowAmount() const;
-	/**
-	 * @return How much pressing the left arrow will move the thumb.
+        int getBottomArrowAmount() const;
+    /**
+     * @return How much pressing the left arrow will move the thumb.
      * @since 0.1.0
      */
-		int getLeftArrowAmount() const;
-	/**
-	 * @return How much pressing the right arrow will move the thumb.
+        int getLeftArrowAmount() const;
+    /**
+     * @return How much pressing the right arrow will move the thumb.
      * @since 0.1.0
      */
-		int getRightArrowAmount() const;
-	/**
-	 * Sets how much pressing the top arrow will move the thumb.
+        int getRightArrowAmount() const;
+    /**
+     * Sets how much pressing the top arrow will move the thumb.
      * @since 0.1.0
      */
-		void setTopArrowAmount(int amount);
-	/**
-	 * Sets how much pressing the bottom arrow will move the thumb.
+        void setTopArrowAmount(int amount);
+    /**
+     * Sets how much pressing the bottom arrow will move the thumb.
      * @since 0.1.0
      */
-		void setBottomArrowAmount(int amount);
-	/**
-	 * Sets how much pressing the left arrow will move the thumb.
+        void setBottomArrowAmount(int amount);
+    /**
+     * Sets how much pressing the left arrow will move the thumb.
      * @since 0.1.0
      */
-		void setLeftArrowAmount(int amount);
-	/**
-	 * Sets how much pressing the right arrow will move the thumb.
+        void setLeftArrowAmount(int amount);
+    /**
+     * Sets how much pressing the right arrow will move the thumb.
      * @since 0.1.0
      */
-		void setRightArrowAmount(int amount);
-	/**
-	 * Sets the smallest the Horizontal thumb will ever be.
+        void setRightArrowAmount(int amount);
+    /**
+     * Sets the smallest the Horizontal thumb will ever be.
      * @since 0.1.0
      */
-		void setHMinThumbSize(int size);
-	/**
-	 * @return The smallest the Horizontal thumb will ever be.
+        void setHMinThumbSize(int size);
+    /**
+     * @return The smallest the Horizontal thumb will ever be.
      * @since 0.1.0
      */
-		int getHMinThumbSize() const;
-	/**
-	 * Sets the smallest the Vertical thumb will ever be.
+        int getHMinThumbSize() const;
+    /**
+     * Sets the smallest the Vertical thumb will ever be.
      * @since 0.1.0
      */
-		void setVMinThumbSize(int size);
-	/**
-	 * @return The smallest the Vertical thumb will ever be.
+        void setVMinThumbSize(int size);
+    /**
+     * @return The smallest the Vertical thumb will ever be.
      * @since 0.1.0
      */
-		int getVMinThumbSize() const;
+        int getVMinThumbSize() const;
 
-	/**
-	 * Will resize the width so that the content width is fully seen without needing to scroll.
+    /**
+     * Will resize the width so that the content width is fully seen without needing to scroll.
      * @since 0.1.0
      */
-		virtual void resizeWidthToContents();
-	/**
-	 * Will resize the height so that the content height is fully seen without needing to scroll.
+        virtual void resizeWidthToContents();
+    /**
+     * Will resize the height so that the content height is fully seen without needing to scroll.
      * @since 0.1.0
      */
-		virtual void resizeHeightToContents();
-	/**
-	 * Will resize both the width and height so that the content width and height
-	 * is fully seen without needing to scroll.
+        virtual void resizeHeightToContents();
+    /**
+     * Will resize both the width and height so that the content width and height
+     * is fully seen without needing to scroll.
      * @since 0.1.0
      */
-		virtual void resizeToContents();
-	/**
-	 * Construct with optional HorizontalScrollBar ,
-	 * VerticalScrollBar , ScrollInset Widget , and content Widget.
+        virtual void resizeToContents();
+    /**
+     * Construct with optional HorizontalScrollBar ,
+     * VerticalScrollBar , ScrollInset Widget , and content Widget.
      * @since 0.1.0
      */
-		ScrollPane(HScrollBar *hScroll = NULL,
-			VScrollBar* vScroll = NULL,
-			Widget* scrollBarInset = NULL,
-			Widget* contentContainer = NULL);
+        ScrollPane(HScrollBar* hScroll           = NULL,
+                   VScrollBar* vScroll           = NULL,
+                   Widget*     scrollBarInset    = NULL,
+                   Widget*     contentContainer  = NULL);
 
-	/**
-	 * Default destructor.
+        virtual void setup(HScrollBar* hScroll           = NULL,
+                           VScrollBar* vScroll           = NULL,
+                           Widget*     scrollBarInset    = NULL,
+                           Widget*     contentContainer  = NULL);
+
+    /**
+     * Default destructor.
      * @since 0.1.0
      */
-		virtual ~ScrollPane(void);
-	};
+        virtual ~ScrollPane(void);
+    };
 }
 #endif

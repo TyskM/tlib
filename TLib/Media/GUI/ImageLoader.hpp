@@ -73,7 +73,7 @@
 	 * Not applicable in most situations.
      * @since 0.1.0
      */
-		virtual Image* loadImage(const std::string &fileName, bool convertMask = false,
+		virtual Image* loadImage(const String &fileName, bool convertMask = false,
 			bool converToDisplayFormat = false) = 0;
 	};
 }

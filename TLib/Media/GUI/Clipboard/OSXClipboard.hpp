@@ -41,15 +41,15 @@
 #ifndef AGUI_OSX_CLIPBOARD_HPP
 #define AGUI_OSX_CLIPBOARD_HPP
 #include <stdlib.h>
-#include <string>
+#include <TLib/String.hpp>
 #import <Cocoa/Cocoa.h>
 namespace agui
 {
 	class OSXClipboard
 	{
 	public:
-		static void copy(const std::string& input);
-		static std::string paste();
+		static void copy(const String& input);
+		static String paste();
 		OSXClipboard(void);
 		virtual ~OSXClipboard(void);
 	};

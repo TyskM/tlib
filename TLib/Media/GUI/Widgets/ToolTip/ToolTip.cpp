@@ -50,7 +50,7 @@ namespace agui {
 		setVisibility(false);
 		setFocusable(false);
 		setTabable(false);
-		setPreferredOffset(Point(10,10));
+		setPreferredOffset(Vector2i(10,10));
 	}
 
 	void ToolTip::mouseClick( MouseEvent &mouseEvent )
@@ -60,7 +60,7 @@ namespace agui {
 			dispatchActionEvent(ActionEvent(this));
 	}
 
-	void ToolTip::showToolTip( const std::string& text, int width, int x, int y, Widget* invoker )
+	void ToolTip::showToolTip( const String& text, int width, int x, int y, Widget* invoker )
 	{
 		this->invoker = invoker;
 
@@ -105,7 +105,7 @@ namespace agui {
 		setVisibility(true);
 	}
 
-	const std::vector<std::string>& ToolTip::getAreaText() const
+	const Vector<String>& ToolTip::getAreaText() const
 	{
 		return wrappedText;
 	}
@@ -140,12 +140,12 @@ namespace agui {
 		invoker = NULL;
 	}
 
-	void ToolTip::setPreferredOffset( Point offset )
+	void ToolTip::setPreferredOffset( Vector2i offset )
 	{
 		preferredOffset = offset;
 	}
 
-	Point ToolTip::getPreferredOffset() const
+	Vector2i ToolTip::getPreferredOffset() const
 	{
 		return preferredOffset;
 	}

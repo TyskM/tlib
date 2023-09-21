@@ -60,26 +60,26 @@ namespace agui {
 	private:
 		MenuItemTypeEnum itemType;
 		Image* icon;
-		std::string shortcutText;
+		String shortcutText;
 		PopUpMenu* subMenu;
 		PopUpMenu* parentMenu;
 		virtual void paintBackground(const PaintEvent &paintEvent);
 		virtual void paintComponent(const PaintEvent &paintEvent);
 	public:
 		PopUpMenuItem();
-		PopUpMenuItem(const std::string& text, Image* image = NULL);
-		PopUpMenuItem(const std::string& text, 
-			const std::string& shortcutText, Image* image = NULL);
+		PopUpMenuItem(const String& text, Image* image = NULL);
+		PopUpMenuItem(const String& text, 
+			const String& shortcutText, Image* image = NULL);
 		PopUpMenuItem(MenuItemTypeEnum type);
 		PopUpMenuItem(PopUpMenu* menu);
-		PopUpMenuItem(PopUpMenu* menu,const std::string&text);
+		PopUpMenuItem(PopUpMenu* menu,const String&text);
 		virtual ~PopUpMenuItem();
 		virtual void setItemType(MenuItemTypeEnum itemType );
 		virtual MenuItemTypeEnum getItemType() const;
 		virtual void setIcon(Image* image);
 		virtual Image* getIcon() const;
-		virtual void setShortcutText(const std::string& text);
-		virtual const std::string& getShortcutText() const;
+		virtual void setShortcutText(const String& text);
+		virtual const String& getShortcutText() const;
 		virtual void setSubMenu(PopUpMenu* menu);
 		virtual PopUpMenu* getSubMenu() const;
 		virtual bool isSeparator() const;

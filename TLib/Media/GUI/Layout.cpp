@@ -64,7 +64,7 @@ namespace agui
 		}
 	}
 
-	void Layout::setSize( const Dimension &size )
+	void Layout::setSize( const Vector2i &size )
 	{
 		Widget::setSize(size);
 		updateLayout();
@@ -102,7 +102,7 @@ namespace agui
 
 	}
 
-	void Layout::locationChanged( Widget *source, const Point &location )
+	void Layout::locationChanged( Widget *source, const Vector2i &location )
 	{
 		if(!isLayingOut && isUpdatingOnChildRelocate())
 		{
@@ -113,7 +113,7 @@ namespace agui
 		
 	}
 
-	void Layout::sizeChanged( Widget* source, const Dimension &size )
+	void Layout::sizeChanged( Widget* source, const Vector2i &size )
 	{
 		if(!isLayingOut && isUpdatingOnChildResize())
 		{

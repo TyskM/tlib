@@ -118,7 +118,7 @@ namespace agui {
 
 	HScrollBar::~HScrollBar(void)
 	{
-		for(std::vector<HScrollBarListener*>::iterator it = 
+		for(Vector<HScrollBarListener*>::iterator it = 
 			hScrollListeners.begin();
 			it != hScrollListeners.end(); ++it)
 		{
@@ -175,26 +175,26 @@ namespace agui {
 			pChildThumb->setVisibility(true);
 		}
 
-		pChildThumb->setSize(width,getInnerSize().getHeight());
+		pChildThumb->setSize(width,getInnerSize().y);
 	}
 
 	void HScrollBar::positionThumb()
 	{
 		float val = getAdjustedMaxThumbSize() * getRelativeValue();
-		val += pChildLeftArrow->getSize().getWidth();
+		val += pChildLeftArrow->getSize().x;
 
 
 		if(getValue() == getMaxValue() - getLargeAmount())
 		{
-			val = (float)(pChildRightArrow->getLocation().getX() -
-				pChildThumb->getSize().getWidth());
+			val = (float)(pChildRightArrow->getLocation().x -
+				pChildThumb->getSize().x);
 		}
 
-		if(val + pChildThumb->getSize().getWidth() >
-			pChildRightArrow->getLocation().getX())
+		if(val + pChildThumb->getSize().x >
+			pChildRightArrow->getLocation().x)
 		{
-			val = (float)(pChildRightArrow->getLocation().getX() - 
-				pChildThumb->getSize().getWidth());
+			val = (float)(pChildRightArrow->getLocation().x - 
+				pChildThumb->getSize().x);
 		}
 		pChildThumb->setLocation((int)val,0);
 	}
@@ -202,8 +202,8 @@ namespace agui {
 	void HScrollBar::positionArrows()
 	{
 		pChildLeftArrow->setLocation(0,0);
-		pChildRightArrow->setLocation(getInnerSize().getWidth() - 
-			pChildRightArrow->getSize().getWidth(),0);
+		pChildRightArrow->setLocation(getInnerSize().x - 
+			pChildRightArrow->getSize().x,0);
 
 	}
 
@@ -225,8 +225,8 @@ namespace agui {
 	{
 		if(mouseArgs.getSourceWidget() == pChildThumb)
 		{
-			downThumbPos = pChildThumb->getLocation().getX();
-			downMousePos = mouseArgs.getX() + pChildThumb->getLocation().getX();
+			downThumbPos = pChildThumb->getLocation().x;
+			downMousePos = mouseArgs.getX() + pChildThumb->getLocation().x;
 		}
 
 		if (mouseArgs.getSourceWidget() == pChildLeftArrow)
@@ -265,7 +265,7 @@ namespace agui {
 	{
 		if(mouseArgs.getSourceWidget() == pChildThumb)
 		{
-			int mouseChange = mouseArgs.getX() + pChildThumb->getLocation().getX() - downMousePos;
+			int mouseChange = mouseArgs.getX() + pChildThumb->getLocation().x - downMousePos;
 			int thumbChange = downThumbPos + mouseChange;
 			setValue(getValueFromPosition(thumbChange));
 			mouseArgs.consume();
@@ -273,7 +273,7 @@ namespace agui {
 	}
 
 
-	void HScrollBar::setSize( const Dimension &size )
+	void HScrollBar::setSize( const Vector2i &size )
 	{
 		Widget::setSize(size);
 
@@ -302,7 +302,7 @@ namespace agui {
 		}
 
 		largeAmount = amount;
-		for(std::vector<HScrollBarListener*>::iterator it = 
+		for(Vector<HScrollBarListener*>::iterator it = 
 			hScrollListeners.begin();
 			it != hScrollListeners.end(); ++it)
 		{
@@ -337,7 +337,7 @@ namespace agui {
 			currentValue = targetVal;
 			positionThumb();
 
-			for(std::vector<HScrollBarListener*>::iterator it = 
+			for(Vector<HScrollBarListener*>::iterator it = 
 				hScrollListeners.begin();
 				it != hScrollListeners.end(); ++it)
 			{
@@ -353,7 +353,7 @@ namespace agui {
 	{
 		if(val <= getMaxValue())
 		{
-			for(std::vector<HScrollBarListener*>::iterator it = 
+			for(Vector<HScrollBarListener*>::iterator it = 
 				hScrollListeners.begin();
 				it != hScrollListeners.end(); ++it)
 			{
@@ -376,7 +376,7 @@ namespace agui {
 	{
 		if(val >= getMinValue())
 		{
-			for(std::vector<HScrollBarListener*>::iterator it = 
+			for(Vector<HScrollBarListener*>::iterator it = 
 				hScrollListeners.begin();
 				it != hScrollListeners.end(); ++it)
 			{
@@ -403,7 +403,7 @@ namespace agui {
 
 	void HScrollBar::setLeftArrowAmount( int amount )
 	{
-		for(std::vector<HScrollBarListener*>::iterator it = 
+		for(Vector<HScrollBarListener*>::iterator it = 
 			hScrollListeners.begin();
 			it != hScrollListeners.end(); ++it)
 		{
@@ -416,7 +416,7 @@ namespace agui {
 
 	void HScrollBar::setRightArrowAmount( int amount )
 	{
-		for(std::vector<HScrollBarListener*>::iterator it = 
+		for(Vector<HScrollBarListener*>::iterator it = 
 			hScrollListeners.begin();
 			it != hScrollListeners.end(); ++it)
 		{
@@ -429,7 +429,7 @@ namespace agui {
 	int HScrollBar::getValueFromPosition( int position ) const
 	{
 		//subtract the left arrow's width
-		position -= pChildLeftArrow->getSize().getWidth();
+		position -= pChildLeftArrow->getSize().x;
 
 		//what percent of the thumb size we have traveled
 		float retVal =  ((float)position / (float)getAdjustedMaxThumbSize());
@@ -506,9 +506,9 @@ namespace agui {
 
 	int HScrollBar::getMaxThumbSize() const
 	{
-		return getSize().getWidth() -
-			pChildLeftArrow->getSize().getWidth()
-			- pChildRightArrow->getSize().getWidth();
+		return getSize().x -
+			pChildLeftArrow->getSize().x
+			- pChildRightArrow->getSize().x;
 	}
 
 
@@ -517,7 +517,7 @@ namespace agui {
 	{
 		if(width >= 0)
 		{
-			for(std::vector<HScrollBarListener*>::iterator it = 
+			for(Vector<HScrollBarListener*>::iterator it = 
 				hScrollListeners.begin();
 				it != hScrollListeners.end(); ++it)
 			{
@@ -532,7 +532,7 @@ namespace agui {
 
 	int HScrollBar::getArrowWidth() const
 	{
-		return pChildLeftArrow->getSize().getWidth();
+		return pChildLeftArrow->getSize().x;
 	}
 
 	void HScrollBar::scrollRight()
@@ -547,20 +547,20 @@ namespace agui {
 
 	bool HScrollBar::isThumbAtLeft() const
 	{
-		int tPos = pChildThumb->getLocation().getX()
-			+ pChildThumb->getSize().getWidth();
+		int tPos = pChildThumb->getLocation().x
+			+ pChildThumb->getSize().x;
 
-		tPos -= pChildLeftArrow->getSize().getWidth();
+		tPos -= pChildLeftArrow->getSize().x;
 
 		return tPos == 0;
 	}
 
 	bool HScrollBar::isThumbAtRight() const
 	{
-		int tPos = pChildThumb->getLocation().getX()
-			+ pChildThumb->getSize().getWidth();
+		int tPos = pChildThumb->getLocation().x
+			+ pChildThumb->getSize().x;
 
-		tPos -= pChildRightArrow->getSize().getWidth();
+		tPos -= pChildRightArrow->getSize().x;
 
 		return tPos == getMaxThumbSize();
 	}
@@ -571,7 +571,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<HScrollBarListener*>::iterator it = 
+		for(Vector<HScrollBarListener*>::iterator it = 
 			hScrollListeners.begin();
 			it != hScrollListeners.end(); ++it)
 		{
@@ -617,7 +617,7 @@ namespace agui {
 	{
 		if(size >= 0)
 		{
-			for(std::vector<HScrollBarListener*>::iterator it = 
+			for(Vector<HScrollBarListener*>::iterator it = 
 				hScrollListeners.begin();
 				it != hScrollListeners.end(); ++it)
 			{
@@ -636,19 +636,19 @@ namespace agui {
 
 		int maxValSupport = getMaxValue() - getMinValue();
 		//get the ratio
-		float change = (float)(getSize().getWidth() -
-			pChildLeftArrow->getSize().getWidth()
-			- pChildRightArrow->getSize().getWidth()) / (float)maxValSupport;
+		float change = (float)(getSize().x -
+			pChildLeftArrow->getSize().x
+			- pChildRightArrow->getSize().x) / (float)maxValSupport;
 
 		//make height proportional to ratio
 		width = (int)((float)width * change);
 
-		int difference = width - pChildThumb->getSize().getWidth();
+		int difference = width - pChildThumb->getSize().x;
 
 
-		return getSize().getWidth() -
-			pChildLeftArrow->getSize().getWidth()
-			- pChildRightArrow->getSize().getWidth() + difference;
+		return getSize().x -
+			pChildLeftArrow->getSize().x
+			- pChildRightArrow->getSize().x + difference;
 	}
 
 
@@ -666,7 +666,7 @@ namespace agui {
 		//when you click, it scrolls
 		int mousePos = mouseArgs.getX();
 		int newVal = getValue();
-		if(mousePos > pChildThumb->getLocation().getX())
+		if(mousePos > pChildThumb->getLocation().x)
 		{
 			newVal += getLargeAmount();
 		}
@@ -680,8 +680,8 @@ namespace agui {
 
 	void HScrollBar::resizeArrows()
 	{
-		pChildLeftArrow->setSize(getArrowWidth(),getInnerSize().getHeight());
-		pChildRightArrow->setSize(getArrowWidth(),getInnerSize().getHeight());
+		pChildLeftArrow->setSize(getArrowWidth(),getInnerSize().y);
+		pChildRightArrow->setSize(getArrowWidth(),getInnerSize().y);
 	}
 
 	void HScrollBar::setRangeFromPage( int pageWidth, int contentWidth )

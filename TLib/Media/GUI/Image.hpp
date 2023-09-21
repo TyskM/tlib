@@ -42,7 +42,7 @@
 #define AGUI_IMAGE_HPP
 #include <TLib/Media/GUI/Platform.hpp>
 #include <TLib/Media/GUI/Color.hpp>
-#include <TLib/Media/GUI/Point.hpp>
+#include <TLib/DataStructures.hpp>
 #include <TLib/Media/GUI/Enumerations.hpp>
 namespace agui
 {
@@ -68,8 +68,8 @@ namespace agui
      * @since 0.1.0
      */
     class AGUI_CORE_DECLSPEC Image {
-        Point leftTop;
-        Point rightBottom;
+        Vector2i leftTop;
+        Vector2i rightBottom;
         static ImageLoader* loader;
 
     public:
@@ -91,12 +91,12 @@ namespace agui
      * @return The top left margin point.
      * @since 0.1.0
      */
-        const Point& getLeftTopMargin() const;
+        const Vector2i& getLeftTopMargin() const;
     /**
      * @return The bottom right margin point.
      * @since 0.1.0
      */
-        const Point& getRightBottomMargin() const;
+        const Vector2i& getRightBottomMargin() const;
     /**
      * @return The margin of the parameter side.
      * @since 0.1.0
@@ -146,7 +146,7 @@ namespace agui
      * Not applicable in most situations.
      * @since 0.1.0
      */
-        static Image* load(const std::string& fileName, bool convertMask = false,
+        static Image* load(const String& fileName, bool convertMask = false,
             bool convertToDisplayFormat = false);
     /**
      * Default constructor.

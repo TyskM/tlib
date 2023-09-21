@@ -50,7 +50,7 @@ namespace agui
 	{
 	}
 
-	void OSXClipboard::copy( const std::string& input )
+	void OSXClipboard::copy( const String& input )
 	{
 	
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -65,16 +65,16 @@ namespace agui
 
 	}
 
-	std::string OSXClipboard::paste()
+	String OSXClipboard::paste()
 	{
-		std::string retString;
+		String retString;
 		
 		NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
 		NSPasteboard *pasteBoard = [NSPasteboard generalPasteboard];
 		NSString* clipboardString = [pasteBoard  stringForType:NSPasteboardTypeString];
 		if(clipboardString != nil)
-			retString = std::string([clipboardString UTF8String]);
+			retString = String([clipboardString UTF8String]);
 			
 		[pool release];
 

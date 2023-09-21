@@ -59,7 +59,7 @@ namespace agui
 		loader = manager;
 	}
 
-	int Font::getStringIndexFromPosition( const std::string &str, int x ) const
+	int Font::getStringIndexFromPosition( const String &str, int x ) const
 	{
 		UTF8 utf8;
 
@@ -97,7 +97,7 @@ namespace agui
 
 	}
 
-	Font* Font::load( const std::string &fileName, int height, FontFlags fontFlags, float borderWidth, agui::Color borderColor )
+	Font* Font::load( const String &fileName, int height, FontFlags fontFlags, float borderWidth, agui::Color borderColor )
 	{
 		return loader->loadFont(fileName,height,fontFlags,borderWidth,borderColor);
 	}

@@ -52,15 +52,15 @@ namespace agui {
      */
 	class AGUI_CORE_DECLSPEC Label : public Widget {
 		AreaAlignmentEnum alignment;
-		std::vector<std::string> words;
-		std::vector<std::string> lines;
-		std::vector<LabelListener*> labelListeners;
+		Vector<String> words;
+		Vector<String> lines;
+		Vector<LabelListener*> labelListeners;
 		bool isLabelAutosizing;
 	/**
 	 * Internally sets the size. Used when auto sizing.
      * @since 0.1.0
      */
-		void _setSizeInternal(const Dimension &size);
+		void _setSizeInternal(const Vector2i &size);
 	protected:
 		ResizableText resizableText;
 		virtual void paintComponent(const PaintEvent &paintEvent);
@@ -95,9 +95,9 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual bool isSingleLine() const;
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
-		virtual void setText(const std::string &text);
+		virtual void setText(const String &text);
 		virtual void setFont(const Font *font);
 	/**
      * Adds the parameter LabelListener.
@@ -151,7 +151,7 @@ namespace agui {
 	 * @return The array of text lines used to render the text.
      * @since 0.2.0
      */
-		std::vector<std::string>& getTextLines();
+		Vector<String>& getTextLines();
 
     /**
     * Resizes the Label to fit the caption text, adjusts only height.
@@ -168,7 +168,7 @@ namespace agui {
 	 * Construct with caption text.
      * @since 0.1.0
      */
-		Label(const std::string &text);
+		Label(const String &text);
 	/**
 	 * Default destructor.
      * @since 0.1.0

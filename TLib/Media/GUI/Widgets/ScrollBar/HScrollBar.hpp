@@ -65,7 +65,7 @@ namespace agui {
 		protected MouseListener
 	{
 	private:
-		std::vector<HScrollBarListener*>hScrollListeners;
+		Vector<HScrollBarListener*>hScrollListeners;
 		double lastArrowTick;
 		int largeAmount;
 		int leftArrowAmount;
@@ -148,7 +148,7 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual void logic(double timeElapsed);
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
 
 		virtual void mouseDown(MouseEvent &mouseEvent);

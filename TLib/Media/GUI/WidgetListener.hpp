@@ -38,55 +38,52 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef AGUI_WIDGET_LISTENER_HPP
-#define AGUI_WIDGET_LISTENER_HPP
+#pragma once
 
 #include <TLib/Media/GUI/BaseTypes.hpp>
+
 namespace agui {
-	/**
+    /**
      * Abstract class for Widget Listeners.
-	 *
-	 * Any derived Widget Listeners should inherit from this class.
+     *
+     * Any derived Widget Listeners should inherit from this class.
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC WidgetListener
-	{
-	protected:
-		virtual ~WidgetListener(void) {};
-	public:
-		WidgetListener(void);
+    class AGUI_CORE_DECLSPEC WidgetListener
+    {
+    protected:
+        virtual ~WidgetListener(void) {};
+    public:
+        WidgetListener(void);
 
-		virtual void childAdded(Widget* source,
-			Widget* widget)
+        virtual void childAdded(Widget* source,
+            Widget* widget)
     { (void)(source); (void)(widget);}
 
-		virtual void childRemoved(Widget* source,
-			Widget* widget)
+        virtual void childRemoved(Widget* source,
+            Widget* widget)
     { (void)(source); (void)(widget);}
 
-		virtual void fontChanged(Widget*, const Font *) {}
+        virtual void fontChanged(Widget*, const Font *) {}
 
-		virtual void textChanged(Widget*, const std::string &) {}
+        virtual void textChanged(Widget*, const String &) {}
 
-		virtual void enabledChanged(Widget*, bool) {}
+        virtual void enabledChanged(Widget*, bool) {}
 
-		virtual void visibilityChanged(Widget*, bool visible) { (void)(visible); }
+        virtual void visibilityChanged(Widget*, bool visible) { (void)(visible); }
 
-		virtual void locationChanged(Widget*, const Point &) {}
+        virtual void locationChanged(Widget*, const Vector2i&) {}
 
-		virtual void death(Widget*) {}
+        virtual void death(Widget*) {}
 
-		virtual void sizeChanged(Widget*, const Dimension &) {}
+        virtual void sizeChanged(Widget*, const Vector2i&) {}
 
-		virtual void minSizeChanged(Widget*, const Dimension &) {}
+        virtual void minSizeChanged(Widget*, const Vector2i&) {}
 
-		virtual void maxSizeChanged(Widget*, const Dimension &) {}
+        virtual void maxSizeChanged(Widget*, const Vector2i&) {}
 
-		virtual void parentSizeChanged(Widget*, const Dimension &) {}
+        virtual void parentSizeChanged(Widget*, const Vector2i&) {}
 
-	};
+    };
 }
-
-#endif
-

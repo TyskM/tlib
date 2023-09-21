@@ -38,12 +38,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef AGUI_GRAPHICS_HPP
-#define AGUI_GRAPHICS_HPP
-
+#pragma once
 
 #include <TLib/Media/GUI/BaseTypes.hpp>
-#include <stack>
+#include <TLib/Containers/Stack.hpp>
+
 namespace agui {
 	/**
      * Abstract class for Graphics and drawing methods.
@@ -88,14 +87,14 @@ namespace agui {
      */
 	class AGUI_CORE_DECLSPEC Graphics {
 	private:
-		std::stack<Rectangle> clipStack;
-		Rectangle clipRect;
+		Stack<Recti> clipStack;
+		Recti clipRect;
 		int T, L, B, R;
-		Rectangle workingRect;
-		Point offset;
+		Recti workingRect;
+		Vector2i offset;
 		float globalOpacity;
 	protected:
-		virtual void setClippingRectangle(const Rectangle &rect) = 0;
+		virtual void setClippingRectangle(const Recti& rect) = 0;
 
 	public:
 	/**
@@ -111,13 +110,13 @@ namespace agui {
 	 *
 	 * All drawing coordinates must be added to this value.
      */
-		const Point& getOffset() const;
+		const Vector2i& getOffset() const;
      /**
 	 * Sets the offset used internally to simulate relative painting.
 	 *
 	 * All drawing coordinates must be added to this value.
      */
-		void setOffset(const Point &offset);
+		void setOffset(const Vector2i& offset);
 	/**
 	 * Default constructor.
      */
@@ -129,17 +128,17 @@ namespace agui {
 	/**
 	 * @return The size of the native display / window.
      */
-		virtual Dimension getDisplaySize() = 0;
+		virtual Vector2i getDisplaySize() = 0;
 	/**
 	 * @return The clipping rectangle.
      */
-		virtual Rectangle getClippingRectangle() = 0;
+		virtual Recti getClippingRectangle() = 0;
 	/**
 	 * Pushes the parameter rectangle onto the clipping stack.
 	 *
 	 * The resulting clipping rectangle will be an intersection of all the clipping rectangles.
      */
-		void pushClippingRect(const Rectangle &rect);
+		void pushClippingRect(const Recti& rect);
 	/**
 	 * Pops a clipping rectangle off the clipping rectangle stack.
 	 *
@@ -149,11 +148,11 @@ namespace agui {
 	/**
 	 * @return A reference to the clipping stack.
      */
-		const std::stack<Rectangle>& getClippingStack() const;
+		const Stack<Recti>& getClippingStack() const;
 	/**
 	 * Sets the parameter stack as the clipping stack and sets the current offset.
      */
-		void setClippingStack(const std::stack<Rectangle> &clippingStack, const Point &offset);
+		void setClippingStack(const Stack<Recti> &clippingStack, const Vector2i &offset);
 	/**
 	 * @return The number of rectangles in the clipping stack.
      */
@@ -171,15 +170,15 @@ namespace agui {
 	 * @param opacity How opaque the image will be drawn.
      */
 		virtual void drawImage(const Image *bmp,
-			const Point &position,const Point &regionStart,
-			const Dimension &regionSize, const float &opacity = 1.0f) = 0;
+			const Vector2i& position,   const Vector2i& regionStart,
+			const Vector2i& regionSize, const float &opacity = 1.0f) = 0;
 		/**
 	 * Draws an image.
 	 * @param bmp The image to draw.
 	 * @param position Where to draw the image's top left pixel.
 	 * @param opacity How opaque the image will be drawn.
      */
-		virtual void drawImage(const Image *bmp,const Point &position,
+		virtual void drawImage(const Image *bmp,const Vector2i& position,
 			const float &opacity = 1.0f) = 0;
 	/**
 	 * Draws a scaled image.
@@ -191,11 +190,11 @@ namespace agui {
 	 * @param opacity How opaque the image will be drawn.
      */
 		virtual void drawScaledImage(const Image *bmp,
-			const Point &position,
-			const Point &regionStart,
-			const Dimension &regionScale,
-			const Dimension &scale,
-			const float &opacity = 1.0f) = 0;
+			const Vector2i& position,
+			const Vector2i& regionStart,
+			const Vector2i& regionScale,
+			const Vector2i& scale,
+			const float&    opacity = 1.0f) = 0;
 	/**
 	 * Draws a dynamically scalable image.
 	 *
@@ -207,7 +206,7 @@ namespace agui {
 	 * @param opacity How opaque the image will be drawn.
      */
 		virtual void drawNinePatchImage(const Image *bmp,
-			const Point &position,const Dimension &scale,
+			const Vector2i& position,const Vector2i& scale,
 			float opacity = 1.0f);
 	/**
 	 * Draws a UTF8 encoded string.
@@ -219,49 +218,49 @@ namespace agui {
 	 * @param font The font used to draw the text.
 	 * @param align The alignment of the text.
      */
-		virtual void drawText(const Point &position,const char* text,
+		virtual void drawText(const Vector2i& position,const char* text,
 			const Color &color, const Font *font,
 			AlignmentEnum align = ALIGN_LEFT) = 0;
 	/**
 	 * Draws the outline of a rectangle with a width of 1 pixel.
      */
-		virtual void drawRectangle(const Rectangle &rect,
+		virtual void drawRectangle(const Recti& rect,
 			const Color &color) = 0;
 	/**
 	 * Draws a filled rectangle.
      */
-		virtual void drawFilledRectangle(const Rectangle &rect,
+		virtual void drawFilledRectangle(const Recti& rect,
 			const Color &color) = 0;
 	/**
 	 * Draws the outline of a circle with a width of 1 pixel.
 	 *
 	 * The position is the center of the circle.
      */
-		virtual void drawCircle(const Point &center,
+		virtual void drawCircle(const Vector2i& center,
 			float radius, const Color &color) = 0;
 	/**
 	 * Draws a filled circle.
 	 *
 	 * The position is the center of the circle.
      */
-		virtual void drawFilledCircle(const Point &center,
+		virtual void drawFilledCircle(const Vector2i& center,
 			float radius,const Color &color) = 0;
 	/**
 	 * Draws a single pixel.
      */
-		virtual void drawPixel(const Point &point,
+		virtual void drawPixel(const Vector2i& point,
 			const Color &color) = 0;
 	/**
 	 * Draws a line.
      */
-		virtual void drawLine(const Point &start,
-			const Point &end, const Color &color) = 0;
+		virtual void drawLine(const Vector2i& start,
+			const Vector2i& end, const Color& color) = 0;
 	/**
 	 * Sets the image that the drawing operations will draw into.
 	 *
 	 * By default this is the back buffer.
      */
-		virtual void setTargetImage(const Image *target) = 0;
+		virtual void setTargetImage(const Image* target) = 0;
 	/**
 	 * Sets the image that the drawing operations will draw into to the default backbuffer.
      */
@@ -272,5 +271,3 @@ namespace agui {
 
 	};
 }
-
-#endif

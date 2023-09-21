@@ -78,7 +78,7 @@ namespace agui {
 
   TabbedPane::~TabbedPane(void)
   {
-    for(std::vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
+    for(Vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
       it != tabListeners.end(); ++it)
     {
       (*it)->death(this);
@@ -104,36 +104,36 @@ namespace agui {
     highestTab = 0;
 
     //get highest tab
-    for(std::vector<std::pair<Tab*,Widget*> >::iterator it =
+    for(Vector<std::pair<Tab*,Widget*> >::iterator it =
       tabs.begin(); it != tabs.end(); ++it)
     {
-      if(it->first->getSize().getHeight() > highestTab)
+      if(it->first->getSize().y > highestTab)
       {
-        highestTab = it->first->getSize().getHeight();
+        highestTab = it->first->getSize().y;
       }
     }
 
     //set container size
-    tabContainer->setSize(getInnerSize().getWidth(),highestTab);
+    tabContainer->setSize(getInnerSize().x,highestTab);
 
     //move the tabs
 
     totalTabWidth = 0;
-    for(std::vector<std::pair<Tab*,Widget*> >::iterator it =
+    for(Vector<std::pair<Tab*,Widget*> >::iterator it =
       tabs.begin(); it != tabs.end(); ++it)
     {
       it->first->setLocation(totalTabWidth,
-        tabContainer->getSize().getHeight() - 
-        it->first->getSize().getHeight());
+        tabContainer->getSize().y - 
+        it->first->getSize().y);
 
-      totalTabWidth += it->first->getSize().getWidth() + getTabPadding();
+      totalTabWidth += it->first->getSize().x + getTabPadding();
     }
   }
 
   void TabbedPane::adjustWidgetContainer()
   {
-    widgetContainer->setSize(getInnerSize().getWidth(),
-      getInnerSize().getHeight() - highestTab);
+    widgetContainer->setSize(getInnerSize().x,
+      getInnerSize().y - highestTab);
 
     widgetContainer->setLocation(0,highestTab);
 
@@ -157,7 +157,7 @@ namespace agui {
   void TabbedPane::setResizeTabContent( bool resizing )
   {
     resizeTabContent = resizing;
-    for(std::vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
+    for(Vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
       it != tabListeners.end(); ++it)
     {
       (*it)->resizingTabContentChanged(this,resizing);
@@ -188,7 +188,7 @@ namespace agui {
 
     adjustSize();
 
-    for(std::vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
+    for(Vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
       it != tabListeners.end(); ++it)
     {
       (*it)->tabAdded(this,tab,content);
@@ -263,7 +263,7 @@ namespace agui {
         }
         adjustSize();
 
-        for(std::vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
+        for(Vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
           it != tabListeners.end(); ++it)
         {
           (*it)->selectedTabChanged(this,tabs[index].first);
@@ -277,7 +277,7 @@ namespace agui {
     return selectedTab.first;
   }
 
-  void TabbedPane::setSize( const Dimension &size )
+  void TabbedPane::setSize( const Vector2i &size )
   {
     Widget::setSize(size);
     adjustSize();
@@ -330,7 +330,7 @@ namespace agui {
     tabContainer->remove(tabs[index].first);
     tabs.erase(tabs.begin() + index);
 
-    for(std::vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
+    for(Vector<TabbedPaneListener*>::iterator it = tabListeners.begin();
       it != tabListeners.end(); ++it)
     {
       (*it)->tabRemoved(this,tabs[index].first);
@@ -344,7 +344,7 @@ namespace agui {
   {
     int index = -1;
     int foundIndex = -1;
-    for(std::vector<std::pair<Tab*,Widget*> >::const_iterator it =
+    for(Vector<std::pair<Tab*,Widget*> >::const_iterator it =
       tabs.begin(); it != tabs.end(); ++it)
     {
       index++;
@@ -391,11 +391,11 @@ namespace agui {
 
   void TabbedPane::paintBackground( const PaintEvent &paintEvent )
   {
-    int szMinusH = getSize().getHeight() - tabContainer->getSize().getHeight()
+    int szMinusH = getSize().y - tabContainer->getSize().y
       + getMargin(SIDE_TOP);
 
-    paintEvent.graphics()->drawFilledRectangle(Rectangle(0,tabContainer->getSize().getHeight(),
-      getSize().getWidth(),szMinusH),
+    paintEvent.graphics()->drawFilledRectangle(Recti(0,tabContainer->getSize().y,
+      getSize().x,szMinusH),
       getBackColor());
 
 
@@ -406,23 +406,23 @@ namespace agui {
 
 
     //top
-    paintEvent.graphics()->drawLine(Point(0,tabContainer->getSize().getHeight() + 
+    paintEvent.graphics()->drawLine(Vector2i(0,tabContainer->getSize().y + 
       getMargin(SIDE_TOP)),
-      Point(getSize().getWidth(),
-      tabContainer->getSize().getHeight() + getMargin(SIDE_TOP)),Top);
+      Vector2i(getSize().x,
+      tabContainer->getSize().y + getMargin(SIDE_TOP)),Top);
     //left
-    paintEvent.graphics()->drawLine(Point(1,tabContainer->getSize().getHeight() + 
+    paintEvent.graphics()->drawLine(Vector2i(1,tabContainer->getSize().y + 
       getMargin(SIDE_TOP)),
-      Point(1,getSize().getHeight()),Left);
+      Vector2i(1,getSize().y),Left);
 
     //right
-    paintEvent.graphics()->drawLine(Point(getSize().getWidth() ,
-      tabContainer->getSize().getHeight() + getMargin(SIDE_TOP)),
-      Point(getSize().getWidth() ,getSize().getHeight()),Right);
+    paintEvent.graphics()->drawLine(Vector2i(getSize().x ,
+      tabContainer->getSize().y + getMargin(SIDE_TOP)),
+      Vector2i(getSize().x ,getSize().y),Right);
 
     //bottom
-    paintEvent.graphics()->drawLine(Point(0,getSize().getHeight()),
-      Point(getSize().getWidth(),getSize().getHeight()),Bottom);
+    paintEvent.graphics()->drawLine(Vector2i(0,getSize().y),
+      Vector2i(getSize().x,getSize().y),Bottom);
   }
 
   void TabbedPane::setFont( const Font *font )
@@ -452,7 +452,7 @@ namespace agui {
     {
       return;
     }
-    for(std::vector<TabbedPaneListener*>::iterator it = 
+    for(Vector<TabbedPaneListener*>::iterator it = 
       tabListeners.begin();
       it != tabListeners.end(); ++it)
     {

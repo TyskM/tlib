@@ -46,15 +46,15 @@ namespace agui
 
     void Image::setMargins( int top, int left, int bottom, int right )
     {
-        leftTop = Point(left,top);
-        rightBottom = Point(right,bottom);
+        leftTop = Vector2i(left,top);
+        rightBottom = Vector2i(right,bottom);
     }
 
 
     void Image::setMargins( int top, int left )
     {
-        leftTop = Point(left,top);
-        rightBottom = Point(left - 1,
+        leftTop = Vector2i(left,top);
+        rightBottom = Vector2i(left - 1,
             top - 1);
 
     }
@@ -75,7 +75,7 @@ namespace agui
         loader = manager;
     }
 
-    const Point& Image::getLeftTopMargin() const
+    const Vector2i& Image::getLeftTopMargin() const
     {
         return leftTop;
     }
@@ -85,28 +85,28 @@ namespace agui
         switch(side)
         {
         case SIDE_TOP:
-            return leftTop.getY();
+            return leftTop.y;
             break;
         case SIDE_LEFT:
-            return leftTop.getX();
+            return leftTop.x;
             break;
         case SIDE_BOTTOM:
-            return rightBottom.getY();
+            return rightBottom.y;
             break;
         case SIDE_RIGHT:
-            return rightBottom.getX();
+            return rightBottom.x;
             break;
         default:
             return 0;
         }
     }
 
-    const Point& Image::getRightBottomMargin() const
+    const Vector2i& Image::getRightBottomMargin() const
     {
         return rightBottom;
     }
 
-    Image* Image::load( const std::string& fileName, bool convertMask /*= false*/,
+    Image* Image::load( const String& fileName, bool convertMask /*= false*/,
         bool convertToDisplayFormat )
     {
         if(!loader)

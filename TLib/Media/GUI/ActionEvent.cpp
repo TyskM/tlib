@@ -44,7 +44,7 @@ namespace agui
 {
 
 
-	const std::string& ActionEvent::getId() const
+	const String& ActionEvent::getId() const
 	{
 		return id;
 	}
@@ -60,7 +60,7 @@ namespace agui
 	}
 
 	ActionEvent::ActionEvent( Widget* source,
-		const std::string &id /*= ""*/ )
+		const String &id /*= ""*/ )
 	{
 		this->id = id;
 		this->source = source;

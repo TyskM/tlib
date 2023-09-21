@@ -42,7 +42,6 @@
 #define AGUI_BASE_TYPES_HPP
 
 #include <stdlib.h> 
-#include <string>
 #include <sstream>
 #include <vector>
 #include <algorithm>
@@ -50,11 +49,10 @@
 //C runtime
 #include <cmath> 
 #include <ctime>
+#include <TLib/DataStructures.hpp>
+#include <TLib/String.hpp>
 #include <TLib/Media/GUI/Platform.hpp>
 #include <TLib/Media/GUI/Enumerations.hpp>
-#include <TLib/Media/GUI/Point.hpp>
-#include <TLib/Media/GUI/Dimension.hpp>
-#include <TLib/Media/GUI/Rectangle.hpp>
 #include <TLib/Media/GUI/UTF8.hpp>
 #include <TLib/Media/GUI/Font.hpp>
 #include <TLib/Media/GUI/Image.hpp>
@@ -71,13 +69,13 @@ namespace agui {
      * @since 0.1.0
      */
 	class AGUI_CORE_DECLSPEC Exception{
-		std::string message;
+		String message;
 	public:
 	/**
      * Constructs with error message.
      * @since 0.1.0
      */
-		Exception(std::string message)
+		Exception(String message)
 		{
 			this->message = message;
 		}
@@ -85,7 +83,7 @@ namespace agui {
      * @return The error message.
      * @since 0.1.0
      */
-		std::string getMessage() const
+		String getMessage() const
 		{
 			return message;
 		}
@@ -114,7 +112,7 @@ namespace agui {
      * @return True if a < b.
      * @since 0.1.0
      */
-		virtual bool compare(const std::string& a, const std::string& b);
+		virtual bool compare(const String& a, const String& b);
 		virtual ~NumericStringCompare();
 	};
 

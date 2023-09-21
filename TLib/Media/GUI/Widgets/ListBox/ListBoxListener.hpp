@@ -42,7 +42,7 @@
 #define AGUI_LISTBOX_LISTENER_HPP
 #include <TLib/Media/GUI/Platform.hpp>
 #include <stdlib.h>
-#include <string>
+#include <TLib/String.hpp>
 namespace agui {
 	class AGUI_CORE_DECLSPEC ListBox;
 		/**
@@ -58,8 +58,8 @@ namespace agui {
 		virtual ~ListBoxListener(void);
 	public:
 		ListBoxListener(void);
-		virtual void itemAdded(ListBox*, const std::string&) {}
-		virtual void itemRemoved(ListBox*, const std::string&) {}
+		virtual void itemAdded(ListBox*, const String&) {}
+		virtual void itemRemoved(ListBox*, const String&) {}
 		virtual void sortedChanged(ListBox* source, bool sorted)
 		{(void)source; (void)sorted;}
 		virtual void rSortedChanged(ListBox* source, bool rSorted)

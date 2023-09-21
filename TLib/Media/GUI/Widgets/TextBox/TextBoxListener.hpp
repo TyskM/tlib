@@ -42,7 +42,7 @@
 #define AGUI_TEXTBOX_LISTENER_HPP
 #include <TLib/Media/GUI/Platform.hpp>
 #include <stdlib.h>
-#include <string>
+#include <TLib/String.hpp>
 namespace agui
 {
 	class AGUI_CORE_DECLSPEC Widget;
@@ -55,7 +55,7 @@ namespace agui
 		virtual void hidingSelectionChanged(TextBox* source, bool hiding) { (void)(source); (void)(hiding); }
 		virtual void standardArrowKeyRulesChanged(TextBox* source, bool usingStandard) { (void)(source);(void)(usingStandard); }
 		virtual void splittingWordsChanged(TextBox* source, bool splittingWords) { (void)(source); (void)(splittingWords); }
-		virtual void textAppended(TextBox* source, const std::string &appendedText) { (void)(source); (void)(appendedText); }
+		virtual void textAppended(TextBox* source, const String &appendedText) { (void)(source); (void)(appendedText); }
 		virtual void selectionChanged(TextBox* source,int startIndex, int endIndex) { (void)(source); (void)(startIndex); (void)(endIndex); }
 		virtual void selectionDeleted(TextBox* source) { (void)(source); }
 		virtual void maxCharacterSkippedChanged(TextBox* source, int maxSkip) { (void)(source); maxSkip++; }

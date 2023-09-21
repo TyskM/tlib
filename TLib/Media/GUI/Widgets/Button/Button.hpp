@@ -64,8 +64,8 @@ namespace agui {
             CLICKED
         };
     private:
-        std::vector<std::string> wrappedText;
-        std::vector<ButtonListener*> buttonListeners;
+        Vector<String> wrappedText;
+        Vector<ButtonListener*> buttonListeners;
         AreaAlignmentEnum textAlignment;
         Button::ButtonStateEnum buttonState;
         bool mouseIsInside;
@@ -104,7 +104,7 @@ namespace agui {
      * @return The area text vector.
      * @since 0.1.0
      */
-        virtual const std::vector<std::string>& getAreaText() const;
+        virtual const Vector<String>& getAreaText() const;
     public:
     /**
      * Default constructor.
@@ -140,7 +140,7 @@ namespace agui {
      * Sets the caption text on the button.
      * @since 0.1.0
      */
-        virtual void setText(const std::string &text);
+        virtual void setText(const String &text);
     /**
      * Sets the alignment of the caption text.
      * @since 0.1.0
@@ -193,7 +193,7 @@ namespace agui {
      */
         void setButtonState(ButtonStateEnum state);
 
-        virtual void setSize(const Dimension &size);
+        virtual void setSize(const Vector2i &size);
         virtual void setSize(int width, int height);
         virtual void setFont(const Font *font);
         virtual void focusGained();

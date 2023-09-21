@@ -40,12 +40,12 @@
 
 #include <TLib/Media/GUI/Graphics.hpp>
 namespace agui {
-    void Graphics::pushClippingRect( const Rectangle &rect )
+    void Graphics::pushClippingRect( const Recti& rect )
     {
-        Rectangle relRect = Rectangle(
-            rect.getX() + getOffset().getX(),
-            rect.getY() + getOffset().getY(),
-            rect.getWidth(),rect.getHeight()
+        Recti relRect = Recti(
+            rect.x + getOffset().x,
+            rect.y + getOffset().y,
+            rect.width, rect.height
             );
 
         if(clipStack.empty())
@@ -58,10 +58,10 @@ namespace agui {
 
         workingRect = clipRect; 
 
-        if(clipRect.getLeft() > relRect.getLeft())
-            L = clipRect.getLeft();
+        if(clipRect.x > relRect.x)
+            L = clipRect.x;
         else
-            L = relRect.getLeft();
+            L = relRect.x;
 
         if(clipRect.getRight() < relRect.getRight())
             R = clipRect.getRight();
@@ -73,25 +73,23 @@ namespace agui {
         else
             B = relRect.getBottom();
 
-        if(clipRect.getTop() > relRect.getTop())
-            T = clipRect.getTop();
+        if(clipRect.y > relRect.y)
+            T = clipRect.y;
         else
-            T = relRect.getTop();
+            T = relRect.y;
 
         if(L > R || B < T)
         {
-            clipRect = Rectangle(0,0,0,0);
+            clipRect = Recti(0,0,0,0);
         }
         else
         {
-            clipRect = Rectangle::fromTLBR(T,L,B,R);
+            clipRect = Recti(T, L, abs(R - L), abs(B - T));
         }
         clipStack.push(clipRect);
         setClippingRectangle(clipRect);
-
-
-
     }
+
     void Graphics::popClippingRect()
     {
         if(clipStack.size() > 0)
@@ -110,13 +108,12 @@ namespace agui {
     void Graphics::clearClippingStack()
     {
         
-            while (clipStack.size() > 0)
+            while (!clipStack.empty())
             {
                 popClippingRect();
-            
             }
 
-            clipRect = Rectangle(Point(0,0),getDisplaySize());
+            clipRect = Recti(Vector2i(0,0),getDisplaySize());
             setClippingRectangle(clipRect);
     }
 
@@ -125,23 +122,23 @@ namespace agui {
         return clipStack.size();
     }
 
-    const Point& Graphics::getOffset() const
+    const Vector2i& Graphics::getOffset() const
     {
         return offset;
     }
 
-    void Graphics::setOffset( const Point &offset )
+    void Graphics::setOffset( const Vector2i &offset )
     {
         this->offset = offset;
     }
 
-    const std::stack<Rectangle>& Graphics::getClippingStack() const
+    const Stack<Recti>& Graphics::getClippingStack() const
     {
         return clipStack;
     }
 
 
-    void Graphics::setClippingStack( const std::stack<Rectangle> &clippingStack, const Point &offset )
+    void Graphics::setClippingStack( const Stack<Recti> &clippingStack, const Vector2i &offset )
     {
         setOffset(offset);
         clipStack = clippingStack;
@@ -153,100 +150,100 @@ namespace agui {
     }
 
     void Graphics::drawNinePatchImage( const Image *bmp,
-                                                 const Point &position,
-                                                 const Dimension &scale, 
+                                                 const Vector2i &position,
+                                                 const Vector2i &scale, 
                                                  float opacity /*= 1.0f*/ )
     {
         //top left corner
         drawImage(
             bmp,
             position,
-            Point(0,0),
-            Dimension(bmp->getMargin(SIDE_LEFT),bmp->getMargin(SIDE_TOP)),
+            Vector2i(0,0),
+            Vector2i(bmp->getMargin(SIDE_LEFT),bmp->getMargin(SIDE_TOP)),
             opacity);
 
         //bottom left corner
         drawImage(bmp,
-            Point(position.getX(), position.getY() + 
-            scale.getHeight() - bmp->getMargin(SIDE_BOTTOM)),
-            Point(0,bmp->getHeight() - bmp->getMargin(SIDE_BOTTOM)),
-            Dimension(bmp->getMargin(SIDE_LEFT),bmp->getMargin(SIDE_BOTTOM)),
+            Vector2i(position.x, position.y + 
+            scale.y - bmp->getMargin(SIDE_BOTTOM)),
+            Vector2i(0,bmp->getHeight() - bmp->getMargin(SIDE_BOTTOM)),
+            Vector2i(bmp->getMargin(SIDE_LEFT),bmp->getMargin(SIDE_BOTTOM)),
             opacity
             );
 
         //top right corner
         drawImage(bmp,
-            Point(position.getX() + scale.getWidth() - bmp->getMargin(SIDE_RIGHT),
-            position.getY()),
-            Point(bmp->getWidth() - bmp->getMargin(SIDE_RIGHT) ,0),
-            Dimension(bmp->getMargin(SIDE_RIGHT),bmp->getMargin(SIDE_TOP)),
+            Vector2i(position.x + scale.x - bmp->getMargin(SIDE_RIGHT),
+            position.y),
+            Vector2i(bmp->getWidth() - bmp->getMargin(SIDE_RIGHT) ,0),
+            Vector2i(bmp->getMargin(SIDE_RIGHT),bmp->getMargin(SIDE_TOP)),
             opacity
             );
 
         //bottom right
         drawImage(bmp,
-            Point(position.getX() + scale.getWidth() - bmp->getMargin(SIDE_RIGHT),
-            position.getY() + scale.getHeight() - bmp->getMargin(SIDE_BOTTOM)),
-            Point(bmp->getWidth() - bmp->getMargin(SIDE_RIGHT) ,
+            Vector2i(position.x + scale.x - bmp->getMargin(SIDE_RIGHT),
+            position.y + scale.y - bmp->getMargin(SIDE_BOTTOM)),
+            Vector2i(bmp->getWidth() - bmp->getMargin(SIDE_RIGHT) ,
             bmp->getHeight() - bmp->getMargin(SIDE_BOTTOM)),
-            Dimension(bmp->getMargin(SIDE_RIGHT),bmp->getMargin(SIDE_BOTTOM)),
+            Vector2i(bmp->getMargin(SIDE_RIGHT),bmp->getMargin(SIDE_BOTTOM)),
             opacity
             );
 
 
         //stretched center
         drawScaledImage(bmp,
-            Point(position.getX() + bmp->getMargin(SIDE_LEFT),
-            position.getY() + bmp->getMargin(SIDE_TOP)),
-            Point(bmp->getMargin(SIDE_LEFT) , bmp->getMargin(SIDE_TOP)),
-            Dimension(bmp->getWidth() - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT) ,
+            Vector2i(position.x + bmp->getMargin(SIDE_LEFT),
+            position.y + bmp->getMargin(SIDE_TOP)),
+            Vector2i(bmp->getMargin(SIDE_LEFT) , bmp->getMargin(SIDE_TOP)),
+            Vector2i(bmp->getWidth() - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT) ,
             bmp->getHeight() - bmp->getMargin(SIDE_BOTTOM) - bmp->getMargin(SIDE_TOP) ),
-            Dimension(scale.getWidth() - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT),
-            scale.getHeight() - bmp->getMargin(SIDE_BOTTOM) - bmp->getMargin(SIDE_TOP)),
+            Vector2i(scale.x - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT),
+            scale.y - bmp->getMargin(SIDE_BOTTOM) - bmp->getMargin(SIDE_TOP)),
             opacity);
 
         //top edge
         drawScaledImage(bmp,
-            Point(position.getX() + bmp->getMargin(SIDE_LEFT), position.getY()),
-            Point(bmp->getMargin(SIDE_LEFT) , 0),
-            Dimension(bmp->getWidth() - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT) ,
+            Vector2i(position.x + bmp->getMargin(SIDE_LEFT), position.y),
+            Vector2i(bmp->getMargin(SIDE_LEFT) , 0),
+            Vector2i(bmp->getWidth() - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT) ,
             bmp->getMargin(SIDE_TOP)),
-            Dimension(scale.getWidth() - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT),
+            Vector2i(scale.x - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT),
             bmp->getMargin(SIDE_TOP)),
             opacity);
 
         //bottom edge
-        drawScaledImage(bmp,Point(position.getX() + bmp->getMargin(SIDE_LEFT),
-            position.getY() + scale.getHeight() - bmp->getMargin(SIDE_BOTTOM)),
-            Point(bmp->getMargin(SIDE_LEFT),
+        drawScaledImage(bmp,Vector2i(position.x + bmp->getMargin(SIDE_LEFT),
+            position.y + scale.y - bmp->getMargin(SIDE_BOTTOM)),
+            Vector2i(bmp->getMargin(SIDE_LEFT),
             bmp->getHeight() - bmp->getMargin(SIDE_BOTTOM)),
-            Dimension(bmp->getWidth() - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT) ,
+            Vector2i(bmp->getWidth() - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT) ,
             bmp->getMargin(SIDE_BOTTOM)),
-            Dimension(scale.getWidth() - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT),
+            Vector2i(scale.x - bmp->getMargin(SIDE_LEFT) - bmp->getMargin(SIDE_RIGHT),
             bmp->getMargin(SIDE_BOTTOM)),
             opacity);
 
         //left edge
         drawScaledImage(bmp,
-            Point(position.getX(),
-            position.getY() + bmp->getMargin(SIDE_TOP)),
-            Point(0,bmp->getMargin(SIDE_TOP) ),
-            Dimension(bmp->getMargin(SIDE_LEFT),
+            Vector2i(position.x,
+            position.y + bmp->getMargin(SIDE_TOP)),
+            Vector2i(0,bmp->getMargin(SIDE_TOP) ),
+            Vector2i(bmp->getMargin(SIDE_LEFT),
             bmp->getHeight() - bmp->getMargin(SIDE_BOTTOM) - bmp->getMargin(SIDE_TOP) ),
-            Dimension(bmp->getMargin(SIDE_LEFT),
-            scale.getHeight() - bmp->getMargin(SIDE_BOTTOM) - bmp->getMargin(SIDE_TOP)),
+            Vector2i(bmp->getMargin(SIDE_LEFT),
+            scale.y - bmp->getMargin(SIDE_BOTTOM) - bmp->getMargin(SIDE_TOP)),
             opacity);
 
         //right edge
         drawScaledImage(bmp,
-            Point(position.getX() + scale.getWidth() - bmp->getMargin(SIDE_RIGHT),
-            position.getY() + bmp->getMargin(SIDE_TOP)),
-            Point(bmp->getWidth() - bmp->getMargin(SIDE_RIGHT) ,
+            Vector2i(position.x + scale.x - bmp->getMargin(SIDE_RIGHT),
+            position.y + bmp->getMargin(SIDE_TOP)),
+            Vector2i(bmp->getWidth() - bmp->getMargin(SIDE_RIGHT) ,
             bmp->getMargin(SIDE_TOP)),
-            Dimension(bmp->getMargin(SIDE_RIGHT),
+            Vector2i(bmp->getMargin(SIDE_RIGHT),
             bmp->getHeight() - bmp->getMargin(SIDE_BOTTOM) - bmp->getMargin(SIDE_TOP)),
-            Dimension(bmp->getMargin(SIDE_RIGHT),
-            scale.getHeight() - bmp->getMargin(SIDE_BOTTOM) - bmp->getMargin(SIDE_TOP)),
+            Vector2i(bmp->getMargin(SIDE_RIGHT),
+            scale.y - bmp->getMargin(SIDE_BOTTOM) - bmp->getMargin(SIDE_TOP)),
             opacity);
 
     }

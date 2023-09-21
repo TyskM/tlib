@@ -90,12 +90,12 @@ namespace agui
 	 * Called when a child widget's location changes.
 	 * @since 0.1.0
      */
-		virtual void locationChanged(Widget *source, const Point &location);
+		virtual void locationChanged(Widget *source, const Vector2i &location);
 	/**
 	 * Called when a child widget's size changes.
 	 * @since 0.1.0
      */
-		virtual void sizeChanged(Widget* source, const Dimension &size);
+		virtual void sizeChanged(Widget* source, const Vector2i &size);
 	/**
 	 * Will resize the layout to fit its parent's innerSize.
 	 * @since 0.1.0
@@ -156,7 +156,7 @@ namespace agui
 		void updateLayout();
 		virtual void add(Widget *widget);
 		virtual void remove(Widget *widget);
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
 
 	/**

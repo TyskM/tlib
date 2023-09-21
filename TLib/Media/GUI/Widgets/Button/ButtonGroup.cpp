@@ -45,7 +45,7 @@ namespace agui {
 		selectedRButton = NULL;
 	}
 
-	ButtonGroup::ButtonGroup( const std::string &id )
+	ButtonGroup::ButtonGroup( const String &id )
 	{
 		selectedRButton = NULL;
 		groupId = id;
@@ -53,14 +53,14 @@ namespace agui {
 
 	ButtonGroup::~ButtonGroup(void)
 	{
-		for(std::vector<Button*>::iterator	it = buttons.begin();
+		for(Vector<Button*>::iterator	it = buttons.begin();
 			it != buttons.end(); ++it)
 		{
 			(*it)->removeButtonListener(this);
 		}
 	}
 
-	const std::string& ButtonGroup::getGroupId() const
+	const String& ButtonGroup::getGroupId() const
 	{
 		return groupId;
 	}
@@ -71,7 +71,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<Button*>::iterator	it = buttons.begin();
+		for(Vector<Button*>::iterator	it = buttons.begin();
 			it != buttons.end(); ++it)
 		{
 			if((*it) == button)
@@ -104,7 +104,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<ActionListener*>::iterator it = 
+		for(Vector<ActionListener*>::iterator it = 
 			actionListeners.begin();
 			it != actionListeners.end(); ++it)
 		{
@@ -125,7 +125,7 @@ namespace agui {
 
 	void ButtonGroup::dispatchActionEvent( const ActionEvent &evt )
 	{
-		for(std::vector<ActionListener*>::iterator it = actionListeners.begin();
+		for(Vector<ActionListener*>::iterator it = actionListeners.begin();
 			it != actionListeners.end(); ++it)
 		{
 			(*it)->actionPerformed(evt);

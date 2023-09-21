@@ -42,7 +42,7 @@
 #define AGUI_UTF8_HPP
 #include <TLib/Media/GUI/Platform.hpp>
 #include <stdlib.h>
-#include <string>
+#include <TLib/String.hpp>
 namespace agui
 {
 	/**
@@ -80,7 +80,7 @@ namespace agui
      * @since 0.1.0
      */
 		inline size_t bringToNextUnichar(size_t &index,
-			const std::string &str) const {
+			const String &str) const {
 				if(index >= str.length() ) return 0;
 				unsigned char c;
 				size_t res = 1;
@@ -165,9 +165,9 @@ namespace agui
 	 * @return Iterator.
      * @since 0.1.0
      */
-		inline std::string::const_iterator _positionToIterator
-			(const std::string& str, size_t pos) const {
-				std::string::const_iterator res = str.begin();
+		inline String::const_iterator _positionToIterator
+			(const String& str, size_t pos) const {
+				String::const_iterator res = str.begin();
 				_multIncUtf8StringIterator(res, str.end(), pos);
 				return res;
 		}
@@ -177,9 +177,9 @@ namespace agui
 	 * @return Iterator.
      * @since 0.1.0
      */
-		inline std::string::iterator _positionToIterator(std::string& str,
+		inline String::iterator _positionToIterator(String& str,
 			size_t pos) const {
-				std::string::iterator res = str.begin();
+				String::iterator res = str.begin();
 				_multIncUtf8StringIterator(res, str.end(), pos);
 				return res;
 		}
@@ -188,9 +188,9 @@ namespace agui
 	 * @return The number of UTF8 characters in this string.
      * @since 0.1.0
      */
-		inline size_t length(const std::string& str) const  {
+		inline size_t length(const String& str) const  {
 			size_t res = 0;
-			std::string::const_iterator it = str.begin();
+			String::const_iterator it = str.begin();
 			for(; it != str.end(); bringToNextUnichar(it, str.end()))
 				res++;
 
@@ -203,12 +203,12 @@ namespace agui
 	 * The returned substring is from start to start + n UTF8 characters.
      * @since 0.1.0
      */
-		inline std::string subStr(const std::string& str, size_t start,
+		inline String subStr(const String& str, size_t start,
 			size_t n = (size_t)-1) const {
 				if (n == (size_t)-1)
-					return std::string(_positionToIterator(str, start), str.end());
+					return String(_positionToIterator(str, start), str.end());
 				else
-					return std::string(
+					return String(
 					_positionToIterator(str, start),
 					_positionToIterator(str, start + n));
 		}
@@ -216,17 +216,17 @@ namespace agui
 	 * Erases just like a normal string but values are in UTF8 characters, not bytes.
      * @since 0.1.0
      */
-		inline void erase(std::string& str, size_t start,
+		inline void erase(String& str, size_t start,
 			size_t n = (size_t)-1) const {
-				std::string::iterator it = _positionToIterator(str, start);
+				String::iterator it = _positionToIterator(str, start);
 				str.erase(it, _getMultIncUtf8StringIterator(it, str.end(), n));	
 		}
 	/**
 	 * Inserts just like a normal string but values are in UTF8 characters, not bytes.
      * @since 0.1.0
      */
-		inline void insert(std::string& str, size_t start,
-			const std::string& s) const {
+		inline void insert(String& str, size_t start,
+			const String& s) const {
 				str.insert(_positionToIterator(str, start), s.begin(), s.end());
 		}
 

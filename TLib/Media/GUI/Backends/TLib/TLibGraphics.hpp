@@ -13,11 +13,11 @@ namespace agui
     class AGUI_BACKEND_DECLSPEC TLibGraphics : public Graphics
     {
         std::wstring wide;
-        Rectangle    clRct;
+        Recti    clRct;
         int          height;
         Camera2D     origCamera;
 
-        inline std::wstring StringToUnicode(const std::string& strIn)
+        inline std::wstring StringToUnicode(const String& strIn)
         {
             wide.clear();
             std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
@@ -31,10 +31,10 @@ namespace agui
     protected:
         void startClip()
         {
-            int x = clRct.getX();
-            int y = clRct.getY();
-            int w = clRct.getWidth();
-            int h = clRct.getHeight();
+            int x = clRct.x;
+            int y = clRct.y;
+            int w = clRct.width;
+            int h = clRct.height;
             // OpenGL's coords are from the bottom left
             // so we need to translate them here.
             y = height - (y + h);
@@ -48,7 +48,7 @@ namespace agui
             glDisable(GL_SCISSOR_TEST);
         }
         
-        virtual void setClippingRectangle(const Rectangle& rect)
+        virtual void setClippingRectangle(const Recti& rect)
         {
             clRct = rect;
             startClip();
@@ -70,7 +70,7 @@ namespace agui
             Renderer2D::setView(view);
 
             auto size = origCamera.getBoundsSize();
-            setClippingRectangle( Rectangle(0, 0, size.x, size.y) );
+            setClippingRectangle( Recti(0, 0, size.x, size.y) );
         }
 
         virtual void _endPaint()
@@ -81,51 +81,51 @@ namespace agui
         }
 
         // TODO: This should be const
-        virtual Dimension getDisplaySize()
+        virtual Vector2i getDisplaySize()
         {
             auto size = Renderer2D::getView().getBoundsSize();
-            return agui::Dimension(size.x, size.y);
+            return Vector2i(size.x, size.y);
         }
 
         // TODO: This should be const
-        virtual Rectangle getClippingRectangle()
+        virtual Recti getClippingRectangle()
         {
             return clRct;
         }
 
         virtual void drawImage(
             const Image*     bmp,
-            const Point&     position,
-            const Point&     regionStart,
-            const Dimension& regionSize,
+            const Vector2i&  position,
+            const Vector2i&  regionStart,
+            const Vector2i&  regionSize,
             const float&     opacity = 1.0f)
         {
             Texture* tex = reinterpret_cast<const TLibImage*>(bmp)->getBitmap();
             if (tex == nullptr) { return; }
 
             Rectf dstRect = {
-                Vector2f(position.getX() + getOffset().getX(), position.getY() + getOffset().getY()),
+                Vector2f(position.x + getOffset().x, position.y + getOffset().y),
                 Vector2f(tex->getSize())
             };
 
             Rectf srcRect = {
-                static_cast<float>(regionStart.getX()),    static_cast<float>(regionStart.getY()),
-                static_cast<float>(regionSize.getWidth()), static_cast<float>(regionSize.getHeight())
+                static_cast<float>(regionStart.x), static_cast<float>(regionStart.y),
+                static_cast<float>(regionSize.x),  static_cast<float>(regionSize.y)
             };
 
             Renderer2D::drawTexture(*tex, srcRect, dstRect, 0, ColorRGBAf{ 1.f, 1.f, 1.f, opacity });
         }
 
         virtual void drawImage(
-            const Image* bmp,
-            const Point& position,
-            const float& opacity = 1.0f)
+            const Image*    bmp,
+            const Vector2i& position,
+            const float&    opacity = 1.0f)
         {
             Texture* tex = reinterpret_cast<const TLibImage*>(bmp)->getBitmap();
             if (tex == nullptr) { return; }
 
             Rectf dstRect = {
-                Vector2f(position.getX() + getOffset().getX(), position.getY() + getOffset().getY()),
+                Vector2f(position.x + getOffset().x, position.y + getOffset().y),
                 Vector2f(tex->getSize())
             };
 
@@ -134,102 +134,104 @@ namespace agui
 
         virtual void drawScaledImage(
             const Image*     bmp,
-            const Point&     position,
-            const Point&     regionStart,
-            const Dimension& regionScale,
-            const Dimension& scale,
+            const Vector2i&     position,
+            const Vector2i&     regionStart,
+            const Vector2i& regionScale,
+            const Vector2i& scale,
             const float&     opacity = 1.0f)
         {
             // TODO: implement
         }
 
         virtual void drawText(
-            const Point&  position,
-            const char*   text,
-            const Color&  color,
-            const Font*   font,
-            AlignmentEnum align = ALIGN_LEFT)
+            const Vector2i&  position,
+            const char*      text,
+            const Color&     color,
+            const Font*      font,
+            AlignmentEnum    align = ALIGN_LEFT)
         {
             TLibFont* tlFont = (TLibFont*)(font);
             SDFFont* realFont = tlFont->getFont();
 
             Vector2f pos =
-               { (float)(position.getX() + getOffset().getX()),
-                 (float)(position.getY() + getOffset().getY()) };
+               { (float)(position.x + getOffset().x),
+                 (float)(position.y + getOffset().y) };
+            Renderer2D::drawCircle(Vector2f(pos), 3.f, 1, ColorRGBAf::red(), true, 12);
+            pos.y -= font->getLineHeight() / 4; // TODO: fix ur friggin font rendering bro
 
             // TODO: handle ALIGN_CENTER && ALIGN_RIGHT
             Renderer2D::drawText(text, *realFont, pos, 2, colToTl(color));
         }
 
         virtual void drawRectangle(
-            const Rectangle& rect,
-            const Color&     color)
+            const Recti& rect,
+            const Color& color)
         {
             Rectf tlrect = {
-                static_cast<float>(rect.getLeft())  + static_cast<float>(getOffset().getX()),
-                static_cast<float>(rect.getTop())   + static_cast<float>(getOffset().getY()),
-                static_cast<float>(rect.getWidth()),
-                static_cast<float>(rect.getHeight())
+                static_cast<float>(rect.x) + static_cast<float>(getOffset().x),
+                static_cast<float>(rect.y) + static_cast<float>(getOffset().y),
+                static_cast<float>(rect.width),
+                static_cast<float>(rect.height)
             };
 
             Renderer2D::drawRect(tlrect, 1, colToTl(color), false);
         }
 
         virtual void drawFilledRectangle(
-            const Rectangle& rect,
+            const Recti& rect,
             const Color&     color)
         {
             Rectf tlrect = {
-                static_cast<float>(rect.getLeft())  + static_cast<float>(getOffset().getX()),
-                static_cast<float>(rect.getTop())   + static_cast<float>(getOffset().getY()),
-                static_cast<float>(rect.getWidth()),
-                static_cast<float>(rect.getHeight())
+                static_cast<float>(rect.x)  + static_cast<float>(getOffset().x),
+                static_cast<float>(rect.y)   + static_cast<float>(getOffset().y),
+                static_cast<float>(rect.width),
+                static_cast<float>(rect.height)
             };
 
             Renderer2D::drawRect(tlrect, 1, colToTl(color), true);
         }
         
         virtual void drawPixel(
-            const Point& point,
+            const Vector2i& point,
             const Color& color)
         {
             // TODO: figure out why tf we need to be drawing pixels
         }
         
         virtual void drawCircle(
-            const Point& center,
-            float        radius,
-            const Color& color)
+            const Vector2i& center,
+            float           radius,
+            const Color&    color)
         {
             Vector2f realPoint = {
-                static_cast<float>(center.getX()) + static_cast<float>(getOffset().getX()),
-                static_cast<float>(center.getY()) + static_cast<float>(getOffset().getY())
+                static_cast<float>(center.x) + static_cast<float>(getOffset().x),
+                static_cast<float>(center.y) + static_cast<float>(getOffset().y)
             };
 
             Renderer2D::drawCircle(realPoint, radius, 1, colToTl(color), false);
         }
         
         virtual void drawFilledCircle(
-            const Point& center,
-            float        radius,
-            const Color& color)
+            const Vector2i& center,
+            float           radius,
+            const Color&    color)
         {
             Vector2f realPoint = {
-                static_cast<float>(center.getX()) + static_cast<float>(getOffset().getX()),
-                static_cast<float>(center.getY()) + static_cast<float>(getOffset().getY())
+                static_cast<float>(center.x) + static_cast<float>(getOffset().x),
+                static_cast<float>(center.y) + static_cast<float>(getOffset().y)
             };
 
             Renderer2D::drawCircle(realPoint, radius, 1, colToTl(color), true);
         }
         
         virtual void drawLine(
-            const Point& start,
-            const Point& end,
+            const Vector2i& start,
+            const Vector2i& end,
             const Color& color)
         {
             Renderer2D::drawLine(
-                Vector2f( start.getX() + getOffset().getX(), start.getY() + getOffset().getY() ),
-                Vector2f(   end.getX() + getOffset().getX(),   end.getY() + getOffset().getY() ),
+                Vector2f( start.x + getOffset().x, start.y + getOffset().y ),
+                Vector2f(   end.x + getOffset().x,   end.y + getOffset().y ),
                 1, colToTl(color));
         }
 

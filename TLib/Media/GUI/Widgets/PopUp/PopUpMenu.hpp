@@ -57,7 +57,7 @@ namespace agui {
      * @since 0.2.0
      */
 	class AGUI_CORE_DECLSPEC PopUpMenu : public Widget, MouseListener{
-		std::vector<PopUpMenuItem*> items;
+		Vector<PopUpMenuItem*> items;
 		int itemHeight;
 		bool showIcon;
 		int startTextGap;
@@ -71,7 +71,7 @@ namespace agui {
 		Widget* invoker;
 		bool mouseInside;
 		bool needsClosure;
-		Point childOffset;
+		Vector2i childOffset;
 		bool needsToMakeSelecton;
 		agui::Button* m_invokeButton;
 
@@ -108,14 +108,14 @@ namespace agui {
 		virtual PopUpMenu* getRootPopUp();
 		virtual void closePopUp();
 		virtual void closeRootPopUp();
-		virtual Point alignString(const std::string& text, AreaAlignmentEnum align);
+		virtual Vector2i alignString(const String& text, AreaAlignmentEnum align);
 		virtual int getItemWidth(PopUpMenuItem* item) const;
 		virtual void addItem(PopUpMenuItem* item);
 		virtual void insertItem(PopUpMenuItem* item, int index);
-		virtual void addItems(const std::vector<PopUpMenuItem*>& itemVec);
+		virtual void addItems(const Vector<PopUpMenuItem*>& itemVec);
 		virtual void removeItem(PopUpMenuItem* item);
 		virtual void clearItems();
-		virtual Point getIconPosition(int index, int distanceY) const;
+		virtual Vector2i getIconPosition(int index, int distanceY) const;
 		virtual int getLength() const;
 		virtual int getItemHeight(PopUpMenuItem* item) const;
 		virtual bool itemExists(PopUpMenuItem* item) const;
@@ -139,13 +139,13 @@ namespace agui {
 		virtual void resizeHeightToContents();
 		virtual void resizeWidthToContents();
 		virtual void resizeToContents();
-		virtual int getIndexAtPoint(const Point& p) const;
+		virtual int getIndexAtPoint(const Vector2i& p) const;
 		virtual void setSelectedIndex(int index);
 		virtual int getSelectedIndex() const;
-		virtual Point getChildShowPosition() const;
+		virtual Vector2i getChildShowPosition() const;
 		virtual PopUpMenu* getChildPopUp();
-		virtual void setChildOffset(const Point& offset);
-		virtual const Point& getChildOffset() const;
+		virtual void setChildOffset(const Vector2i& offset);
+		virtual const Vector2i& getChildOffset() const;
 		virtual void setFont(const Font *font);
 		virtual void setInvokeButton(Button* button);
 		virtual void showPopUp(Widget* invoker, int x, int y, PopUpMenu* parentPopUp = NULL);

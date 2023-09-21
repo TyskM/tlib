@@ -70,13 +70,13 @@ namespace agui {
 		int textOffset;
 		int leftPadding;
 		int rightPadding;
-		std::string passText;
+		String passText;
 		bool showCaret;
 		bool selfSetText;
 		int internalSelStart;
 		bool dragged;
-		std::string passwordChar;
-		std::string passwordText;
+		String passwordChar;
+		String passwordText;
 		bool selectable;
 		bool readOnly;
 		bool wantDecimal;
@@ -98,7 +98,7 @@ namespace agui {
 		int selLength;
 		int selPos;
 
-		std::vector<TextFieldListener*> tFieldListeners;
+		Vector<TextFieldListener*> tFieldListeners;
 
 	protected:
 	 /**
@@ -111,7 +111,7 @@ namespace agui {
 	 * Used internally to set the text.
      * @since 0.1.0
      */
-		virtual void setThisText(const std::string &text);
+		virtual void setThisText(const String &text);
 	/**
 	 * @return WIDTH - LEFT_PADDING - RIGHT_PADDING.
      * @since 0.1.0
@@ -248,12 +248,12 @@ namespace agui {
 	 * The number of the frequently used Black Circle is 9679.
      * @since 0.1.0
      */
-		virtual const std::string& getPasswordCharacter() const;
+		virtual const String& getPasswordCharacter() const;
 	/**
 	 * @return The UTF8 encoded string representing the password itself.
      * @since 0.1.0
      */
-		virtual const std::string& getPassword() const; 
+		virtual const String& getPassword() const; 
 	/**
 	 * Sets the back color used to paint the rectangle that represents the selection.
      * @since 0.1.0
@@ -355,7 +355,7 @@ namespace agui {
 	 * @return The UTF8 encoded string representing the highlighted / selected text.
      * @since 0.1.0
      */
-		virtual const std::string getSelectedText() const;
+		virtual const String getSelectedText() const;
 	/**
 	 * @return True if the selection will be hidden 
 	 * when the TextField is not focused.
@@ -421,7 +421,7 @@ namespace agui {
 		virtual void setFont(const Font *font);
 		virtual void focusGained();
 		virtual void focusLost();
-		virtual void setText(const std::string &text);
+		virtual void setText(const String &text);
 	/**
 	 * Sets the maximum length in UTF8 characters. Calls to setText will be trimmed as well.
      * @since 0.1.0
@@ -486,8 +486,8 @@ namespace agui {
 	 * Will delete selected text if any is selected,
      * @since 0.2.0
      */
-		virtual void appendText(const std::string& text, bool atCurrentPosition = true);
-		virtual void setSize(const Dimension& size);
+		virtual void appendText(const String& text, bool atCurrentPosition = true);
+		virtual void setSize(const Vector2i& size);
 		virtual void setSize(int width, int height);
 
 	/**

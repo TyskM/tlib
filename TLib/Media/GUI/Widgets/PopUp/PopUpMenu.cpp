@@ -66,7 +66,7 @@ namespace agui {
 		return int(items.size());
 	}
 
-	void PopUpMenu::addItems( const std::vector<PopUpMenuItem*>& itemVec )
+	void PopUpMenu::addItems( const Vector<PopUpMenuItem*>& itemVec )
 	{
 		for(size_t i = 0; i < itemVec.size(); ++i)
 		{
@@ -117,11 +117,11 @@ namespace agui {
 		return showIcon;
 	}
 
-	Point PopUpMenu::alignString( const std::string& text, AreaAlignmentEnum align )
+	Vector2i PopUpMenu::alignString( const String& text, AreaAlignmentEnum align )
 	{
 		int w = getFont()->getTextWidth(text);
 		int h = getFont()->getLineHeight();
-		return createAlignedPosition(align,getInnerRectangle(),Dimension(w,h));
+		return createAlignedPosition(align,getInnerRectangle(),Vector2i(w,h));
 	}
 
 	void PopUpMenu::setIconWidth( int width )
@@ -253,17 +253,17 @@ namespace agui {
 		resizeHeightToContents();
 	}
 
-	int PopUpMenu::getIndexAtPoint( const Point& p ) const
+	int PopUpMenu::getIndexAtPoint( const Vector2i& p ) const
 	{
-		if(p.getY() < getMargin(SIDE_TOP) ||
-			p.getY() > getInnerHeight() + getMargin(SIDE_TOP) ||
-			p.getX() < getMargin(SIDE_LEFT) ||
-			p.getX() > getInnerWidth() + getMargin(SIDE_LEFT))
+		if(p.y < getMargin(SIDE_TOP) ||
+			p.y > getInnerHeight() + getMargin(SIDE_TOP) ||
+			p.x < getMargin(SIDE_LEFT) ||
+			p.x > getInnerWidth() + getMargin(SIDE_LEFT))
 		{
 			return -1;
 		}
 
-		int pY = p.getY() - getMargin(SIDE_TOP);
+		int pY = p.y - getMargin(SIDE_TOP);
 		int h = 0;
 
 		for(int i = 0; i < getLength(); ++i)
@@ -502,8 +502,8 @@ namespace agui {
 	{
 		if(childMenu)
 		{
-			Point pos = getChildShowPosition();
-			childMenu->showPopUp(invoker,pos.getX(),pos.getY(),this);
+			Vector2i pos = getChildShowPosition();
+			childMenu->showPopUp(invoker,pos.x,pos.y,this);
 			setFocusable(false);
 		}
 	}
@@ -535,13 +535,13 @@ namespace agui {
 
 		if(parentMenu)
 		{
-			x += parentMenu->getAbsolutePosition().getX();
-			y += parentMenu->getAbsolutePosition().getY();
+			x += parentMenu->getAbsolutePosition().x;
+			y += parentMenu->getAbsolutePosition().y;
 		}
 		else
 		{
-			x += invoker->getAbsolutePosition().getX();
-			y += invoker->getAbsolutePosition().getY();
+			x += invoker->getAbsolutePosition().x;
+			y += invoker->getAbsolutePosition().y;
 		}
 
 		if(getParent())
@@ -564,11 +564,11 @@ namespace agui {
 		needsClosure = false;
 	}
 
-	Point PopUpMenu::getChildShowPosition() const
+	Vector2i PopUpMenu::getChildShowPosition() const
 	{
 		if(!childMenu)
 		{
-			return Point();
+			return Vector2i();
 		}
 
 		if(childMenu)
@@ -576,7 +576,7 @@ namespace agui {
 			childMenu->resizeToContents();
 		}
 
-		int x = getInnerSize().getWidth() + getMargin(SIDE_LEFT);
+		int x = getInnerSize().x + getMargin(SIDE_LEFT);
 		int y = getMargin(SIDE_TOP);
 		for(int i = 0; i < getSelectedIndex(); ++i)
 		{
@@ -592,33 +592,33 @@ namespace agui {
 
 		if(getParent())
 		{
-			if(x + childMenu->getWidth() + getAbsolutePosition().getX() > getParent()->getWidth())
+			if(x + childMenu->getWidth() + getAbsolutePosition().x > getParent()->getWidth())
 			{
 				x = -childMenu->getWidth() + getMargin(SIDE_LEFT) + childMenu->getMargin(SIDE_RIGHT);
-				x += getChildOffset().getX();
+				x += getChildOffset().x;
 			}
 			else
 			{
-				x -= childOffset.getX();
+				x -= childOffset.x;
 				x -= childMenu->getMargin(SIDE_LEFT);
 			}
 
-			if(y + childMenu->getHeight() + getAbsolutePosition().getY() > 
+			if(y + childMenu->getHeight() + getAbsolutePosition().y > 
 				getParent()->getHeight())
 			{
 				y -= childMenu->getInnerHeight();
 				y += childMenu->getItemHeight();
 				y += childMenu->getMargin(SIDE_BOTTOM);
-				y += getChildOffset().getY();
+				y += getChildOffset().y;
 			}
 			else
 			{
-				y -= getChildOffset().getY();
+				y -= getChildOffset().y;
 				y -= childMenu->getMargin(SIDE_TOP);
 			}
 		}
 
-		return Point(x,y);
+		return Vector2i(x,y);
 	}
 
 	void PopUpMenu::paintBackground( const PaintEvent &paintEvent )
@@ -637,7 +637,7 @@ namespace agui {
 
 			if(i == getSelectedIndex() && item->getItemType() != PopUpMenuItem::SEPARATOR)
 			{
-				paintEvent.graphics()->drawFilledRectangle(Rectangle(
+				paintEvent.graphics()->drawFilledRectangle(Recti(
 					0,totalHeight,getWidth(),getItemHeight()),Color(169,193,214));
 			}
 
@@ -656,27 +656,27 @@ namespace agui {
 			if(item->isSeparator())
 			{
 				paintEvent.graphics()->drawLine(
-					Point(w,totalHeight + (getItemHeight(item) / 2)),
-					Point(getInnerWidth(),totalHeight + (getItemHeight(item) / 2)),
+					Vector2i(w,totalHeight + (getItemHeight(item) / 2)),
+					Vector2i(getInnerWidth(),totalHeight + (getItemHeight(item) / 2)),
 					Color(50,50,50));
 
 				paintEvent.graphics()->drawLine(
-					Point(w,totalHeight + (getItemHeight(item) / 2) + 1),
-					Point(getInnerWidth(),totalHeight + (getItemHeight(item) / 2) + 1),
+					Vector2i(w,totalHeight + (getItemHeight(item) / 2) + 1),
+					Vector2i(getInnerWidth(),totalHeight + (getItemHeight(item) / 2) + 1),
 					Color(200,200,200));
 			}
 
 			w += getStartTextGap();
 
-			paintEvent.graphics()->drawText(Point(w,getTextCenter() + totalHeight),
+			paintEvent.graphics()->drawText(Vector2i(w,getTextCenter() + totalHeight),
 				item->getText().c_str(),getFontColor(),
 				getFont());
 
 			w+= getMiddleTextGap();
 
-			Point shortcutPoint = alignString(item->getShortcutText(),ALIGN_MIDDLE_RIGHT);
-			shortcutPoint.setX(shortcutPoint.getX() - getEndTextGap());
-			shortcutPoint.setY(getTextCenter() + totalHeight);
+			Vector2i shortcutPoint = alignString(item->getShortcutText(),ALIGN_MIDDLE_RIGHT);
+			shortcutPoint.x = shortcutPoint.x - getEndTextGap();
+			shortcutPoint.y = getTextCenter() + totalHeight;
 
 
 			paintEvent.graphics()->drawText(shortcutPoint,
@@ -688,8 +688,8 @@ namespace agui {
 				for(int x = 0; x < getEndTextGap(); ++x)
 				{
 					paintEvent.graphics()->drawLine(
-						Point(getInnerWidth() - x, totalHeight + (getItemHeight() / 2) - (x / 2)),
-						Point(getInnerWidth() - x, x + totalHeight + (getItemHeight() / 2) - (x / 2)),getFontColor());
+						Vector2i(getInnerWidth() - x, totalHeight + (getItemHeight() / 2) - (x / 2)),
+						Vector2i(getInnerWidth() - x, x + totalHeight + (getItemHeight() / 2) - (x / 2)),getFontColor());
 				}
 			}
 		
@@ -698,11 +698,11 @@ namespace agui {
 		}
 	}
 
-	Point PopUpMenu::getIconPosition( int index, int distanceY ) const
+	Vector2i PopUpMenu::getIconPosition( int index, int distanceY ) const
 	{
 		if(!indexExists(index))
 		{
-			return Point();
+			return Vector2i();
 		}
 
 		PopUpMenuItem* item = items[index];
@@ -711,10 +711,10 @@ namespace agui {
 		{
 			int h = item->getIcon()->getHeight();
 
-			return Point(0,h);
+			return Vector2i(0,h);
 		}
 
-		return Point();
+		return Vector2i();
 	}
 
 	int PopUpMenu::getTextCenter() const
@@ -879,7 +879,7 @@ namespace agui {
 
 	PopUpMenu::~PopUpMenu()
 	{
-		for(std::vector<PopUpMenuItem*>::iterator it = items.begin();
+		for(Vector<PopUpMenuItem*>::iterator it = items.begin();
 			it != items.end(); ++it)
 		{
 			(*it)->setParentMenu(NULL);
@@ -906,12 +906,12 @@ namespace agui {
 		}
 	}
 
-	void PopUpMenu::setChildOffset( const Point& offset )
+	void PopUpMenu::setChildOffset( const Vector2i& offset )
 	{
 		childOffset = offset;
 	}
 
-	const Point& PopUpMenu::getChildOffset() const
+	const Vector2i& PopUpMenu::getChildOffset() const
 	{
 		return childOffset;
 	}

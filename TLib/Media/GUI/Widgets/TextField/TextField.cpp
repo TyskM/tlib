@@ -59,7 +59,7 @@ namespace agui {
 
 	TextField::~TextField(void)
 	{
-		for(std::vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
+		for(Vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
 			it != tFieldListeners.end(); ++it)
 		{
 			(*it)->death(this);
@@ -68,7 +68,7 @@ namespace agui {
 
 	int TextField::getAdjustedWidth() const
 	{
-		int w = getInnerSize().getWidth()
+		int w = getInnerSize().x
 			- getLeftPadding() - getRightPadding();
 		if(w > 0)
 		{
@@ -275,7 +275,7 @@ namespace agui {
 
 			if(a > b && getTextOffset() < getLeftPadding())
 			{
-				retOffset = -textWidth + getInnerSize().getWidth() - getRightPadding(); 
+				retOffset = -textWidth + getInnerSize().x - getRightPadding(); 
 
 				tOffset = retOffset;
 
@@ -311,7 +311,7 @@ namespace agui {
 			return;
 		}
 
-		std::string text;
+		String text;
 			if(!isPassword())
 			text = getText();
 			else
@@ -330,7 +330,7 @@ namespace agui {
 		{
 			return;
 		}
-		std::string text;
+		String text;
 		if(!isPassword())
 			text = getText();
 		else
@@ -342,7 +342,7 @@ namespace agui {
 		positionCaret(getCaretPosition());
 	}
 
-	void TextField::setThisText( const std::string &text )
+	void TextField::setThisText( const String &text )
 	{
 		selfSetText = true;
 		setText(text);
@@ -363,9 +363,9 @@ namespace agui {
 		}
 
 		unicodeFunctions.encodeUtf8(buffer,unichar);
-		std::string appendStr = buffer;
+		String appendStr = buffer;
 		
-		std::string text;
+		String text;
 		if(!isPassword())
 			text = getText();
 		else
@@ -388,7 +388,7 @@ namespace agui {
 		return maxLength;
 	}
 
-	void TextField::setText( const std::string &text )
+	void TextField::setText( const String &text )
 	{
 		//truncate string if it is too long
 		if(isPassword())
@@ -675,10 +675,10 @@ namespace agui {
 		int caretLoc = getCaretLocation();
 		int textLoc = getTextOffset();
 
-		Rectangle sideclip = getInnerRectangle();
-		sideclip = Rectangle(sideclip.getX() + getLeftPadding() ,
-			sideclip.getY() + 2,sideclip.getSize().getWidth() - getLeftPadding()
-			- getRightPadding() + 1, sideclip.getHeight() - 4);
+		Recti sideclip = getInnerRectangle();
+		sideclip = Recti(sideclip.x + getLeftPadding() ,
+			sideclip.y + 2,sideclip.getSize().x - getLeftPadding()
+			- getRightPadding() + 1, sideclip.y - 4);
 
 		
 
@@ -698,7 +698,7 @@ namespace agui {
 
 		if(getSelectionStart() != getSelectionEnd() && (isFocused() || !isHidingSelection()) )
 		{
-			Rectangle selRect = Rectangle(
+			Recti selRect = Recti(
 				getSelectionLocation(),
 				(getInnerHeight() / 2) - 
 				(getFont()->getLineHeight() / 2),
@@ -710,17 +710,17 @@ namespace agui {
 		}
 
 
-			paintEvent.graphics()->drawText(Point(textLoc, +
-				((getInnerSize().getHeight() - getFont()->getLineHeight()) / 2)),getText().c_str(),
+			paintEvent.graphics()->drawText(Vector2i(textLoc, +
+				((getInnerSize().y - getFont()->getLineHeight()) / 2)),getText().c_str(),
 				getFontColor(),getFont());
 		
 
 			if(isFocused())
 			{
 				if(isBlinking())
-					paintEvent.graphics()->drawLine(Point(caretLoc + 1,
-					((getInnerSize().getHeight() / 2) + (getFont()->getLineHeight() / 2))),
-					Point(caretLoc + 1, ((getInnerSize().getHeight() / 2) - 
+					paintEvent.graphics()->drawLine(Vector2i(caretLoc + 1,
+					((getInnerSize().y / 2) + (getFont()->getLineHeight() / 2))),
+					Vector2i(caretLoc + 1, ((getInnerSize().y / 2) - 
 					(getFont()->getLineHeight() / 2))),
 					Color(0,0,0));
 			}
@@ -765,9 +765,9 @@ namespace agui {
 	void TextField::setFont( const Font *font )
 	{
 		Widget::setFont(font);
-		if(getInnerSize().getHeight() < getFont()->getLineHeight())
+		if(getInnerSize().y < getFont()->getLineHeight())
 		{
-			setSize(getSize().getWidth(),getFont()->getLineHeight()
+			setSize(getSize().x,getFont()->getLineHeight()
 				+ getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM));
 		}
 		positionCaret(getCaretPosition());
@@ -775,7 +775,7 @@ namespace agui {
 
 	void TextField::resizeHeightToContents()
 	{
-		setSize(getSize().getWidth(), getFont()->getLineHeight()
+		setSize(getSize().x, getFont()->getLineHeight()
 			+ getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM)
 			+ 4); //added 4 to ensure everything shows up comfortably
 	}
@@ -784,7 +784,7 @@ namespace agui {
 	{
 		setSize(getFont()->getTextWidth(getText()) + getLeftPadding() + getRightPadding()
 			+ getMargin(SIDE_LEFT) + getMargin(SIDE_RIGHT),
-			getSize().getHeight());
+			getSize().y);
 		positionCaret(0);
 	}
 
@@ -872,7 +872,7 @@ namespace agui {
 			end = getTextLength();
 		}
 
-		for(std::vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
+		for(Vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
 			it != tFieldListeners.end(); ++it)
 		{
 			(*it)->selectionChanged(this,start,end);
@@ -939,7 +939,7 @@ namespace agui {
 			setSelection(0,0);
 		}
 
-		for(std::vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
+		for(Vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
 			it != tFieldListeners.end(); ++it)
 		{
 			(*it)->selectableChanged(this,selectable);
@@ -962,7 +962,7 @@ namespace agui {
 	void TextField::setReadOnly( bool readOny )
 	{
 		this->readOnly = readOny;
-		for(std::vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
+		for(Vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
 			it != tFieldListeners.end(); ++it)
 		{
 			(*it)->readOnlyChanged(this,readOnly);
@@ -988,7 +988,7 @@ namespace agui {
 		this->wantDecimal = wantDecimal;
 		this->wantNegetive = wantMinus;
 
-		for(std::vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
+		for(Vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
 			it != tFieldListeners.end(); ++it)
 		{
 			(*it)->numericChanged(this,numeric,wantDecimal,wantMinus);
@@ -1047,18 +1047,18 @@ namespace agui {
 	void TextField::setHideSelection( bool hidden )
 	{
 		hideSelection = hidden;
-		for(std::vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
+		for(Vector<TextFieldListener*>::iterator it = tFieldListeners.begin();
 			it != tFieldListeners.end(); ++it)
 		{
 			(*it)->hideSelectionChanged(this,hidden);
 		}
 	}
 
-	const std::string TextField::getSelectedText() const
+	const String TextField::getSelectedText() const
 	{
 		if(getSelectionStart() == getSelectionEnd())
 		{
-			return std::string("");
+			return String("");
 		}
 		else
 		{
@@ -1073,7 +1073,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<TextFieldListener*>::iterator it = 
+		for(Vector<TextFieldListener*>::iterator it = 
 			tFieldListeners.begin();
 			it != tFieldListeners.end(); ++it)
 		{
@@ -1125,20 +1125,20 @@ namespace agui {
 
 
 		//top
-		paintEvent.graphics()->drawLine(Point(0,1),
-			Point(getSize().getWidth(),1),Top);
+		paintEvent.graphics()->drawLine(Vector2i(0,1),
+			Vector2i(getSize().x,1),Top);
 
 		//left
-		paintEvent.graphics()->drawLine(Point(1,1),
-			Point(1,getSize().getHeight()),Left);
+		paintEvent.graphics()->drawLine(Vector2i(1,1),
+			Vector2i(1,getSize().y),Left);
 
 		//right
-		paintEvent.graphics()->drawLine(Point(getSize().getWidth() ,1),
-			Point(getSize().getWidth() ,getSize().getHeight()),Right);
+		paintEvent.graphics()->drawLine(Vector2i(getSize().x ,1),
+			Vector2i(getSize().x ,getSize().y),Right);
 
 		//bottom
-		paintEvent.graphics()->drawLine(Point(0,getSize().getHeight()),
-			Point(getSize().getWidth(),getSize().getHeight()),Bottom);
+		paintEvent.graphics()->drawLine(Vector2i(0,getSize().y),
+			Vector2i(getSize().x,getSize().y),Bottom);
 	}
 
 	void TextField::logic( double timeElapsed )
@@ -1190,17 +1190,17 @@ namespace agui {
 		setThisText(getText());
 	}
 
-	const std::string& TextField::getPasswordCharacter() const
+	const String& TextField::getPasswordCharacter() const
 	{
 		return passwordChar;
 	}
 
-	const std::string& TextField::getPassword() const
+	const String& TextField::getPassword() const
 	{
 		return passwordText;
 	}
 
-	void TextField::setSize( const Dimension& size )
+	void TextField::setSize( const Vector2i& size )
 	{
 		Widget::setSize(size);
 
@@ -1309,7 +1309,7 @@ namespace agui {
 		}
 
 
-		std::string pasteResult = Clipboard::paste();
+		String pasteResult = Clipboard::paste();
 
 		if(pasteResult.length() == 0 || getTextLength() - getSelectionLength() == getMaxLength())
 		{
@@ -1319,7 +1319,7 @@ namespace agui {
 		deleteSelection();
 		int start = getCaretPosition();
 		
-		std::string noNewLine;
+		String noNewLine;
 
 		for(size_t i = 0; i < pasteResult.size(); ++i)
 		{
@@ -1338,7 +1338,7 @@ namespace agui {
 		}
 		if(length > 0)
 		{
-			std::string* cText = (std::string*)&getText();
+			String* cText = (String*)&getText();
 			unicodeFunctions.insert(*cText,start,noNewLine);
 			setThisText(*cText);
 			positionCaret(caretPosition + length);
@@ -1355,7 +1355,7 @@ namespace agui {
         return true;
     }
 
-	void TextField::appendText( const std::string& text, bool atCurrentPosition /*= true*/ )
+	void TextField::appendText( const String& text, bool atCurrentPosition /*= true*/ )
 	{
 		if(text.length() == 0 || getTextLength() - getSelectionLength() == getMaxLength())
 		{
@@ -1369,7 +1369,7 @@ namespace agui {
 		}
 		int start = getCaretPosition();
 
-		std::string noNewLine;
+		String noNewLine;
 
 		for(size_t i = 0; i < text.size(); ++i)
 		{
@@ -1388,7 +1388,7 @@ namespace agui {
 		}
 		if(length > 0)
 		{
-			std::string* cText = (std::string*)&getText();
+			String* cText = (String*)&getText();
 			unicodeFunctions.insert(*cText,start,noNewLine);
 			setThisText(*cText);
 			positionCaret(caretPosition + length);

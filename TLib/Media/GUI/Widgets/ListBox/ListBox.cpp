@@ -45,9 +45,9 @@ namespace agui {
 	struct LBCompare
 	{
 		NumericStringCompare numCmp;
-		std::string toUpper(const std::string &str) {
+		String toUpper(const String &str) {
 
-			std::string retstr = str;
+			String retstr = str;
 			for (size_t i=0;i< str.length();i++) 
 				if (str[i] >= 0x61 && str[i] <= 0x7A) 
 					retstr[i] = retstr[i] - 0x20;
@@ -123,7 +123,7 @@ namespace agui {
 
 	ListBox::~ListBox(void)
 	{
-		for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+		for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 			it != listboxListeners.end(); ++it)
 		{
 			(*it)->death(this);
@@ -144,12 +144,12 @@ namespace agui {
 		}
 	}
 
-	void ListBox::addItem( const std::string &item )
+	void ListBox::addItem( const String &item )
 	{
 		addItemAt(item,getLength());
 	}
 
-	void ListBox::removeItem( const std::string &item )
+	void ListBox::removeItem( const String &item )
 	{
 		int selIndex = getSelectedIndex();
 		//remove first occurrence of item
@@ -160,7 +160,7 @@ namespace agui {
 			{
 				items.erase(it);
 
-				for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+				for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 					it != listboxListeners.end(); ++it)
 				{
 					(*it)->itemRemoved(this,item);
@@ -172,7 +172,7 @@ namespace agui {
 				}
 				setWidestItem();
 				updateScrollBars();
-				setHoverIndex(getIndexAtPoint(agui::Point(getWidth() / 2,lastMouseY)));
+				setHoverIndex(getIndexAtPoint(Vector2i(getWidth() / 2,lastMouseY)));
 				if(isHoverSelection())
 				{
 					setSelectedIndex(hoveredIndex);
@@ -193,7 +193,7 @@ namespace agui {
 		return int(items.size());
 	}
 
-	void ListBox::addItemAt( const std::string &item, int index )
+	void ListBox::addItemAt( const String &item, int index )
 	{
 		if(indexExists(index) || index == getLength())
 		{
@@ -210,12 +210,12 @@ namespace agui {
 			}
 			setWidestItem();
 			updateScrollBars();
-			setHoverIndex(getIndexAtPoint(agui::Point(getWidth() / 2,lastMouseY)));
+			setHoverIndex(getIndexAtPoint(Vector2i(getWidth() / 2,lastMouseY)));
 			if(isHoverSelection())
 			{
 				setSelectedIndex(hoveredIndex);
 			}
-			for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+			for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 				it != listboxListeners.end(); ++it)
 			{
 				(*it)->itemAdded(this,item);
@@ -232,7 +232,7 @@ namespace agui {
 	{
 		if(indexExists(index))
 		{
-			for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+			for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 				it != listboxListeners.end(); ++it)
 			{
 				(*it)->itemRemoved(this,items[index].first.text);
@@ -246,7 +246,7 @@ namespace agui {
 			}
 			setWidestItem();
 			updateScrollBars();
-			setHoverIndex(getIndexAtPoint(agui::Point(getWidth() / 2,lastMouseY)));
+			setHoverIndex(getIndexAtPoint(Vector2i(getWidth() / 2,lastMouseY)));
 			if(isHoverSelection())
 			{
 				setSelectedIndex(hoveredIndex);
@@ -254,7 +254,7 @@ namespace agui {
 		}
 	}
 
-	int ListBox::getIndexOf( const std::string &item ) const
+	int ListBox::getIndexOf( const String &item ) const
 	{
 		int count = 0;
 		//return first occurrence of item
@@ -330,9 +330,9 @@ namespace agui {
 		updateScrollBars();
 	}
 
-	std::vector<int> ListBox::getSelectedIndexes() const
+	Vector<int> ListBox::getSelectedIndexes() const
 	{
-		std::vector<int> indexes;
+		Vector<int> indexes;
 		if(items.empty())
 		{
 			return indexes;
@@ -350,7 +350,7 @@ namespace agui {
 		return indexes;
 	}
 
-	void ListBox::setSelectedIndexes( const std::vector<int> &indexes )
+	void ListBox::setSelectedIndexes( const Vector<int> &indexes )
 	{
 		if(indexes.empty())
 		{
@@ -370,7 +370,7 @@ namespace agui {
 
 			return;
 		}
-		for(std::vector<int>::const_iterator it = indexes.begin();
+		for(Vector<int>::const_iterator it = indexes.begin();
 			it != indexes.end(); ++it)
 		{
 			if(indexExists(*it) )
@@ -425,17 +425,17 @@ namespace agui {
 			}
 			if(it->second)
 			{
-				paintEvent.graphics()->drawFilledRectangle(Rectangle(Point
+				paintEvent.graphics()->drawFilledRectangle(Recti(Vector2i
 					(0,h + verticalOffset),
-					Dimension(getSize().getWidth(),getItemHeight())),Color(169,193,214));
+					Vector2i(getSize().x,getItemHeight())),Color(169,193,214));
 
 				color = &inverseFont;
 			}
 			else if(itemsSkipped + rcount == getHoverIndex())
 			{
-				paintEvent.graphics()->drawFilledRectangle(Rectangle(Point
+				paintEvent.graphics()->drawFilledRectangle(Recti(Vector2i
 					(0,h + verticalOffset),
-					Dimension(getInnerSize().getWidth(),getItemHeight())),Color(194,217,239));
+					Vector2i(getInnerSize().x,getItemHeight())),Color(194,217,239));
 
 				color = (Color*)&it->first.color;
 			}
@@ -443,7 +443,7 @@ namespace agui {
 			{
 				color = (Color*)&it->first.color;
 			}
-			paintEvent.graphics()->drawText(Point(horizontalOffset,
+			paintEvent.graphics()->drawText(Vector2i(horizontalOffset,
 				h + verticalOffset + (diff / 2)),it->first.text.c_str(),*color,
 				getFont());
 
@@ -460,7 +460,7 @@ namespace agui {
 	{
 		if(sorted != this->sorted)
 		{
-			for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+			for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 				it != listboxListeners.end(); ++it)
 			{
 				(*it)->sortedChanged(this,sorted);
@@ -475,7 +475,7 @@ namespace agui {
 
 	void ListBox::setReverseSorted( bool reverse )
 	{
-		for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+		for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 			it != listboxListeners.end(); ++it)
 		{
 			(*it)->rSortedChanged(this,reverse);
@@ -569,7 +569,7 @@ namespace agui {
 
 		if(itemHeight != height)
 		{
-			for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+			for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 				it != listboxListeners.end(); ++it)
 			{
 				(*it)->itemHeightChanged(this,multiselect);
@@ -616,27 +616,27 @@ namespace agui {
 
 	void ListBox::resizeSBsToPolicy()
 	{
-		pChildHScroll->setLocation(0,getInnerSize().getHeight()
+		pChildHScroll->setLocation(0,getInnerSize().y
 			- pChildHScroll->getHeight());
 
-		pChildVScroll->setLocation(getInnerSize().getWidth()
+		pChildVScroll->setLocation(getInnerSize().x
 			- pChildVScroll->getWidth(),0);
 
 		if(pChildHScroll->isVisible() && 
 			pChildVScroll->isVisible())
 		{
-			pChildHScroll->setSize(getInnerSize().getWidth() - pChildVScroll->getWidth()
+			pChildHScroll->setSize(getInnerSize().x - pChildVScroll->getWidth()
 				,pChildHScroll->getHeight());
 			pChildVScroll->setSize(pChildVScroll->getWidth(),
-				getInnerSize().getHeight() - pChildHScroll->getHeight());
+				getInnerSize().y - pChildHScroll->getHeight());
 		}
 		else if(pChildHScroll->isVisible())
 		{
-			pChildHScroll->setSize(getInnerSize().getWidth(),pChildHScroll->getHeight());
+			pChildHScroll->setSize(getInnerSize().x,pChildHScroll->getHeight());
 		}
 		else if(pChildVScroll->isVisible())
 		{
-			pChildVScroll->setSize(pChildVScroll->getWidth(),getInnerSize().getHeight());
+			pChildVScroll->setSize(pChildVScroll->getWidth(),getInnerSize().y);
 		}
 
 
@@ -644,11 +644,11 @@ namespace agui {
 			pChildVScroll->isVisible() && 
 			pChildHScroll->isVisible());
 
-		pChildInset->setLocation(pChildVScroll->getLocation().getX(),
-			pChildHScroll->getLocation().getY());
+		pChildInset->setLocation(pChildVScroll->getLocation().x,
+			pChildHScroll->getLocation().y);
 
-		pChildInset->setSize(pChildVScroll->getSize().getWidth(),
-			pChildHScroll->getSize().getHeight());
+		pChildInset->setSize(pChildVScroll->getSize().x,
+			pChildHScroll->getSize().y);
 
 	}
 
@@ -668,11 +668,11 @@ namespace agui {
 		}
 
 		//set vertical value
-		pChildVScroll->setRangeFromPage(getInnerSize().getHeight() - extraH,getContentHeight());
+		pChildVScroll->setRangeFromPage(getInnerSize().y - extraH,getContentHeight());
 
 
 		//set horizontal value
-		pChildHScroll->setRangeFromPage(getInnerSize().getWidth() - extraV,getContentWidth());
+		pChildHScroll->setRangeFromPage(getInnerSize().x - extraV,getContentWidth());
 	}
 
 	void ListBox::updateScrollBars()
@@ -843,7 +843,7 @@ namespace agui {
 		{
 			pChildVScroll->wheelScrollDown(mouseEvent.getMouseWheelChange());
 		}
-		setHoverIndex(getIndexAtPoint(Point(0,lastMouseY)));
+		setHoverIndex(getIndexAtPoint(Vector2i(0,lastMouseY)));
 
 		if(isVScrollNeeded())
 		{
@@ -866,7 +866,7 @@ namespace agui {
 			pChildVScroll->wheelScrollUp(mouseEvent.getMouseWheelChange());
 		}
 		
-		setHoverIndex(getIndexAtPoint(Point(0,lastMouseY)));
+		setHoverIndex(getIndexAtPoint(Vector2i(0,lastMouseY)));
 		if(isVScrollNeeded())
 		{
 			mouseEvent.consume();
@@ -911,13 +911,13 @@ namespace agui {
 		{
 			return false;
 		}
-		if(getContentWidth() > getInnerSize().getWidth())
+		if(getContentWidth() > getInnerSize().x)
 		{
 			return true;
 		}
 		else if(getVScrollPolicy() != SHOW_NEVER &&
-			(getContentHeight() >  getInnerSize().getHeight()  &&
-			getContentWidth() > (getInnerSize().getWidth() - pChildVScroll->getWidth() )))
+			(getContentHeight() >  getInnerSize().y  &&
+			getContentWidth() > (getInnerSize().x - pChildVScroll->getWidth() )))
 		{
 			return true;
 		}
@@ -930,13 +930,13 @@ namespace agui {
 		{
 			return false;
 		}
-		if(getContentHeight() > getInnerSize().getHeight())
+		if(getContentHeight() > getInnerSize().y)
 		{
 			return true;
 		}
 		else if(getHScrollPolicy() != SHOW_NEVER &&
-			(getContentWidth() >  getInnerSize().getWidth()  &&
-			getContentHeight() > (getInnerSize().getHeight() - pChildHScroll->getHeight() )))
+			(getContentWidth() >  getInnerSize().x  &&
+			getContentHeight() > (getInnerSize().y - pChildHScroll->getHeight() )))
 		{
 			return true;
 		}
@@ -965,7 +965,7 @@ namespace agui {
 		return vScrollPolicy;
 	}
 
-	void ListBox::setSize( const Dimension &size )
+	void ListBox::setSize( const Vector2i &size )
 	{
 		Widget::setSize(size);
 		updateScrollBars();
@@ -1006,9 +1006,9 @@ namespace agui {
 		return horizontalOffset;
 	}
 
-	int ListBox::getIndexAtPoint( const Point &p ) const
+	int ListBox::getIndexAtPoint( const Vector2i &p ) const
 	{
-		int y = p.getY();
+		int y = p.y;
 		y -= getVerticalOffset();
 
 		if(y < 0)
@@ -1048,7 +1048,7 @@ namespace agui {
 	{
 		if(this->multiselect != multiselect)
 		{
-			for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+			for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 				it != listboxListeners.end(); ++it)
 			{
 				(*it)->multiselectChanged(this,multiselect);
@@ -1153,7 +1153,7 @@ namespace agui {
 		{
 			return;
 		}
-		lastMouseY = mouseEvent.getPosition().getY();
+		lastMouseY = mouseEvent.getPosition().y;
 
 		setHoverIndex(getIndexAtPoint(mouseEvent.getPosition()));
 		if(isHoverSelection())
@@ -1175,7 +1175,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+		for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 			it != listboxListeners.end(); ++it)
 		{
 			(*it)->hoverIndexChanged(this,index);
@@ -1197,7 +1197,7 @@ namespace agui {
 		mouseEvent.consume();
 	}
 
-	void ListBox::addItems( const std::string &items )
+	void ListBox::addItems( const String &items )
 	{
 		int curpos = 0;
 		int len = 0;
@@ -1213,7 +1213,7 @@ namespace agui {
 						std::pair<ListBoxItem,bool>(
 						ListBoxItem(items.substr(curpos,len),newItemColor),false));
 					
-					for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+					for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 						it != listboxListeners.end(); ++it)
 					{
 						(*it)->itemAdded(this,this->items.back().first.text);
@@ -1249,16 +1249,16 @@ namespace agui {
 		}
 		setWidestItem();
 		updateScrollBars();
-		setHoverIndex(getIndexAtPoint(agui::Point(getWidth() / 2,lastMouseY)));
+		setHoverIndex(getIndexAtPoint(Vector2i(getWidth() / 2,lastMouseY)));
 		if(isHoverSelection())
 		{
 			setSelectedIndex(hoveredIndex);
 		}
 	}
 
-	void ListBox::addItems( const std::vector<std::string> &items )
+	void ListBox::addItems( const Vector<String> &items )
 	{
-		for(std::vector<std::string>::const_iterator it = items.begin();
+		for(Vector<String>::const_iterator it = items.begin();
 			it != items.end(); ++it)
 		{
 			this->items.push_back(std::pair<ListBoxItem,bool>(ListBoxItem(*it,newItemColor),false));
@@ -1268,7 +1268,7 @@ namespace agui {
 				widestItem = iWidth;
 			}
 
-			for(std::vector<ListBoxListener*>::iterator iter = listboxListeners.begin();
+			for(Vector<ListBoxListener*>::iterator iter = listboxListeners.begin();
 				iter != listboxListeners.end(); ++iter)
 			{
 				(*iter)->itemAdded(this,*it);
@@ -1283,7 +1283,7 @@ namespace agui {
 
 		setWidestItem();
 		updateScrollBars();
-		setHoverIndex(getIndexAtPoint(agui::Point(getWidth() / 2,lastMouseY)));
+		setHoverIndex(getIndexAtPoint(Vector2i(getWidth() / 2,lastMouseY)));
 		if(isHoverSelection())
 		{
 			setSelectedIndex(hoveredIndex);
@@ -1301,7 +1301,7 @@ namespace agui {
 		int itemY = selection * getItemHeight();
 		itemY += getVerticalOffset();
 
-		int fixedheight = getInnerSize().getHeight();
+		int fixedheight = getInnerSize().y;
 		if(pChildHScroll->isVisible())
 		{
 			fixedheight -= pChildHScroll->getHeight();
@@ -1319,15 +1319,15 @@ namespace agui {
 				pChildVScroll->getValue() + ( (itemY + getItemHeight()) - fixedheight));
 		}
 
-		setHoverIndex(getIndexAtPoint(Point(0,lastMouseY)));
+		setHoverIndex(getIndexAtPoint(Vector2i(0,lastMouseY)));
 
 	}
 
-	std::string ListBox::getItemAt( int index ) const
+	String ListBox::getItemAt( int index ) const
 	{
 		if(!indexExists(index))
 		{
-			return std::string("");
+			return String("");
 		}
 		else
 		{
@@ -1339,7 +1339,7 @@ namespace agui {
 	{
 		if(this->wrapping != wrapping)
 		{
-			for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+			for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 				it != listboxListeners.end(); ++it)
 			{
 				(*it)->wrappingChanged(this,wrapping);
@@ -1383,7 +1383,7 @@ namespace agui {
 	{
 		if(indexExists(index))
 		{
-			for(std::vector<SelectionListener*>::iterator it = selectionListeners.begin();
+			for(Vector<SelectionListener*>::iterator it = selectionListeners.begin();
 				it != selectionListeners.end(); ++it)
 			{
 				(*it)->selectionChanged(this,items[index].first.text,index,selected);
@@ -1391,7 +1391,7 @@ namespace agui {
 		}
 		else if(index == -1)
 		{
-			for(std::vector<SelectionListener*>::iterator it = selectionListeners.begin();
+			for(Vector<SelectionListener*>::iterator it = selectionListeners.begin();
 				it != selectionListeners.end(); ++it)
 			{
 				(*it)->selectionChanged(this,"",index,false);
@@ -1407,7 +1407,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<SelectionListener*>::iterator it = 
+		for(Vector<SelectionListener*>::iterator it = 
 			selectionListeners.begin();
 			it != selectionListeners.end(); ++it)
 		{
@@ -1433,7 +1433,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<ListBoxListener*>::iterator it = 
+		for(Vector<ListBoxListener*>::iterator it = 
 			listboxListeners.begin();
 			it != listboxListeners.end(); ++it)
 		{
@@ -1471,7 +1471,7 @@ namespace agui {
 	{
 		if(this->multiselectExtended != multiselect)
 		{
-			for(std::vector<ListBoxListener*>::iterator it = listboxListeners.begin();
+			for(Vector<ListBoxListener*>::iterator it = listboxListeners.begin();
 				it != listboxListeners.end(); ++it)
 			{
 				(*it)->multiselectExtendedChanged(this,multiselect);
@@ -1558,7 +1558,7 @@ namespace agui {
 
 			int index = getIndexAtPoint(mouseEvent.getPosition());
 
-			int y = mouseEvent.getPosition().getY();
+			int y = mouseEvent.getPosition().y;
 			y -= getVerticalOffset();
 
 			int itemIndex = y / getItemHeight();
@@ -1608,28 +1608,28 @@ namespace agui {
 
 
 		//top
-		paintEvent.graphics()->drawLine(Point(0,1),
-			Point(getSize().getWidth(),1),Top);
+		paintEvent.graphics()->drawLine(Vector2i(0,1),
+			Vector2i(getSize().x,1),Top);
 
 		//left
-		paintEvent.graphics()->drawLine(Point(1,1),
-			Point(1,getSize().getHeight()),Left);
+		paintEvent.graphics()->drawLine(Vector2i(1,1),
+			Vector2i(1,getSize().y),Left);
 
 		//right
-		paintEvent.graphics()->drawLine(Point(getSize().getWidth() ,1),
-			Point(getSize().getWidth() ,getSize().getHeight()),Right);
+		paintEvent.graphics()->drawLine(Vector2i(getSize().x ,1),
+			Vector2i(getSize().x ,getSize().y),Right);
 
 		//bottom
-		paintEvent.graphics()->drawLine(Point(0,getSize().getHeight()),
-			Point(getSize().getWidth(),getSize().getHeight()),Bottom);
+		paintEvent.graphics()->drawLine(Vector2i(0,getSize().y),
+			Vector2i(getSize().x,getSize().y),Bottom);
 	}
 
-	const Dimension& ListBox::getHSrollSize() const
+	const Vector2i& ListBox::getHSrollSize() const
 	{
 		return pChildHScroll->getSize();
 	}
 
-	const Dimension& ListBox::getVScrollSize() const
+	const Vector2i& ListBox::getVScrollSize() const
 	{
 		return pChildVScroll->getSize();
 	}
@@ -1647,7 +1647,7 @@ namespace agui {
 		{
 			hScrollHeight = pChildHScroll->getHeight();
 		}
-		return ((getInnerSize().getHeight() - hScrollHeight) / getItemHeight()) + 2;
+		return ((getInnerSize().y - hScrollHeight) / getItemHeight()) + 2;
 	}
 
 	void ListBox::setHoverSelection( bool selecting )
@@ -1660,10 +1660,10 @@ namespace agui {
 		return hoverSelection;
 	}
 
-	bool ListBox::intersectionWithPoint( const Point &p ) const
+	bool ListBox::intersectionWithPoint( const Vector2i &p ) const
 	{
-		return Rectangle(getMargin(SIDE_LEFT),
-			getMargin(SIDE_TOP),getInnerWidth(),getInnerHeight()).pointInside(p);
+		return Recti(getMargin(SIDE_LEFT),
+			getMargin(SIDE_TOP),getInnerWidth(),getInnerHeight()).contains(p);
 	}
 
 	void ListBox::resizeToContents()
@@ -1746,7 +1746,7 @@ namespace agui {
 		return items[index].first;
 	}
 
-	void ListBox::setItemToolTipText( const std::string& text, int index )
+	void ListBox::setItemToolTipText( const String& text, int index )
 	{
 		if(!indexExists(index))
 		{
@@ -1766,7 +1766,7 @@ namespace agui {
 		items[index].first.color = color;
 	}
 
-	std::string ListBox::getToolTipText()
+	String ListBox::getToolTipText()
 	{
 		if(indexExists(getHoverIndex()))
 		{

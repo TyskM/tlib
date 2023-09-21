@@ -117,7 +117,7 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual void resizeToContents();
-		virtual void setText(const std::string &text);
+		virtual void setText(const String &text);
 	/**
 	 * Default constructor.
      * @since 0.1.0

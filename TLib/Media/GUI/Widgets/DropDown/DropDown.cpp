@@ -67,7 +67,7 @@ namespace agui {
 
 	DropDown::~DropDown(void)
 	{
-		for(std::vector<DropDownListener*>::iterator it = 
+		for(Vector<DropDownListener*>::iterator it = 
 			dropDownListeners.begin();
 			it != dropDownListeners.end(); ++it)
 		{
@@ -98,7 +98,7 @@ namespace agui {
 	void DropDown::setMaxDropDownHeight(int height)
 	{
 		listBoxHeight = height;
-		for(std::vector<DropDownListener*>::iterator it = 
+		for(Vector<DropDownListener*>::iterator it = 
 			dropDownListeners.begin();
 			it != dropDownListeners.end(); ++it)
 		{
@@ -127,11 +127,11 @@ namespace agui {
 
 	void DropDown::positionListBox()
 	{
-		pChildListBox->setLocation(getAbsolutePosition().getX() + getListPositionOffset().getX(),
-			getAbsolutePosition().getY() + getHeight() + getListPositionOffset().getY());
+		pChildListBox->setLocation(getAbsolutePosition().x + getListPositionOffset().x,
+			getAbsolutePosition().y + getHeight() + getListPositionOffset().y);
 	}
 
-	void DropDown::setSize( const Dimension &size )
+	void DropDown::setSize( const Vector2i &size )
 	{
 		Widget::setSize(size);
 		positionListBox();
@@ -142,7 +142,7 @@ namespace agui {
 		Widget::setSize(width,height);
 	}
 
-	void DropDown::setLocation( const Point &location )
+	void DropDown::setLocation( const Vector2i &location )
 	{
 		Widget::setLocation(location);
 		positionListBox();
@@ -168,11 +168,11 @@ namespace agui {
 		pChildListBox->show();
 		positionListBox();
 		resizeListBox();
-		if(pChildListBox->getLocation().getY() + pChildListBox->getHeight() > 
+		if(pChildListBox->getLocation().y + pChildListBox->getHeight() > 
 			pChildListBox->getParent()->getHeight())
 		{
-			pChildListBox->setLocation(getAbsolutePosition().getX() + getListPositionOffset().getX(),
-				getAbsolutePosition().getY() + getListPositionOffset().getY() - 
+			pChildListBox->setLocation(getAbsolutePosition().x + getListPositionOffset().x,
+				getAbsolutePosition().y + getListPositionOffset().y - 
 				pChildListBox->getHeight());
 
 		}
@@ -188,7 +188,7 @@ namespace agui {
 		}
 		pChildListBox->requestModalFocus();
 
-		for(std::vector<DropDownListener*>::iterator it = 
+		for(Vector<DropDownListener*>::iterator it = 
 			dropDownListeners.begin();
 			it != dropDownListeners.end(); ++it)
 		{
@@ -207,7 +207,7 @@ namespace agui {
 		pChildListBox->releaseModalFocus();
 		focus();
 
-		for(std::vector<DropDownListener*>::iterator it = 
+		for(Vector<DropDownListener*>::iterator it = 
 			dropDownListeners.begin();
 			it != dropDownListeners.end(); ++it)
 		{
@@ -223,7 +223,7 @@ namespace agui {
 		int vscroll = 0;
 		if(pChildListBox->isVScrollNeeded())
 		{
-			vscroll = pChildListBox->getVScrollSize().getWidth();
+			vscroll = pChildListBox->getVScrollSize().x;
 		}
 		if(isResizingToWidestItem() &&
 			sizeX < pChildListBox->getContentWidth() + vscroll)
@@ -245,17 +245,17 @@ namespace agui {
 		}
 
 		pChildListBox->setSize(
-			sizeX + getListSizePadding().getWidth(),sizeY + getListSizePadding().getHeight());
+			sizeX + getListSizePadding().x,sizeY + getListSizePadding().y);
 
-		if(pChildListBox->getLocation().getY() + pChildListBox->getHeight() > 
+		if(pChildListBox->getLocation().y + pChildListBox->getHeight() > 
 			pChildListBox->getParent()->getHeight())
 		{
-			if(getAbsolutePosition().getY() + getListPositionOffset().getY() - 
+			if(getAbsolutePosition().y + getListPositionOffset().y - 
 				pChildListBox->getHeight() < 0)
 			{
 				pChildListBox->setSize(
-					sizeX + getListSizePadding().getWidth(), 
-					getAbsolutePosition().getY() + getListPositionOffset().getY());
+					sizeX + getListSizePadding().x, 
+					getAbsolutePosition().y + getListPositionOffset().y);
 			}
 		}
 	}
@@ -332,20 +332,20 @@ namespace agui {
 
 
 		//top
-		paintEvent.graphics()->drawLine(Point(0,1),
-			Point(getSize().getWidth(),1),Top);
+		paintEvent.graphics()->drawLine(Vector2i(0,1),
+			Vector2i(getSize().x,1),Top);
 
 		//left
-		paintEvent.graphics()->drawLine(Point(1,1),
-			Point(1,getSize().getHeight()),Left);
+		paintEvent.graphics()->drawLine(Vector2i(1,1),
+			Vector2i(1,getSize().y),Left);
 
 		//right
-		paintEvent.graphics()->drawLine(Point(getSize().getWidth() ,1),
-			Point(getSize().getWidth() ,getSize().getHeight()),Right);
+		paintEvent.graphics()->drawLine(Vector2i(getSize().x ,1),
+			Vector2i(getSize().x ,getSize().y),Right);
 
 		//bottom
-		paintEvent.graphics()->drawLine(Point(0,getSize().getHeight()),
-			Point(getSize().getWidth(),getSize().getHeight()),Bottom);
+		paintEvent.graphics()->drawLine(Vector2i(0,getSize().y),
+			Vector2i(getSize().x,getSize().y),Bottom);
 	}
 
 	void DropDown::paintComponent( const PaintEvent &paintEvent )
@@ -353,7 +353,7 @@ namespace agui {
 		int rem = getInnerHeight() - getFont()->getLineHeight();
 		rem /= 2;
 
-		paintEvent.graphics()->drawText(Point(0,rem),getText().c_str(),
+		paintEvent.graphics()->drawText(Vector2i(0,rem),getText().c_str(),
 			getFontColor(),getFont());
 
     int iters = this->dropDownArrowWidth / 2;
@@ -363,8 +363,8 @@ namespace agui {
 		for(int i = iters; i > 0; --i)
 		{
 			paintEvent.graphics()->drawLine(
-				Point((2 * iters) - i + xPos,i + yPos),
-				Point(i + xPos,i + yPos),
+				Vector2i((2 * iters) - i + xPos,i + yPos),
+				Vector2i(i + xPos,i + yPos),
 				getFontColor());
 		}
 	}
@@ -506,7 +506,7 @@ namespace agui {
 	void DropDown::setResizeToWidestItem( bool resize )
 	{
 		resizeToWidestItem = resize;
-		for(std::vector<DropDownListener*>::iterator it = 
+		for(Vector<DropDownListener*>::iterator it = 
 			dropDownListeners.begin();
 			it != dropDownListeners.end(); ++it)
 		{
@@ -525,7 +525,7 @@ namespace agui {
 		return pChildListBox->isVisible();
 	}
 
-	void DropDown::addItem( const std::string &item )
+	void DropDown::addItem( const String &item )
 	{
 		pChildListBox->addItem(item);
 	}
@@ -543,7 +543,7 @@ namespace agui {
 
 	void DropDown::dispatchSelectionEvent()
 	{
-		for(std::vector<SelectionListener*>::iterator it = selectionListeners.begin();
+		for(Vector<SelectionListener*>::iterator it = selectionListeners.begin();
 			it != selectionListeners.end(); ++it)
 		{
 			(*it)->selectionChanged(this,getText(),getSelectedIndex(),true);
@@ -556,7 +556,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<SelectionListener*>::iterator it = 
+		for(Vector<SelectionListener*>::iterator it = 
 			selectionListeners.begin();
 			it != selectionListeners.end(); ++it)
 		{
@@ -575,7 +575,7 @@ namespace agui {
 			selectionListeners.end());
 	}
 
-	void DropDown::removeItem( const std::string& item )
+	void DropDown::removeItem( const String& item )
 	{
 		pChildListBox->removeItem(item);
 	}
@@ -585,16 +585,16 @@ namespace agui {
 		pChildListBox->removeItemAt(index);
 	}
 
-	void DropDown::addItemAt( const std::string& item, int index )
+	void DropDown::addItemAt( const String& item, int index )
 	{
 		pChildListBox->addItemAt(item,index);
 	}
 
-	void DropDown::itemAdded( ListBox* source, const std::string& item )
+	void DropDown::itemAdded( ListBox* source, const String& item )
 	{
 		if(source == pChildListBox)
 		{
-			for(std::vector<DropDownListener*>::iterator it = 
+			for(Vector<DropDownListener*>::iterator it = 
 				dropDownListeners.begin();
 				it != dropDownListeners.end(); ++it)
 			{
@@ -604,11 +604,11 @@ namespace agui {
 		}
 	}
 
-	void DropDown::itemRemoved( ListBox* source, const std::string& item )
+	void DropDown::itemRemoved( ListBox* source, const String& item )
 	{
 		if(source == pChildListBox)
 		{
-			for(std::vector<DropDownListener*>::iterator it = 
+			for(Vector<DropDownListener*>::iterator it = 
 				dropDownListeners.begin();
 				it != dropDownListeners.end(); ++it)
 			{
@@ -624,7 +624,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<DropDownListener*>::iterator it = 
+		for(Vector<DropDownListener*>::iterator it = 
 			dropDownListeners.begin();
 			it != dropDownListeners.end(); ++it)
 		{
@@ -643,22 +643,22 @@ namespace agui {
 			dropDownListeners.end());
 	}
 
-	const Point& DropDown::getListPositionOffset() const
+	const Vector2i& DropDown::getListPositionOffset() const
 	{
 		return listPosOffset;
 	}
 
-	void DropDown::setListPositionOffset( const Point& offset )
+	void DropDown::setListPositionOffset( const Vector2i& offset )
 	{
 		listPosOffset = offset;
 	}
 
-	void DropDown::setListSizePadding( const Dimension& padding )
+	void DropDown::setListSizePadding( const Vector2i& padding )
 	{
 		listSizeIncrease = padding;
 	}
 
-	const Dimension& DropDown::getListSizePadding() const
+	const Vector2i& DropDown::getListSizePadding() const
 	{
 		return listSizeIncrease;
 	}
@@ -696,21 +696,21 @@ namespace agui {
             getFont()->getLineHeight()
 				    + getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM));
   }
-  int DropDown::getIndexOf(const std::string &item) const
+  int DropDown::getIndexOf(const String &item) const
   {
     return this->pChildListBox->getIndexOf(item);
   }
-  std::string DropDown::getItemAt(int index) const
+  String DropDown::getItemAt(int index) const
   {
     return this->pChildListBox->getItemAt(index);
   }
 
-  const std::string& DropDown::getNoSelectionText() const
+  const String& DropDown::getNoSelectionText() const
   {
 	  return noSelectionText;
   }
 
-  void DropDown::setNoSelectionText( const std::string& text )
+  void DropDown::setNoSelectionText( const String& text )
   {
 	  noSelectionText = text;
 	  if(getSelectedIndex() == -1)

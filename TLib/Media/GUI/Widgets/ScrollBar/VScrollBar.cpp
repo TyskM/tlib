@@ -118,7 +118,7 @@ namespace agui {
 
 	VScrollBar::~VScrollBar(void)
 	{		
-		for(std::vector<VScrollBarListener*>::iterator it = 
+		for(Vector<VScrollBarListener*>::iterator it = 
 			vScrollListeners.begin();
 			it != vScrollListeners.end(); ++it)
 		{
@@ -150,7 +150,7 @@ namespace agui {
 	{
 		if(height >= 0)
 		{
-			for(std::vector<VScrollBarListener*>::iterator it = 
+			for(Vector<VScrollBarListener*>::iterator it = 
 				vScrollListeners.begin();
 				it != vScrollListeners.end(); ++it)
 			{
@@ -158,8 +158,8 @@ namespace agui {
 					(*it)->arrowHeightChanged(this,height);
 			}
 
-			pChildTopArrow->setSize(getInnerSize().getWidth(),height);
-			pChildBottomArrow->setSize(getInnerSize().getWidth(),height);
+			pChildTopArrow->setSize(getInnerSize().x,height);
+			pChildBottomArrow->setSize(getInnerSize().x,height);
 		}
 		
 	}
@@ -167,16 +167,16 @@ namespace agui {
 	void VScrollBar::positionArrows()
 	{
 		pChildTopArrow->setLocation(0,0);
-		pChildBottomArrow->setLocation(0,getInnerSize().getHeight()
-			- pChildBottomArrow->getSize().getHeight());
+		pChildBottomArrow->setLocation(0,getInnerSize().y
+			- pChildBottomArrow->getSize().y);
 	}
 
 	int VScrollBar::getMaxThumbSize() const
 	{ 
 
-		return getInnerSize().getHeight() -
-			pChildTopArrow->getSize().getHeight()
-			- pChildBottomArrow->getSize().getHeight();
+		return getInnerSize().y -
+			pChildTopArrow->getSize().y
+			- pChildBottomArrow->getSize().y;
 	}
 
 
@@ -202,26 +202,26 @@ namespace agui {
 
 	int VScrollBar::getArrowHeight() const
 	{
-		return pChildTopArrow->getSize().getHeight();
+		return pChildTopArrow->getSize().y;
 	}
 
 	void VScrollBar::positionThumb()
 	{
 		float val = getAdjustedMaxThumbSize() * getRelativeValue();
-		val += pChildTopArrow->getSize().getHeight();
+		val += pChildTopArrow->getSize().y;
 
 
 		if(getValue() == getMaxValue() - getLargeAmount())
 		{
-			val = (float)(pChildBottomArrow->getLocation().getY() -
-				pChildThumb->getSize().getHeight());
+			val = (float)(pChildBottomArrow->getLocation().y -
+				pChildThumb->getSize().y);
 		}
 
-		if(val + pChildThumb->getSize().getHeight() >
-			pChildBottomArrow->getLocation().getY())
+		if(val + pChildThumb->getSize().y >
+			pChildBottomArrow->getLocation().y)
 		{
-			val = (float)(pChildBottomArrow->getLocation().getY() - 
-				pChildThumb->getSize().getHeight());
+			val = (float)(pChildBottomArrow->getLocation().y - 
+				pChildThumb->getSize().y);
 		}
 		pChildThumb->setLocation(0,(int)val);
 	}
@@ -254,7 +254,7 @@ namespace agui {
 			pChildThumb->setVisibility(true);
 		}
 
-		pChildThumb->setSize(getInnerSize().getWidth(),height);
+		pChildThumb->setSize(getInnerSize().x,height);
 	}
 
 	void VScrollBar::setLargeAmount( int amount)
@@ -270,7 +270,7 @@ namespace agui {
 		}
 
 		largeAmount = amount;
-		for(std::vector<VScrollBarListener*>::iterator it = 
+		for(Vector<VScrollBarListener*>::iterator it = 
 			vScrollListeners.begin();
 			it != vScrollListeners.end(); ++it)
 		{
@@ -305,7 +305,7 @@ namespace agui {
 		{
 			currentValue = targetVal;
 			positionThumb();
-			for(std::vector<VScrollBarListener*>::iterator it = 
+			for(Vector<VScrollBarListener*>::iterator it = 
 				vScrollListeners.begin();
 				it != vScrollListeners.end(); ++it)
 			{
@@ -326,7 +326,7 @@ namespace agui {
 	{
 		if(val <= getMaxValue())
 		{
-			for(std::vector<VScrollBarListener*>::iterator it = 
+			for(Vector<VScrollBarListener*>::iterator it = 
 				vScrollListeners.begin();
 				it != vScrollListeners.end(); ++it)
 			{
@@ -348,7 +348,7 @@ namespace agui {
 	{
 		if(val >= getMinValue())
 		{
-			for(std::vector<VScrollBarListener*>::iterator it = 
+			for(Vector<VScrollBarListener*>::iterator it = 
 				vScrollListeners.begin();
 				it != vScrollListeners.end(); ++it)
 			{
@@ -375,7 +375,7 @@ namespace agui {
 
 	void VScrollBar::setTopArrowAmount( int amount )
 	{
-		for(std::vector<VScrollBarListener*>::iterator it = 
+		for(Vector<VScrollBarListener*>::iterator it = 
 			vScrollListeners.begin();
 			it != vScrollListeners.end(); ++it)
 		{
@@ -388,7 +388,7 @@ namespace agui {
 
 	void VScrollBar::setBottomArrowAmount( int amount )
 	{
-		for(std::vector<VScrollBarListener*>::iterator it = 
+		for(Vector<VScrollBarListener*>::iterator it = 
 			vScrollListeners.begin();
 			it != vScrollListeners.end(); ++it)
 		{
@@ -409,7 +409,7 @@ namespace agui {
 	int VScrollBar::getValueFromPosition( int position ) const
 	{
 		//subtract the top arrow's height
-		position -= pChildTopArrow->getSize().getHeight();
+		position -= pChildTopArrow->getSize().y;
 
 		//what percent of the thumb size we have traveled
 		float retVal =  ((float)position / (float)getAdjustedMaxThumbSize());
@@ -440,8 +440,8 @@ namespace agui {
 	{
 		if(mouseEvent.getSourceWidget() == pChildThumb)
 		{
-			downThumbPos = pChildThumb->getLocation().getY();
-			downMousePos = mouseEvent.getY() + pChildThumb->getLocation().getY();
+			downThumbPos = pChildThumb->getLocation().y;
+			downMousePos = mouseEvent.getY() + pChildThumb->getLocation().y;
 		}
 
 		if (mouseEvent.getSourceWidget() == pChildTopArrow)
@@ -467,7 +467,7 @@ namespace agui {
 		if(mouseEvent.getSourceWidget() == pChildThumb)
 		{
 			int mouseChange = mouseEvent.getY() +
-				pChildThumb->getLocation().getY() - downMousePos;
+				pChildThumb->getLocation().y - downMousePos;
 			int thumbChange = downThumbPos + mouseChange;
 			setValue(getValueFromPosition(thumbChange));
 			mouseEvent.consume();
@@ -512,20 +512,20 @@ namespace agui {
 
 	bool VScrollBar::isThumbAtBottom() const
 	{
-		int tPos = pChildThumb->getLocation().getY()
-			+ pChildThumb->getSize().getHeight();
+		int tPos = pChildThumb->getLocation().y
+			+ pChildThumb->getSize().y;
 
-		tPos -= pChildTopArrow->getSize().getHeight();
+		tPos -= pChildTopArrow->getSize().y;
 
 		return tPos == getMaxThumbSize();
 	}
 
 	bool VScrollBar::isThumbAtTop() const
 	{
-		int tPos = pChildThumb->getLocation().getY()
-			+ pChildThumb->getSize().getHeight();
+		int tPos = pChildThumb->getLocation().y
+			+ pChildThumb->getSize().y;
 
-		tPos -= pChildTopArrow->getSize().getHeight();
+		tPos -= pChildTopArrow->getSize().y;
 
 		return tPos == 0;
 	}
@@ -567,7 +567,7 @@ namespace agui {
 	{
 		if(size >= 0)
 		{
-			for(std::vector<VScrollBarListener*>::iterator it = 
+			for(Vector<VScrollBarListener*>::iterator it = 
 				vScrollListeners.begin();
 				it != vScrollListeners.end(); ++it)
 			{
@@ -579,7 +579,7 @@ namespace agui {
 		
 	}
 
-	void VScrollBar::setSize( const Dimension &size )
+	void VScrollBar::setSize( const Vector2i &size )
 	{
 		Widget::setSize(size);
 
@@ -614,7 +614,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<VScrollBarListener*>::iterator it = 
+		for(Vector<VScrollBarListener*>::iterator it = 
 			vScrollListeners.begin();
 			it != vScrollListeners.end(); ++it)
 		{
@@ -640,19 +640,19 @@ namespace agui {
 
 		int maxValSupport = getMaxValue() - getMinValue();
 		//get the ratio
-		float change = (float)(getSize().getHeight() -
-			pChildTopArrow->getSize().getHeight()
-			- pChildBottomArrow->getSize().getHeight()) / (float)maxValSupport;
+		float change = (float)(getSize().y -
+			pChildTopArrow->getSize().y
+			- pChildBottomArrow->getSize().y) / (float)maxValSupport;
 
 		//make height proportional to ratio
 		height = (int)((float)height * change);
 
-		int difference = height - pChildThumb->getSize().getHeight();
+		int difference = height - pChildThumb->getSize().y;
 		
 
-		return getSize().getHeight() -
-			pChildTopArrow->getSize().getHeight()
-			- pChildBottomArrow->getSize().getHeight() + difference;
+		return getSize().y -
+			pChildTopArrow->getSize().y
+			- pChildBottomArrow->getSize().y + difference;
 
 	}
 
@@ -683,7 +683,7 @@ namespace agui {
 		//when you click, it scrolls
 		int mousePos = mouseEvent.getY();
 		int newVal = getValue();
-		if(mousePos > pChildThumb->getLocation().getY())
+		if(mousePos > pChildThumb->getLocation().y)
 		{
 			newVal += getLargeAmount();
 		}
@@ -697,8 +697,8 @@ namespace agui {
 
 	void VScrollBar::resizeArrows()
 	{
-		pChildTopArrow->setSize(getInnerSize().getWidth(),getArrowHeight());
-		pChildBottomArrow->setSize(getInnerSize().getWidth(),getArrowHeight());
+		pChildTopArrow->setSize(getInnerSize().x,getArrowHeight());
+		pChildBottomArrow->setSize(getInnerSize().x,getArrowHeight());
 
 	}
 

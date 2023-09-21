@@ -50,7 +50,7 @@ namespace agui
 	{
 	}
 
-	void WinClipboard::copy( const std::string& input )
+	void WinClipboard::copy( const String& input )
 	{
 		LPWSTR  lptstrCopy; 
 		HGLOBAL hglbCopy; 
@@ -91,12 +91,12 @@ namespace agui
 		CloseClipboard(); 
 	}
 
-	std::string WinClipboard::paste()
+	String WinClipboard::paste()
 	{ 
 		HGLOBAL   hglb; 
 		LPWSTR    lptstr; 
 
-		std::string result;
+		String result;
 		std::wstring input;
 
 		// get the clipboard text. 
@@ -126,7 +126,7 @@ namespace agui
 		return result;
 	}
 
-	std::string WinClipboard::_winUTF16ToUTF8( const std::wstring& input )
+	String WinClipboard::_winUTF16ToUTF8( const std::wstring& input )
 	{
 		// get length
 		int length = WideCharToMultiByte( CP_UTF8, NULL,
@@ -134,10 +134,10 @@ namespace agui
 			NULL, 0,
 			NULL, NULL );
 		if( !(length > 0) )
-			return std::string();
+			return String();
 		else
 		{
-			std::string result;
+			String result;
 			result.resize( length );
 
 			if( WideCharToMultiByte( CP_UTF8, NULL,
@@ -146,12 +146,12 @@ namespace agui
 				NULL, NULL ) > 0 )
 				return result;
 			else
-				return std::string();
+				return String();
 		}
 
 	}
 
-	std::wstring WinClipboard::_winUTF8ToUTF16( const std::string& input )
+	std::wstring WinClipboard::_winUTF8ToUTF16( const String& input )
 	{
 		// get length
 		int length = MultiByteToWideChar( CP_UTF8, NULL,

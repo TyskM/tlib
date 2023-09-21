@@ -94,7 +94,7 @@ namespace agui {
 
 	void Tab::paintComponent( const PaintEvent &paintEvent )
 	{
-		paintEvent.graphics()->drawText(Point(0,0),
+		paintEvent.graphics()->drawText(Vector2i(0,0),
 			getText().c_str(),getFontColor(),getFont());
 
 	}
@@ -133,7 +133,7 @@ namespace agui {
 		tabPane = pane;
 	}
 
-	void Tab::setText( const std::string &text )
+	void Tab::setText( const String &text )
 	{
 		Widget::setText(text);
 		resizeToContents();
@@ -195,24 +195,24 @@ namespace agui {
 
 
 		//top
-		paintEvent.graphics()->drawLine(Point(0,1),
-			Point(getSize().getWidth(),1),black);
+		paintEvent.graphics()->drawLine(Vector2i(0,1),
+			Vector2i(getSize().x,1),black);
 
 		//left
-		paintEvent.graphics()->drawLine(Point(1,0),
-			Point(1,getSize().getHeight() + 1),black);
+		paintEvent.graphics()->drawLine(Vector2i(1,0),
+			Vector2i(1,getSize().y + 1),black);
 
 		//right
-		paintEvent.graphics()->drawLine(Point(getSize().getWidth() ,0),
-			Point(getSize().getWidth() ,getSize().getHeight() + 1),black);
+		paintEvent.graphics()->drawLine(Vector2i(getSize().x ,0),
+			Vector2i(getSize().x ,getSize().y + 1),black);
 
 
 
 		if(!isSelectedTab())
 		{
 			//bottom
-			paintEvent.graphics()->drawLine(Point(0,getSize().getHeight()),
-				Point(getSize().getWidth(),getSize().getHeight()),black);
+			paintEvent.graphics()->drawLine(Vector2i(0,getSize().y),
+				Vector2i(getSize().x,getSize().y),black);
 		}
 	}
 }

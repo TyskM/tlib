@@ -68,7 +68,7 @@ namespace agui
 			int numRows = 1;
 			int numOnRow = 0;
 
-			std::vector<Widget*> curRow;
+			Vector<Widget*> curRow;
 			Widget* firstWidget = NULL;
 
 			int lowestPoint = 0;
@@ -101,8 +101,8 @@ namespace agui
 
 					if(center && !curRow.empty())
 					{
-						int x1 = curRow[0]->getLocation().getX();
-						int x2 = curRow.back()->getLocation().getX() +
+						int x1 = curRow[0]->getLocation().x;
+						int x2 = curRow.back()->getLocation().x +
 							curRow.back()->getWidth();
 
 						int w = x2 - x1;
@@ -111,8 +111,8 @@ namespace agui
 						for(size_t i = 0; i < curRow.size(); ++i)
 						{
 							curRow[i]->setLocation(
-								curRow[i]->getLocation().getX() + centerOffset,
-								curRow[i]->getLocation().getY());
+								curRow[i]->getLocation().x + centerOffset,
+								curRow[i]->getLocation().y);
 						}
 					}
 
@@ -140,7 +140,7 @@ namespace agui
 				curRow.push_back((*it));
 
 				//find the content height
-				int l = (*it)->getLocation().getY() + (*it)->getHeight();
+				int l = (*it)->getLocation().y + (*it)->getHeight();
 				if(l > lowestPoint)
 				{
 					lowestPoint = l;
@@ -152,22 +152,22 @@ namespace agui
 			{
 				if(alignLastRow && numRows > 1 && firstWidget)
 				{
-					int x1 = curRow[0]->getLocation().getX();
-					int x2 = firstWidget->getLocation().getX();
+					int x1 = curRow[0]->getLocation().x;
+					int x2 = firstWidget->getLocation().x;
 					int diff = x2 - x1;
 
 					for(size_t i = 0; i < curRow.size(); ++i)
 					{
 						curRow[i]->setLocation(
-							curRow[i]->getLocation().getX() + diff,
-							curRow[i]->getLocation().getY());
+							curRow[i]->getLocation().x + diff,
+							curRow[i]->getLocation().y);
 					}
 				}
 
 				else
 				{
-					int x1 = curRow[0]->getLocation().getX();
-					int x2 = curRow.back()->getLocation().getX() +
+					int x1 = curRow[0]->getLocation().x;
+					int x2 = curRow.back()->getLocation().x +
 						curRow.back()->getWidth();
 
 					int w = x2 - x1;
@@ -176,8 +176,8 @@ namespace agui
 					for(size_t i = 0; i < curRow.size(); ++i)
 					{
 						curRow[i]->setLocation(
-							curRow[i]->getLocation().getX() + centerOffset,
-							curRow[i]->getLocation().getY());
+							curRow[i]->getLocation().x + centerOffset,
+							curRow[i]->getLocation().y);
 					}
 				}
 			}
@@ -294,30 +294,30 @@ namespace agui
     WidgetArray::const_iterator it = getChildBegin();
     if (it != getChildEnd())
     {
-      minX = (*it)->getLocation().getX();
-      minY = (*it)->getLocation().getY();
+      minX = (*it)->getLocation().x;
+      minY = (*it)->getLocation().y;
     }
 
 		for(WidgetArray::const_iterator it = getChildBegin();
 			it != getChildEnd(); ++it)
 		{
-			int tempX = (*it)->getLocation().getX() + (*it)->getWidth();
+			int tempX = (*it)->getLocation().x + (*it)->getWidth();
 			if(tempX > maxX)
 			{
 				maxX = tempX;
 			}
 
-      tempX = (*it)->getLocation().getX();
+      tempX = (*it)->getLocation().x;
       if (tempX < minX)
         minX = tempX;
 
-			int tempY = (*it)->getLocation().getY() + (*it)->getHeight();
+			int tempY = (*it)->getLocation().y + (*it)->getHeight();
 			if(tempY > maxY)
 			{
 				maxY = tempY;
 			}
       
-      tempY = (*it)->getLocation().getY();
+      tempY = (*it)->getLocation().y;
       if (tempY < minY)
         minY = tempY;
 		}
@@ -325,8 +325,8 @@ namespace agui
     for(WidgetArray::const_iterator it = getChildBegin();
 		  	it != getChildEnd(); ++it)
     {
-      (*it)->setLocation((*it)->getLocation().getX() - minX,
-                         (*it)->getLocation().getY() - minY);
+      (*it)->setLocation((*it)->getLocation().x - minX,
+                         (*it)->getLocation().y - minY);
     }
 
 		setSize(getMargin(SIDE_LEFT) + getMargin(SIDE_RIGHT) + maxX - minX,

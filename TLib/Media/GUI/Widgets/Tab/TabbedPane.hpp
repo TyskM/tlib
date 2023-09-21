@@ -75,8 +75,8 @@ namespace agui {
 		bool isMaintainingTabContainer;
 		int tabPadding;
 		bool resizeTabContent;
-		std::vector<TabbedPaneListener*> tabListeners;
-		std::vector<std::pair<Tab*,Widget*> > tabs;
+		Vector<TabbedPaneListener*> tabListeners;
+		Vector<std::pair<Tab*,Widget*> > tabs;
 		std::pair<Tab*,Widget*> selectedTab;
 	protected:
 	/**
@@ -134,7 +134,7 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual void adjustSize();
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
 	/**
 	 * Adds a Tab and its associated content Widget.

@@ -56,9 +56,9 @@ namespace agui {
      */
 	class AGUI_CORE_DECLSPEC ButtonGroup : public ButtonListener
 	{
-		std::string groupId;
-		std::vector<Button*> buttons;
-		std::vector<ActionListener*> actionListeners;
+		String groupId;
+		Vector<Button*> buttons;
+		Vector<ActionListener*> actionListeners;
 		Button* selectedRButton;
 
 		void setSelected(Button* button);
@@ -89,12 +89,12 @@ namespace agui {
      * Constructs with a group id string.
      * @since 0.1.0
      */
-		ButtonGroup(const std::string &id);
+		ButtonGroup(const String &id);
 	/**
      * @return The group id string.
      * @since 0.1.0
      */
-		const std::string& getGroupId() const;
+		const String& getGroupId() const;
 	/**
      * Adds the parameter Button to the group.
      * @since 0.1.0

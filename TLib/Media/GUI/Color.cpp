@@ -42,112 +42,120 @@
 
 namespace agui
 {
-	Color::Color( float r, float g, float b, float a )
-	{
-		if(premultiplyAlpha)
-		{
-			this->r = r * a;
-			this->g = g * a;
-			this->b = b * a;
-			this->a = a;
-		}
-		else
-		{
-			this->r = r;
-			this->g = g;
-			this->b = b;
-			this->a = a;
-		}
-		verifyColorBounds();
-	}
+    Color::Color( float r, float g, float b, float a )
+    {
+        if(premultiplyAlpha)
+        {
+            this->r = r * a;
+            this->g = g * a;
+            this->b = b * a;
+            this->a = a;
+        }
+        else
+        {
+            this->r = r;
+            this->g = g;
+            this->b = b;
+            this->a = a;
+        }
+        verifyColorBounds();
+    }
 
-	Color::Color()
-	{
-		r = 0;
-		g = 0;
-		b = 0;
-		a = 0;
-	}
+    Color::Color()
+    {
+        r = 0;
+        g = 0;
+        b = 0;
+        a = 0;
+    }
 
-	Color::Color( int r, int g, int b, int a )
-	{
-		double num = 1.0f / 255.0f;
-		*this =	Color((float)(r * num),
-			(float)(g * num), (float)(b * num), (float)(a * num));
+    Color::Color( int r, int g, int b, int a )
+    {
+        double num = 1.0f / 255.0f;
+        *this =	Color((float)(r * num),
+            (float)(g * num), (float)(b * num), (float)(a * num));
 
-	}
+    }
 
-	Color::Color( float r, float g, float b )
-	{
-		*this = Color(r,g,b,1.0f);
-	}
+    Color::Color( float r, float g, float b )
+    {
+        *this = Color(r,g,b,1.0f);
+    }
 
-	Color::Color( int r, int g, int b )
-	{
-		*this = Color(r,g,b,255);
-	}
+    Color::Color( int r, int g, int b )
+    {
+        *this = Color(r,g,b,255);
+    }
 
-	void Color::verifyColorBounds()
-	{
-		if(r > 1.0f) r = 1.0f;
-		if(r < 0.0f) r = 0.0f;
+    Color::Color(const ColorRGBAf& color)
+    {
+        r = color.r;
+        g = color.g;
+        b = color.b;
+        a = color.a;
+    }
 
-		if(g > 1.0f) g = 1.0f;
-		if(g < 0.0f) g = 0.0f;
+    void Color::verifyColorBounds()
+    {
+        if(r > 1.0f) r = 1.0f;
+        if(r < 0.0f) r = 0.0f;
 
-		if(b > 1.0f) b = 1.0f;
-		if(b < 0.0f) b = 0.0f;
+        if(g > 1.0f) g = 1.0f;
+        if(g < 0.0f) g = 0.0f;
 
-		if(a > 1.0f) a = 1.0f;
-		if(a < 0.0f) a = 0.0f;
-	}
+        if(b > 1.0f) b = 1.0f;
+        if(b < 0.0f) b = 0.0f;
 
-	float Color::getR() const
-	{
-		return r;
-	}
+        if(a > 1.0f) a = 1.0f;
+        if(a < 0.0f) a = 0.0f;
+    }
 
-	float Color::getG() const
-	{
-		return g;
-	}
+    float Color::getR() const
+    {
+        return r;
+    }
 
-	float Color::getB() const
-	{
-		return b;
-	}
+    float Color::getG() const
+    {
+        return g;
+    }
 
-	float Color::getA() const
-	{
-		return a;
-	}
+    float Color::getB() const
+    {
+        return b;
+    }
 
-	bool Color::isAlphaPremultiplied()
-	{
-		return premultiplyAlpha;
-	}
+    float Color::getA() const
+    {
+        return a;
+    }
 
-	void Color::setPremultiplyAlpha( bool premultiply )
-	{
-		premultiplyAlpha = premultiply;
-	}
+    bool Color::isAlphaPremultiplied()
+    {
+        return premultiplyAlpha;
+    }
 
-	bool Color::operator==( const Color &refCol )
-	{
-		return refCol.getR() == r &&
-			refCol.getG() == g &&
-			refCol.getB() == b &&
-			refCol.getA() == a;
-	}
+    void Color::setPremultiplyAlpha( bool premultiply )
+    {
+        premultiplyAlpha = premultiply;
+    }
 
-	bool Color::operator!=( const Color &refCol )
-	{
-		return refCol.getR() != r ||
-			refCol.getG() != g ||
-			refCol.getB() != b ||
-			refCol.getA() != a;
-	}
+    bool Color::operator==( const Color &refCol )
+    {
+        return refCol.getR() == r &&
+            refCol.getG() == g &&
+            refCol.getB() == b &&
+            refCol.getA() == a;
+    }
 
-	bool Color::premultiplyAlpha = false;
+    bool Color::operator!=( const Color &refCol )
+    {
+        return refCol.getR() != r ||
+            refCol.getG() != g ||
+            refCol.getB() != b ||
+            refCol.getA() != a;
+    }
+
+    bool Color::premultiplyAlpha = false;
 
 }

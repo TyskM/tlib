@@ -38,7 +38,7 @@ namespace agui
             if (!paintEvent.isEnabled() && disabledImage)
             {
                 paintEvent.graphics()->drawNinePatchImage(
-                    disabledImage, agui::Point(0, 0), getSize(), 1.0f);
+                    disabledImage, Vector2i(0, 0), getSize(), 1.0f);
                 return;
             }
 
@@ -47,19 +47,19 @@ namespace agui
             case DEFAULT:
                 if (!defaultImage) { return; }
                 paintEvent.graphics()->drawNinePatchImage(
-                    defaultImage, agui::Point(0, 0), getSize(), 1.0f);
+                    defaultImage, Vector2i(0, 0), getSize(), 1.0f);
                 return; break;
 
             case HOVERED:
                 if (!hoverImage) { return; }
                 paintEvent.graphics()->drawNinePatchImage(
-                    hoverImage, agui::Point(0, 0), getSize(), 1.0f);
+                    hoverImage, Vector2i(0, 0), getSize(), 1.0f);
                 return; break;
 
             case CLICKED:
                 if (!clickImage) { return; }
                 paintEvent.graphics()->drawNinePatchImage(
-                    clickImage, agui::Point(0, 0), getSize(), 1.0f);
+                    clickImage, Vector2i(0, 0), getSize(), 1.0f);
                 return; break;
 
             default: break;
@@ -193,7 +193,7 @@ struct UI
         flow->add(slider.get());
         slider->setSize(100, 36);
         slider->setMaxValue(255);
-        slider->setMarkerSize(agui::Dimension(10, 30));
+        slider->setMarkerSize(Vector2i(10, 30));
         slider->addActionListener(&simpleAL);
     }
 };
@@ -206,7 +206,7 @@ int main()
     Timer      deltaTimer;
 
     window.create();
-    window.setTitle("Minimal Example");
+    window.setTitle("GUI");
     Renderer::create();
     Renderer2D::create();
 

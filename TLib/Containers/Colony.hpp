@@ -1,5 +1,6 @@
 
 // https://plflib.org/colony.htm
+#pragma once
 #include <TLib/EASTL.hpp>
 #include <TLib/thirdparty/plf/plf_colony.h>
 

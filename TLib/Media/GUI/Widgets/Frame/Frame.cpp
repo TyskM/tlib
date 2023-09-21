@@ -43,7 +43,7 @@
 namespace agui {
 	Frame::~Frame(void)
 	{
-		for(std::vector<FrameListener*>::iterator it = 
+		for(Vector<FrameListener*>::iterator it = 
 			frameListeners.begin();
 			it != frameListeners.end(); ++it)
 		{
@@ -88,7 +88,7 @@ namespace agui {
 	{
 		pChildContainer->add(widget);
 		if(pChildContainer->containsChildWidget(widget))
-		for(std::vector<FrameListener*>::iterator it = 
+		for(Vector<FrameListener*>::iterator it = 
 			frameListeners.begin();
 			it != frameListeners.end(); ++it)
 		{
@@ -103,7 +103,7 @@ namespace agui {
 		pChildContainer->remove(widget);
 
 		if(containerHasChild)
-			for(std::vector<FrameListener*>::iterator it = 
+			for(Vector<FrameListener*>::iterator it = 
 				frameListeners.begin();
 				it != frameListeners.end(); ++it)
 			{
@@ -137,20 +137,20 @@ namespace agui {
 	void Frame::paintComponent( const PaintEvent &paintEvent )
 	{
 	
-		paintEvent.graphics()->drawFilledRectangle(Rectangle(
+		paintEvent.graphics()->drawFilledRectangle(Recti(
 			getLeftMargin() - 1,getTopMargin() - 1,
-			getInnerSize().getWidth() - getLeftMargin() - getRightMargin() + 2,
-      getInnerSize().getHeight() - getTopMargin() - getBottomMargin() + 2), this->frontColor);
+			getInnerSize().x - getLeftMargin() - getRightMargin() + 2,
+      getInnerSize().y - getTopMargin() - getBottomMargin() + 2), this->frontColor);
 
-		paintEvent.graphics()->drawRectangle(Rectangle(
+		paintEvent.graphics()->drawRectangle(Recti(
 			getLeftMargin() - 1,getTopMargin() - 1,
-			getInnerSize().getWidth() - getLeftMargin() - getRightMargin() + 2,
-			getInnerSize().getHeight() - getTopMargin() - getBottomMargin() + 2),Color(70,60,60));
+			getInnerSize().x - getLeftMargin() - getRightMargin() + 2,
+			getInnerSize().y - getTopMargin() - getBottomMargin() + 2),Color(70,60,60));
 
-		paintEvent.graphics()->pushClippingRect(Rectangle(getLeftMargin(),0,
-			getSize().getWidth() - getLeftMargin() - getRightMargin(),getTopMargin()));
+		paintEvent.graphics()->pushClippingRect(Recti(getLeftMargin(),0,
+			getSize().x - getLeftMargin() - getRightMargin(),getTopMargin()));
 
-		paintEvent.graphics()->drawText(Point(getLeftMargin() + 1,
+		paintEvent.graphics()->drawText(Vector2i(getLeftMargin() + 1,
 			(getTopMargin() - getFont()->getLineHeight()) / 2),getText().c_str(),
 			getFontColor(),getFont());
 
@@ -161,11 +161,11 @@ namespace agui {
 	{
 		pChildContainer->setLocation(getLeftMargin(),getTopMargin());
 		pChildContainer->setSize(
-			getInnerSize().getWidth() - getRightMargin() - getLeftMargin(),
-			getInnerSize().getHeight() - getBottomMargin() - getTopMargin());
+			getInnerSize().x - getRightMargin() - getLeftMargin(),
+			getInnerSize().y - getBottomMargin() - getTopMargin());
 	}
 
-	void Frame::setSize( const Dimension &size )
+	void Frame::setSize( const Vector2i &size )
 	{
 		Widget::setSize(size);
 		resizeContainer();
@@ -183,7 +183,7 @@ namespace agui {
 			topMargin = margin;
 			resizeContainer();
 
-			for(std::vector<FrameListener*>::iterator it = 
+			for(Vector<FrameListener*>::iterator it = 
 				frameListeners.begin();
 				it != frameListeners.end(); ++it)
 			{
@@ -199,7 +199,7 @@ namespace agui {
 		{
 			leftMargin = margin;
 			resizeContainer();
-			for(std::vector<FrameListener*>::iterator it = 
+			for(Vector<FrameListener*>::iterator it = 
 				frameListeners.begin();
 				it != frameListeners.end(); ++it)
 			{
@@ -215,7 +215,7 @@ namespace agui {
 		{
 			bottomMargin = margin;
 			resizeContainer();
-			for(std::vector<FrameListener*>::iterator it = 
+			for(Vector<FrameListener*>::iterator it = 
 				frameListeners.begin();
 				it != frameListeners.end(); ++it)
 			{
@@ -231,7 +231,7 @@ namespace agui {
 		{
 			rightMargin = margin;
 			resizeContainer();
-			for(std::vector<FrameListener*>::iterator it = 
+			for(Vector<FrameListener*>::iterator it = 
 				frameListeners.begin();
 				it != frameListeners.end(); ++it)
 			{
@@ -245,7 +245,7 @@ namespace agui {
 	{
 		if(movable != move)
 		{
-			for(std::vector<FrameListener*>::iterator it = 
+			for(Vector<FrameListener*>::iterator it = 
 				frameListeners.begin();
 				it != frameListeners.end(); ++it)
 			{
@@ -266,18 +266,18 @@ namespace agui {
 	void Frame::mouseDown( MouseEvent &mouseEvent )
 	{
 		bringToFront();
-		Point relativeMouse = Point(
+		Vector2i relativeMouse = Vector2i(
 			mouseEvent.getX(),
 			mouseEvent.getY());
 
 		mouseEvent.consume();
 
-		Rectangle topRect = Rectangle(getMargin(SIDE_LEFT),getMargin(SIDE_TOP),
-			getInnerSize().getWidth(), getTopMargin());
+		Recti topRect = Recti(getMargin(SIDE_LEFT),getMargin(SIDE_TOP),
+			getInnerSize().x, getTopMargin());
 
 		if(isResizable())
 		{
-			if(getBRResizeRect().pointInside(relativeMouse))
+			if(getBRResizeRect().contains(relativeMouse))
 			{
 				moving = false;
 				resizing = true;
@@ -289,7 +289,7 @@ namespace agui {
 		}
 		if(isMovable())
 		{
-			if(topRect.pointInside(relativeMouse))
+			if(topRect.contains(relativeMouse))
 			{
 				resizing = false;
 				moving = true;
@@ -310,17 +310,17 @@ namespace agui {
 	{
 		if(moving)
 		{
-			int deltaX = mouseEvent.getX() - dragX + getLocation().getX();
-			int deltaY = mouseEvent.getY() - dragY + getLocation().getY();
+			int deltaX = mouseEvent.getX() - dragX + getLocation().x;
+			int deltaY = mouseEvent.getY() - dragY + getLocation().y;
 
 			setLocation(deltaX,deltaY);
 			mouseEvent.consume();
 		}
 		else if(resizing)
 		{
-			int deltaX = mouseEvent.getX() - dragX + initialSize.getWidth();
-			int deltaY = mouseEvent.getY() - dragY + initialSize.getHeight();
-			setSize(Dimension(deltaX,deltaY));
+			int deltaX = mouseEvent.getX() - dragX + initialSize.x;
+			int deltaY = mouseEvent.getY() - dragY + initialSize.y;
+			setSize(Vector2i(deltaX,deltaY));
 			mouseEvent.consume();
 		}
 	}
@@ -342,7 +342,7 @@ namespace agui {
 		int innerBorderBRX = getWidth() - getMargin(SIDE_RIGHT) + borderSize;
 		int innerBorderBRY = getHeight() - getMargin(SIDE_BOTTOM) + borderSize;
 
-		Rectangle fillRect = Rectangle(innerBorderTLX,
+		Recti fillRect = Recti(innerBorderTLX,
 			innerBorderTLY,
 			innerBorderBRX,
 			innerBorderBRY);
@@ -364,7 +364,7 @@ namespace agui {
 		paintEvent.graphics()->drawRectangle(fillRect,all);
 	}
 
-	const Dimension& Frame::getContentSize() const
+	const Vector2i& Frame::getContentSize() const
 	{
 		return pChildContainer->getInnerSize();
 	}
@@ -399,7 +399,7 @@ namespace agui {
 		{
 			resizable = resize;
 
-			for(std::vector<FrameListener*>::iterator it = 
+			for(Vector<FrameListener*>::iterator it = 
 				frameListeners.begin();
 				it != frameListeners.end(); ++it)
 			{
@@ -427,7 +427,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<FrameListener*>::iterator it = 
+		for(Vector<FrameListener*>::iterator it = 
 			frameListeners.begin();
 			it != frameListeners.end(); ++it)
 		{
@@ -446,9 +446,9 @@ namespace agui {
 			frameListeners.end());
 	}
 
-	Rectangle Frame::getBRResizeRect() const
+	Recti Frame::getBRResizeRect() const
 	{
-		return Rectangle(
+		return Recti(
 			getMargin(SIDE_LEFT) + getLeftMargin() + getInnerWidth() - getRightMargin() - getLeftMargin() - (getRightMargin() ),
 			getMargin(SIDE_TOP) + getTopMargin() + getInnerHeight() - getBottomMargin() - getTopMargin() - (getBottomMargin()),
 			(int)(getRightMargin() + (getRightMargin() )),
@@ -474,7 +474,7 @@ namespace agui {
 			rightMargin = r;
 		}
 
-			for(std::vector<FrameListener*>::iterator it = 
+			for(Vector<FrameListener*>::iterator it = 
 				frameListeners.begin();
 				it != frameListeners.end(); ++it)
 			{
@@ -491,11 +491,11 @@ namespace agui {
 
 	}
 
-	void Frame::setClientSize( const Dimension &size )
+	void Frame::setClientSize( const Vector2i &size )
 	{
-		int x = size.getWidth() + getLeftMargin() + 
+		int x = size.x + getLeftMargin() + 
 			getRightMargin() + getMargin(SIDE_LEFT) + getMargin(SIDE_RIGHT);
-		int y = size.getHeight() + getTopMargin() + 
+		int y = size.y + getTopMargin() + 
 			getBottomMargin() + getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM);
 
 		setSize(x,y);
@@ -503,7 +503,7 @@ namespace agui {
 
 	void Frame::setClientSize( int width, int height )
 	{
-		setClientSize(Dimension(width,height));
+		setClientSize(Vector2i(width,height));
 	}
 
   void Frame::setFrontColor(const Color& color)

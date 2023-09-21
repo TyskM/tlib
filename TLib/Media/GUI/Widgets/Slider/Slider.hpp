@@ -71,7 +71,7 @@ namespace agui {
 
 		Widget *pChildMarker;
 		bool isMaintainingMarker;
-		std::vector<SliderListener*> sliderListeners;
+		Vector<SliderListener*> sliderListeners;
 	protected:
 		virtual void mouseDragCB(MouseEvent &mouseEvent);
 		virtual void mouseDownCB(MouseEvent &mouseEvent);
@@ -122,7 +122,7 @@ namespace agui {
 		virtual void mouseWheelUp(MouseEvent &mouseEvent);
 		virtual void mouseWheelUpCB(MouseEvent &mouseEvent);
 		virtual void setSize(int width, int height);
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 	/**
      * @return Given a value on the slider, returns the position of the marker.
      * @since 0.1.0
@@ -147,12 +147,12 @@ namespace agui {
      * @return The size of the marker.
      * @since 0.1.0
      */
-		virtual const Dimension& getMarkerSize() const;
+		virtual const Vector2i& getMarkerSize() const;
 	/**
      * Sets the size of the marker.
      * @since 0.1.0
      */
-		virtual void setMarkerSize(const Dimension &size);
+		virtual void setMarkerSize(const Vector2i &size);
 	/**
      * Sets the orientation of the slider.
      * @since 0.1.0

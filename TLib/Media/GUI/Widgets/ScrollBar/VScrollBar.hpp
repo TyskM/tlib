@@ -66,7 +66,7 @@ namespace agui {
 		public Widget, protected MouseListener
 	{
 	private:
-		std::vector<VScrollBarListener*> vScrollListeners;
+		Vector<VScrollBarListener*> vScrollListeners;
 		int largeAmount;
 		int topArrowAmount;
 		int bottomArrowAmount;
@@ -148,7 +148,7 @@ namespace agui {
 		virtual void handleAutoscroll(double timeElapsed);
 
 	public:
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
 
 		virtual void mouseDown(MouseEvent &mouseEvent);

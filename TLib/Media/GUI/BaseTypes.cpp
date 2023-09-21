@@ -42,7 +42,7 @@
 
 namespace agui {
 	
-	bool NumericStringCompare::compare( const std::string& a, const std::string& b )
+	bool NumericStringCompare::compare( const String& a, const String& b )
 	{
 		size_t i = 0;
 		//assume no number index

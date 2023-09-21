@@ -93,7 +93,7 @@ namespace agui
 	 * @param x The relative x-axis line.
      * @since 0.1.0
      */
-		int getStringIndexFromPosition(const std::string &str, int x) const;
+		int getStringIndexFromPosition(const String &str, int x) const;
 	/**
 	 * @return The height specified by the user. This is usually in pixels. It may not be the line height.
      * @since 0.1.0
@@ -103,7 +103,7 @@ namespace agui
 	 * @return The width of the parameter UTF-8 string.
      * @since 0.1.0
      */
-		virtual int getTextWidth(const std::string &text) const = 0;
+		virtual int getTextWidth(const String &text) const = 0;
 	/**
 	 * Sets the font loader for the back end. This will influence the load method.
      * @since 0.1.0
@@ -115,14 +115,14 @@ namespace agui
 	 * @param height The height of the font in pixels.
      * @since 0.1.0
      */
-		static Font* load(const std::string &fileName, int height, FontFlags fontFlags = FONT_DEFAULT_FLAGS, float borderWidth = 0, agui::Color borderColor = agui::Color());
+		static Font* load(const String &fileName, int height, FontFlags fontFlags = FONT_DEFAULT_FLAGS, float borderWidth = 0, agui::Color borderColor = agui::Color());
     static Font* loadEmpty();
-    virtual void reload(const std::string &fileName, int height, FontFlags fontFlags = FONT_DEFAULT_FLAGS, float borderWidth = 0, agui::Color borderColor = agui::Color()) = 0;
+    virtual void reload(const String &fileName, int height, FontFlags fontFlags = FONT_DEFAULT_FLAGS, float borderWidth = 0, agui::Color borderColor = agui::Color()) = 0;
 	/**
 	 * @return The path of the font.
      * @since 0.1.0
      */
-		virtual const std::string& getPath() const = 0;
+		virtual const String& getPath() const = 0;
 	/**
 	 * Default constructor.
      * @since 0.1.0

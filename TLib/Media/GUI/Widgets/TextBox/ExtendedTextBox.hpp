@@ -65,19 +65,19 @@ namespace agui {
 	private:
 		bool isEditingText;
 		Color currentColor;
-		std::string curStr;
-		Point colorIndexStart;
+		String curStr;
+		Vector2i colorIndexStart;
 		bool currentColorChanged;
 		int lastVisibleIndex;
-		std::vector<std::pair<Color,Image*> > textColors;
-		std::map<std::string,Image*> icons;
-		std::map<Image*,std::string> iconClipboardText;
+		Vector<std::pair<Color,Image*> > textColors;
+		std::map<String,Image*> icons;
+		std::map<Image*,String> iconClipboardText;
 		Color selectionFontColor;
 		bool selFontColor;
-		std::string emoticonChar;
+		String emoticonChar;
 	protected:
 	/**
-	 * Clears the text color std::vector.
+	 * Clears the text color Vector.
      * @since 0.1.0
      */
 		virtual void clearColors();
@@ -95,7 +95,7 @@ namespace agui {
 	 * @return The index of the color for the first character that is visible.
      * @since 0.1.0
      */
-		virtual const Point& getColorIndexStart() const;
+		virtual const Vector2i& getColorIndexStart() const;
 		virtual void paintComponent(const PaintEvent &paintEvent);
 	/**
 	 * Called when the vertical scrollbar's value changes.
@@ -149,7 +149,7 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual const Color& getSelectionFontColor() const;
-		virtual void appendText(const std::string &text,
+		virtual void appendText(const String &text,
 			bool atCurrentPosition = true, bool repositionCaret = true);
 		virtual void setFont(const Font *font);
 	/**
@@ -172,20 +172,20 @@ namespace agui {
 	 * Registers an emoticon image. This image will be displayed when the trigger character is typed or appended.
      * @since 0.2.0
      */
-		virtual void registerEmoticon(const std::string& triggerChar, Image* image, const std::string& clipboardText);
+		virtual void registerEmoticon(const String& triggerChar, Image* image, const String& clipboardText);
 	/**
 	 * @return The Image of the emoticon associated with this string or NULL if not found.
      * @since 0.2.0
      */
-		virtual Image* getEmoticon(const std::string& triggerChar);
+		virtual Image* getEmoticon(const String& triggerChar);
 
 			/**
 	 * @return The clipboard text of the emoticon associated with this string or "" if not found.
 	 * This text will be copied when copy() is called.
      * @since 0.2.0
      */
-		virtual std::string getEmoticonClipboardText(Image* emoticon);
-		virtual void setText(const std::string &text);
+		virtual String getEmoticonClipboardText(Image* emoticon);
+		virtual void setText(const String &text);
 
 		virtual void copy();
 	/**

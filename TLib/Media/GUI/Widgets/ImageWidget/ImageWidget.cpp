@@ -91,10 +91,10 @@ namespace agui {
 	void ImageWidget::paintComponent( const PaintEvent &paintEvent )
 	{
     if (this->image != NULL)
-      paintEvent.graphics()->drawImage(this->image, agui::Point(this->getLeftMargin(), this->getTopMargin()));
+      paintEvent.graphics()->drawImage(this->image, Vector2i(this->getLeftMargin(), this->getTopMargin()));
 	}
 
-	void ImageWidget::setSize( const Dimension &size )
+	void ImageWidget::setSize( const Vector2i &size )
 	{
 		Widget::setSize(size);
 	}
@@ -142,11 +142,11 @@ namespace agui {
                   this->image->getHeight() + topMargin + bottomMargin);
 	}
 
-	void ImageWidget::setClientSize( const Dimension &size )
+	void ImageWidget::setClientSize( const Vector2i &size )
 	{
-		int x = size.getWidth() + getLeftMargin() + 
+		int x = size.x + getLeftMargin() + 
 			getRightMargin() + getMargin(SIDE_LEFT) + getMargin(SIDE_RIGHT);
-		int y = size.getHeight() + getTopMargin() + 
+		int y = size.y + getTopMargin() + 
 			getBottomMargin() + getMargin(SIDE_TOP) + getMargin(SIDE_BOTTOM);
 
 		setSize(x,y);

@@ -59,7 +59,7 @@ namespace agui {
 
     Button::~Button(void)
     {
-        for(std::vector<ButtonListener*>::iterator it = 
+        for(Vector<ButtonListener*>::iterator it = 
             buttonListeners.begin();
             it != buttonListeners.end(); ++it)
         {
@@ -70,7 +70,7 @@ namespace agui {
 
     void Button::setTextAlignment( AreaAlignmentEnum alignment )
     {
-        for(std::vector<ButtonListener*>::iterator it = 
+        for(Vector<ButtonListener*>::iterator it = 
             buttonListeners.begin();
             it != buttonListeners.end(); ++it)
         {
@@ -87,7 +87,7 @@ namespace agui {
 
     void Button::changeButtonState( ButtonStateEnum state )
     {
-        for(std::vector<ButtonListener*>::iterator it = 
+        for(Vector<ButtonListener*>::iterator it = 
             buttonListeners.begin();
             it != buttonListeners.end(); ++it)
         {
@@ -105,8 +105,8 @@ namespace agui {
     void Button::paintComponent( const PaintEvent &paintEvent )
     {
 
-        resizableText.drawTextArea(paintEvent.graphics(),getFont(),
-            getInnerRectangle(),getFontColor(),wrappedText,getTextAlignment());
+        resizableText.drawTextArea(paintEvent.graphics(), getFont(),
+            getInnerRectangle(), getFontColor(), wrappedText, getTextAlignment());
     }
 
     void Button::modifyButtonState()
@@ -155,7 +155,7 @@ namespace agui {
     void Button::setToggleButton( bool toggleButton )
     {
         isButtonToggleButton = toggleButton;
-        for(std::vector<ButtonListener*>::iterator it = 
+        for(Vector<ButtonListener*>::iterator it = 
             buttonListeners.begin();
             it != buttonListeners.end(); ++it)
         {
@@ -197,7 +197,7 @@ namespace agui {
         {
             return;
         }
-        for(std::vector<ButtonListener*>::iterator it = 
+        for(Vector<ButtonListener*>::iterator it = 
             buttonListeners.begin();
             it != buttonListeners.end(); ++it)
         {
@@ -216,7 +216,7 @@ namespace agui {
         }
         this->toggled = toggled;
 
-        for(std::vector<ButtonListener*>::iterator it = 
+        for(Vector<ButtonListener*>::iterator it = 
             buttonListeners.begin();
             it != buttonListeners.end(); ++it)
         {
@@ -225,13 +225,13 @@ namespace agui {
         }
     }
 
-    void Button::setText( const std::string &text )
+    void Button::setText( const String &text )
     {
         Widget::setText(text);
         resizableText.makeTextLines(getFont(),getText(),wrappedText,getInnerWidth());
     }
 
-    void Button::setSize( const Dimension &size )
+    void Button::setSize( const Vector2i &size )
     {
         Widget::setSize(size);
         resizableText.makeTextLines(getFont(),getText(),wrappedText,getInnerWidth());
@@ -386,31 +386,31 @@ namespace agui {
             color.getB() + 0.2f);
 
         //top
-        paintEvent.graphics()->drawLine(Point(0,1),
-            Point(getSize().getWidth(),1),highlight);
+        paintEvent.graphics()->drawLine(Vector2i(0,1),
+            Vector2i(getSize().x,1),highlight);
         //left
-        paintEvent.graphics()->drawLine(Point(1,1),
-            Point(1,getSize().getHeight()),highlight);
+        paintEvent.graphics()->drawLine(Vector2i(1,1),
+            Vector2i(1,getSize().y),highlight);
 
         //bottom
-        paintEvent.graphics()->drawLine(Point(0,getSize().getHeight() ),
-            Point(getSize().getWidth(),getSize().getHeight() ),shadow);
+        paintEvent.graphics()->drawLine(Vector2i(0,getSize().y ),
+            Vector2i(getSize().x,getSize().y ),shadow);
 
         //right
-        paintEvent.graphics()->drawLine(Point(getSize().getWidth() ,1),
-            Point(getSize().getWidth() ,getSize().getHeight()),shadow);
+        paintEvent.graphics()->drawLine(Vector2i(getSize().x ,1),
+            Vector2i(getSize().x ,getSize().y),shadow);
 
         //bottom
-        paintEvent.graphics()->drawLine(Point(0,getSize().getHeight() - 1 ),
-            Point(getSize().getWidth(),getSize().getHeight() - 1 ),shadow);
+        paintEvent.graphics()->drawLine(Vector2i(0,getSize().y - 1 ),
+            Vector2i(getSize().x,getSize().y - 1 ),shadow);
 
         //right
-        paintEvent.graphics()->drawLine(Point(getSize().getWidth()  - 1,0),
-            Point(getSize().getWidth() - 1 ,getSize().getHeight()),shadow);
+        paintEvent.graphics()->drawLine(Vector2i(getSize().x  - 1,0),
+            Vector2i(getSize().x - 1 ,getSize().y),shadow);
 
     }
 
-    const std::vector<std::string>& Button::getAreaText() const
+    const Vector<String>& Button::getAreaText() const
     {
         return wrappedText;
     }

@@ -40,7 +40,7 @@
 
 #include <TLib/Media/GUI/EventArgs.hpp>
 namespace agui {
-	Point MouseEvent::getPosition() const
+	Vector2i MouseEvent::getPosition() const
 	{
 		return position;
 	}
@@ -57,12 +57,12 @@ namespace agui {
 
 	int MouseEvent::getX() const
 	{
-		return position.getX();
+		return position.x;
 	}
 
 	int MouseEvent::getY() const
 	{
-		return position.getY();
+		return position.y;
 	}
 
 	MouseEvent::MouseEvent()
@@ -74,7 +74,7 @@ namespace agui {
 	}
 
 
-	MouseEvent::MouseEvent( const Point &position, 
+	MouseEvent::MouseEvent( const Vector2i &position, 
 										   int mouseWheelChange,
 										   MouseButtonEnum button,
 										   double timeStamp,
@@ -225,12 +225,12 @@ namespace agui {
 		return utf8Manager.getUnicharLength(unichar);
 	}
 
-	std::string KeyEvent::getUtf8String() const
+	String KeyEvent::getUtf8String() const
 	{
 		char b[5];
 		int sz = int(utf8Manager.encodeUtf8(b,unichar));
 		b[sz] = 0;
-		return std::string(b);
+		return String(b);
 	}
 
 	unsigned int KeyEvent::getUnichar() const

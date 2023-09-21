@@ -38,97 +38,79 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef AGUI_COLOR_HPP
-#define AGUI_COLOR_HPP
+#pragma once
 #include <TLib/Media/GUI/Platform.hpp>
+#include <TLib/DataStructures.hpp>
+
 namespace agui
 {
-	/**
+    /**
      * Class used for colors.
-	 *
-	 * Uses floating point precision.
+     *
+     * Uses floating point precision.
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC Color {
-		float r;
-		float g;
-		float b;
-		float a;
-		static bool premultiplyAlpha;
-	/**
+    class AGUI_CORE_DECLSPEC Color {
+        float r = 0.f;
+        float g = 0.f;
+        float b = 0.f;
+        float a = 0.f;
+        static bool premultiplyAlpha;
+    /**
      * Ensures that colors are in the correct range.
      * @since 0.1.0
      */
-		void verifyColorBounds();
-	public:
-	/**
+        void verifyColorBounds();
+    public:
+
+        Color();
+        Color(const ColorRGBAf& color);
+        Color(int r, int g, int b, int a);
+        Color(int r, int g, int b);
+        Color(float r, float g, float b, float a);
+        Color(float r, float g, float b);
+
+    /**
      * @return A boolean indicating if the RGB components of the color should be multiplied by the A component.
      * @since 0.1.0
      */
-		static bool isAlphaPremultiplied();
-	/**
+        static bool isAlphaPremultiplied();
+    /**
      * Sets if the RGB components of the color should be multiplied by the A component.
      * @since 0.1.0
      */
-		static void setPremultiplyAlpha(bool premultiply);
-		/**
-     * Construct a color using, Red, Green, Blue, Alpha values ranging from 0 to 255.
-     * @since 0.1.0
-     */
-		Color(int r, int g, int b, int a);
-	/**
-     * Construct a color using, Red, Green, Blue values ranging from 0 to 255.
-     * @since 0.1.0
-     */
-		Color(int r, int g, int b);
-	/**
-     * Construct a color using, Red, Green, Blue, Alpha values ranging from 0.0 to 1.0.
-     * @since 0.1.0
-     */
-		Color(float r, float g, float b, float a);
-	/**
-     * Construct a color using, Red, Green, Blue values ranging from 0.0 to 1.0.
-     * @since 0.1.0
-     */
-		Color(float r, float g, float b);
-	/**
-     * Default constructor
-	 *
-	 * Will result in black.
-     * @since 0.1.0
-     */
-		Color();
-	/**
+        static void setPremultiplyAlpha(bool premultiply);
+
+    /**
      * @return The Red component from 0.0 to 1.0.
      * @since 0.1.0
      */
-		float getR() const;
-	/**
+        float getR() const;
+    /**
      * @return The Green component from 0.0 to 1.0.
      * @since 0.1.0
      */
-		float getG() const;
-	/**
+        float getG() const;
+    /**
      * @return The Blue component from 0.0 to 1.0.
      * @since 0.1.0
      */
-		float getB() const;
-	/**
+        float getB() const;
+    /**
      * @return The Alpha component from 0.0 to 1.0.
      * @since 0.1.0
      */
-		float getA() const;
-	/**
+        float getA() const;
+    /**
      * @return True if the two colors have the same RGBA values.
      * @since 0.1.0
      */
-		bool operator==(const Color &refCol);
-	/**
+        bool operator==(const Color &refCol);
+    /**
      * @return True if the two colors do not have the same RGBA values.
      * @since 0.1.0
      */
-		bool operator!=(const Color &refCol);
-	};
+        bool operator!=(const Color &refCol);
+    };
 }
-#endif

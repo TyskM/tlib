@@ -77,7 +77,7 @@ namespace agui {
 
 	Slider::~Slider(void)
 	{
-		for(std::vector<SliderListener*>::iterator it = sliderListeners.begin();
+		for(Vector<SliderListener*>::iterator it = sliderListeners.begin();
 			it != sliderListeners.end(); ++it)
 		{
 			(*it)->death(this);
@@ -124,7 +124,7 @@ namespace agui {
 
 		if(value != val)
 		{
-			for(std::vector<SliderListener*>::iterator it = sliderListeners.begin();
+			for(Vector<SliderListener*>::iterator it = sliderListeners.begin();
 				it != sliderListeners.end(); ++it)
 			{
 				(*it)->valueChanged(this,val);
@@ -155,7 +155,7 @@ namespace agui {
 		if(min != val)
 		{
 			
-			for(std::vector<SliderListener*>::iterator it = sliderListeners.begin();
+			for(Vector<SliderListener*>::iterator it = sliderListeners.begin();
 				it != sliderListeners.end(); ++it)
 			{
 				(*it)->minValueChanged(this,val);
@@ -175,7 +175,7 @@ namespace agui {
 		if(val != max)
 		{
 
-			for(std::vector<SliderListener*>::iterator it = sliderListeners.begin();
+			for(Vector<SliderListener*>::iterator it = sliderListeners.begin();
 				it != sliderListeners.end(); ++it)
 			{
 				(*it)->maxValueChanged(this,val);
@@ -190,12 +190,12 @@ namespace agui {
 
 		if(this->orientation != orientation)
 		{
-			pChildMarker->setSize(pChildMarker->getSize().getHeight(),
-				pChildMarker->getSize().getWidth());
+			pChildMarker->setSize(pChildMarker->getSize().y,
+				pChildMarker->getSize().x);
 
-			setSize(getSize().getHeight(),getSize().getWidth());
+			setSize(getSize().y,getSize().x);
 
-			for(std::vector<SliderListener*>::iterator it = sliderListeners.begin();
+			for(Vector<SliderListener*>::iterator it = sliderListeners.begin();
 				it != sliderListeners.end(); ++it)
 			{
 				(*it)->orientationChanged(this,orientation);
@@ -214,7 +214,7 @@ namespace agui {
 	{
 		
 		float sz = getOrientation() == 
-			HORIZONTAL ? (float)getInnerSize().getWidth() : (float)getInnerSize().getHeight();
+			HORIZONTAL ? (float)getInnerSize().x : (float)getInnerSize().y;
 
 		if(value > getMaxValue())
 		{
@@ -240,8 +240,8 @@ namespace agui {
 		position -= getOrientation() == HORIZONTAL ?
 			pChildMarker->getWidth() / 2 : pChildMarker->getHeight() / 2;
 		float sz = getOrientation() == 
-			HORIZONTAL ? (float)getInnerSize().getWidth() - pChildMarker->getWidth()
-			: (float)getInnerSize().getHeight() - pChildMarker->getHeight();
+			HORIZONTAL ? (float)getInnerSize().x - pChildMarker->getWidth()
+			: (float)getInnerSize().y - pChildMarker->getHeight();
 
 		if(getOrientation() == VERTICAL)
 		{
@@ -276,9 +276,9 @@ namespace agui {
 	{
 
 			float sz = getOrientation() == 
-				HORIZONTAL ? (float)getInnerSize().getWidth() -
-				pChildMarker->getSize().getWidth() :
-				(float)getInnerSize().getHeight()  - pChildMarker->getSize().getHeight();
+				HORIZONTAL ? (float)getInnerSize().x -
+				pChildMarker->getSize().x :
+				(float)getInnerSize().y  - pChildMarker->getSize().y;
 
 			int pos = 0;
 			if(value > getMaxValue())
@@ -307,16 +307,16 @@ namespace agui {
 			{
 
 
-				float center = (getInnerSize().getHeight() * getCenterRatio()) -
-					(pChildMarker->getSize().getHeight() * getCenterRatio());
+				float center = (getInnerSize().y * getCenterRatio()) -
+					(pChildMarker->getSize().y * getCenterRatio());
 			
 				pChildMarker->setLocation(pos,_round(center));
 			}
 
 			else
 			{
-				float center = (getInnerSize().getWidth() * getCenterRatio()) -
-					(pChildMarker->getSize().getWidth()  * getCenterRatio());
+				float center = (getInnerSize().x * getCenterRatio()) -
+					(pChildMarker->getSize().x  * getCenterRatio());
 			
 				pChildMarker->setLocation(_round(center),pos);
 			}
@@ -329,34 +329,34 @@ namespace agui {
 	{
 		if(getOrientation() == HORIZONTAL)
 		{
-			paintEvent.graphics()->drawFilledRectangle(Rectangle(
+			paintEvent.graphics()->drawFilledRectangle(Recti(
 				0,
-				int(getInnerSize().getHeight() * 0.25),
-				getInnerSize().getWidth(),
-				int(getInnerSize().getHeight() * 0.5)),
+				int(getInnerSize().y * 0.25),
+				getInnerSize().x,
+				int(getInnerSize().y * 0.5)),
 				getBackColor());
 
-			paintEvent.graphics()->drawRectangle(Rectangle(
+			paintEvent.graphics()->drawRectangle(Recti(
 				0,
-				int(getInnerSize().getHeight() * 0.25),
-				getInnerSize().getWidth(),
-				int(getInnerSize().getHeight() * 0.5)),
+				int(getInnerSize().y * 0.25),
+				getInnerSize().x,
+				int(getInnerSize().y * 0.5)),
 				Color(0,0,0));
 		}
 		else
 		{
-			paintEvent.graphics()->drawFilledRectangle(Rectangle(
-				int(getInnerSize().getWidth() * 0.25),
+			paintEvent.graphics()->drawFilledRectangle(Recti(
+				int(getInnerSize().x * 0.25),
 				0,
-				int(getInnerSize().getWidth() * 0.5),
-				getInnerSize().getHeight()),
+				int(getInnerSize().x * 0.5),
+				getInnerSize().y),
 				getBackColor());
 
-			paintEvent.graphics()->drawRectangle(Rectangle(
-				int(getInnerSize().getWidth() * 0.25),
+			paintEvent.graphics()->drawRectangle(Recti(
+				int(getInnerSize().x * 0.25),
 				0,
-				int(getInnerSize().getWidth() * 0.5),
-				getInnerSize().getHeight()),
+				int(getInnerSize().x * 0.5),
+				getInnerSize().y),
 				Color(0,0,0));
 		}
 	}
@@ -366,7 +366,7 @@ namespace agui {
 		Widget::setSize(width,height);
 	}
 
-	void Slider::setSize( const Dimension &size )
+	void Slider::setSize( const Vector2i &size )
 	{
 		Widget::setSize(size);
 		setValue(getValue());
@@ -385,8 +385,8 @@ namespace agui {
 		}
 
 		int mousePos = getOrientation() == HORIZONTAL ? 
-		mouseEvent.getPosition().getX() + mouseEvent.getSourceWidget()->getLocation().getX() :
-		mouseEvent.getPosition().getY() + mouseEvent.getSourceWidget()->getLocation().getY();
+		mouseEvent.getPosition().x + mouseEvent.getSourceWidget()->getLocation().x :
+		mouseEvent.getPosition().y + mouseEvent.getSourceWidget()->getLocation().y;
 
 		int val = getValue();
 		setValue(positionToValue(mousePos));
@@ -406,8 +406,8 @@ namespace agui {
 		}
 
 		int mousePos = getOrientation() == HORIZONTAL ? 
-			mouseEvent.getPosition().getX():
-		mouseEvent.getPosition().getY();
+			mouseEvent.getPosition().x:
+		mouseEvent.getPosition().y;
 
 		int val = getValue();
 		setValue(positionToValue(mousePos));
@@ -436,8 +436,8 @@ namespace agui {
 		focus();
 
 		int mousePos = getOrientation() == HORIZONTAL ? 
-			mouseEvent.getPosition().getX() + mouseEvent.getSourceWidget()->getLocation().getX() :
-		mouseEvent.getPosition().getY() + mouseEvent.getSourceWidget()->getLocation().getY();
+			mouseEvent.getPosition().x + mouseEvent.getSourceWidget()->getLocation().x :
+		mouseEvent.getPosition().y + mouseEvent.getSourceWidget()->getLocation().y;
 
 		int val = getValue();
 		setValue(positionToValue(mousePos));
@@ -466,7 +466,7 @@ namespace agui {
 	{
 		if(change != length)
 		{
-			for(std::vector<SliderListener*>::iterator it = sliderListeners.begin();
+			for(Vector<SliderListener*>::iterator it = sliderListeners.begin();
 				it != sliderListeners.end(); ++it)
 			{
 				(*it)->stepLengthChanged(this,length);
@@ -588,7 +588,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<SliderListener*>::iterator it = 
+		for(Vector<SliderListener*>::iterator it = 
 			sliderListeners.begin();
 			it != sliderListeners.end(); ++it)
 		{
@@ -607,12 +607,12 @@ namespace agui {
 			sliderListeners.end());
 	}
 
-	const Dimension& Slider::getMarkerSize() const
+	const Vector2i& Slider::getMarkerSize() const
 	{
 		return pChildMarker->getSize();
 	}
 
-	void Slider::setMarkerSize( const Dimension &size )
+	void Slider::setMarkerSize( const Vector2i &size )
 	{
 		pChildMarker->setSize(size);
 		setValue(getValue());

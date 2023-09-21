@@ -65,17 +65,17 @@ namespace agui {
 	struct ListBoxItem
 	{
 		agui::Color color;
-		std::string text;
-		std::string tooltip;
+		String text;
+		String tooltip;
 		void* tag;
-		ListBoxItem(const std::string& txt,const agui::Color& col)
+		ListBoxItem(const String& txt,const agui::Color& col)
 			: color(col),text(txt),tag(NULL)
 		{
 
 		}
 	};
 
-	typedef std::vector<std::pair<ListBoxItem,bool> > ListItem;
+	typedef Vector<std::pair<ListBoxItem,bool> > ListItem;
 
 	class AGUI_CORE_DECLSPEC ListBox : public Widget,
 		protected HScrollBarListener, 
@@ -105,8 +105,8 @@ namespace agui {
 		ScrollPolicy vScrollPolicy;
 		ListItem items;
 
-		std::vector<ListBoxListener*> listboxListeners;
-		std::vector<SelectionListener*> selectionListeners;
+		Vector<ListBoxListener*> listboxListeners;
+		Vector<SelectionListener*> selectionListeners;
 
 		HScrollBar *pChildHScroll;
 		VScrollBar *pChildVScroll;
@@ -195,12 +195,12 @@ namespace agui {
 		virtual void paintComponent(const PaintEvent &paintEvent);
 		virtual void paintBackground(const PaintEvent &paintEvent);
 	public:
-		virtual bool intersectionWithPoint(const Point &p) const;
+		virtual bool intersectionWithPoint(const Vector2i &p) const;
 	/**
      * @return The zero based index of the item at this point.
      * @since 0.1.0
      */
-		virtual int getIndexAtPoint(const Point &p) const;
+		virtual int getIndexAtPoint(const Vector2i &p) const;
 	/**
      * Will scroll / move to the parameter index.
      * @since 0.1.0
@@ -210,12 +210,12 @@ namespace agui {
      * @return The size of the Horizontal Scrollbar.
      * @since 0.1.0
      */
-		const Dimension& getHSrollSize() const;
+		const Vector2i& getHSrollSize() const;
 	/**
      * @return The size of the Vertical Scrollbar.
      * @since 0.1.0
      */
-		const Dimension& getVScrollSize() const;
+		const Vector2i& getVScrollSize() const;
 	/**
      * @return The index of the first item that is visible (Used for rendering).
      * @since 0.1.0
@@ -338,7 +338,7 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual void selectRange(int startIndex, int endIndex);
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
 
 	/**
@@ -404,22 +404,22 @@ namespace agui {
 	 * Adds a single item.
      * @since 0.1.0
      */
-		virtual void addItem(const std::string &item);
+		virtual void addItem(const String &item);
 	/**
 	 * Adds multiple items by parsing newline characters.
      * @since 0.1.0
      */
-		virtual void addItems(const std::string &items);
+		virtual void addItems(const String &items);
 	/**
-	 * Adds multiple items by retrieving them from the parameter std::vector.
+	 * Adds multiple items by retrieving them from the parameter Vector.
      * @since 0.1.0
      */
-		virtual void addItems(const std::vector<std::string> &items);
+		virtual void addItems(const Vector<String> &items);
 	/**
 	 * Removes the first instance of this item.
      * @since 0.1.0
      */
-		virtual void removeItem(const std::string &item);
+		virtual void removeItem(const String &item);
 	/**
 	 * Removes the item at the parameter index.
      * @since 0.1.0
@@ -429,7 +429,7 @@ namespace agui {
 	 * Inserts the item at the parameter index.
      * @since 0.1.0
      */
-		virtual void addItemAt(const std::string &item, int index);
+		virtual void addItemAt(const String &item, int index);
 	/**
 	 * @return the number of items in the ListBox.
      * @since 0.1.0
@@ -439,12 +439,12 @@ namespace agui {
 	 * @return The index of the first found instance of the parameter string or -1 if not found.
      * @since 0.1.0
      */
-		virtual int getIndexOf(const std::string &item) const; 
+		virtual int getIndexOf(const String &item) const; 
 	/**
 	 * @return The string of the first found instance of the parameter string or "" if not found.
      * @since 0.1.0
      */
-		virtual std::string getItemAt(int index) const;
+		virtual String getItemAt(int index) const;
 	/**
 	 * @return The topmost selected index or -1 if nothing is selected.
      * @since 0.1.0
@@ -456,15 +456,15 @@ namespace agui {
      */
 		virtual void setSelectedIndex(int index);
 	/**
-	 * @return A std::vector containing all selected indexes.
+	 * @return A Vector containing all selected indexes.
      * @since 0.1.0
      */
-		virtual std::vector<int> getSelectedIndexes() const;
+		virtual Vector<int> getSelectedIndexes() const;
 	/**
-	 * Selects all the indexes in the parameter std::vector.
+	 * Selects all the indexes in the parameter Vector.
      * @since 0.1.0
      */
-		virtual void setSelectedIndexes(const std::vector<int> &indexes);
+		virtual void setSelectedIndexes(const Vector<int> &indexes);
 	/**
 	 * Erases and removes all items and sends a selection event of -1.
      * @since 0.1.0
@@ -580,7 +580,7 @@ namespace agui {
 	 * Sets the tooltip text for the specified item.
      * @since 0.2.0
      */
-		void setItemToolTipText(const std::string& text, int index);
+		void setItemToolTipText(const String& text, int index);
 
 	/**
 	 * Sets the text color for the specified item.
@@ -592,7 +592,7 @@ namespace agui {
 	 * @Return The ToolTip text of the hover index or the usual if no hover index.
      * @since 0.2.0
      */
-		virtual std::string getToolTipText();
+		virtual String getToolTipText();
 
 	/**
 	 * Sets whether or not right clicking will make a selection.

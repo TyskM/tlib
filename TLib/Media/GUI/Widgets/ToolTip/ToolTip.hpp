@@ -38,64 +38,62 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef AGUI_TOOLTIP_HPP
-#define AGUI_TOOLTIP_HPP
+#pragma once
 
 #include <TLib/Media/GUI/Widget.hpp>
 namespace agui {
 
-	 /**
-	 * Class that represents a ToolTip that can pop up when hovering over things.
-	 *
-	 * ActionEvent when:
-	 *
-	 * Clicked.
+     /**
+     * Class that represents a ToolTip that can pop up when hovering over things.
+     *
+     * ActionEvent when:
+     *
+     * Clicked.
      * @author Joshua Larouche
      * @since 0.2.0
      */
-	class AGUI_CORE_DECLSPEC ToolTip : public Widget {
-	private:
-		std::vector<std::string> wrappedText;
-		AreaAlignmentEnum align;
-		agui::Point preferredOffset;
-		Widget* invoker;
+    class AGUI_CORE_DECLSPEC ToolTip : public Widget {
+    private:
+        Vector<String> wrappedText;
+        AreaAlignmentEnum align;
+        Vector2i preferredOffset;
+        Widget* invoker;
 
-	protected:
-		ResizableText resizableText;
-		virtual void paintComponent(const PaintEvent &paintEvent);
-		virtual void paintBackground(const PaintEvent &paintEvent);
-	public:
-		ToolTip();
+    protected:
+        ResizableText resizableText;
+        virtual void paintComponent(const PaintEvent &paintEvent);
+        virtual void paintBackground(const PaintEvent &paintEvent);
+    public:
+        ToolTip();
     /** Returns each line of text. One line per string.
-	* @since 0.2.0
-	*/
-		const std::vector<std::string>& getAreaText() const;
+    * @since 0.2.0
+    */
+        const Vector<String>& getAreaText() const;
     /** Shows the ToolTip at x and y relative to the invoker. Text will wrap to the specified width.
-	* A width of 0 can be passed for a single line of with up to 1000px.
-	* @see Gui for using a ToolTip as a Gui-Wide object. Every Widget has custom ToolTip text.
-	* @since 0.2.0
-	*/
-		virtual void showToolTip(const std::string& text, int width, int x, int y, Widget* invoker);
-		    /** Hides the ToolTip
-	* @since 0.2.0
-	*/
-		virtual void hideToolTip();
-		virtual void mouseClick(MouseEvent &mouseEvent);
-		virtual void setTextAlignment(AreaAlignmentEnum alignment);
-		virtual AreaAlignmentEnum getTextAlignment() const;
+    * A width of 0 can be passed for a single line of with up to 1000px.
+    * @see Gui for using a ToolTip as a Gui-Wide object. Every Widget has custom ToolTip text.
+    * @since 0.2.0
+    */
+        virtual void showToolTip(const String& text, int width, int x, int y, Widget* invoker);
+            /** Hides the ToolTip
+    * @since 0.2.0
+    */
+        virtual void hideToolTip();
+        virtual void mouseClick(MouseEvent &mouseEvent);
+        virtual void setTextAlignment(AreaAlignmentEnum alignment);
+        virtual AreaAlignmentEnum getTextAlignment() const;
       /** Sets an offset from the top left location of the ToolTip when it is shown.
-	* @since 0.2.0
-	*/
-		virtual void setPreferredOffset(Point offset);
-		     /** @return The offset from the top left location of the ToolTip when it is shown.
-	* @since 0.2.0
-	*/
-		virtual Point getPreferredOffset() const;
-		     /** @return The invoker passed when the ToolTip was shown.
-	* @since 0.2.0
-	*/
-		Widget* getInvoker() const;
+    * @since 0.2.0
+    */
+        virtual void setPreferredOffset(Vector2i offset);
+             /** @return The offset from the top left location of the ToolTip when it is shown.
+    * @since 0.2.0
+    */
+        virtual Vector2i getPreferredOffset() const;
+             /** @return The invoker passed when the ToolTip was shown.
+    * @since 0.2.0
+    */
+        Widget* getInvoker() const;
 
-	};
+    };
 }
-#endif

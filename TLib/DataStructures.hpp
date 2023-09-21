@@ -376,6 +376,21 @@ struct Rect
     Vector2<T> getSize() const
     { return Vector2<T>(width, height); }
 
+    T getRight() const
+    { return x + width; }
+
+    T getBottom() const
+    { return y + height; }
+
+    Vector2<T> getRightBottom() const
+    { return { getRight(), getBottom() }; }
+
+    Vector2<T> getTopRight() const
+    { return { getRight(), y }; }
+
+    Vector2<T> getBottomLeft() const
+    { return { x, getBottom() }; }
+
     bool contains(Vector2<T> value) const
     { return contains(value.x, value.y); }
 

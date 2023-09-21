@@ -48,43 +48,48 @@ namespace agui
         delete baseWidget;
     }
 
-    //Gui CTOR
-    Gui::Gui()
-        :input(NULL), graphicsContext(NULL), lastToolTipTime(0.0),
-         toolTipShowLength(4.0), toolTip(NULL), maxToolTipWidth(300),
-         hasHiddenToolTip(true), emptyMouse(MouseEvent::MOUSE_DOWN,
-           MOUSE_BUTTON_NONE, 0,0,0,0,0,false,false,false),
-         destroyingFlaggedWidgets(true), cursorProvider(NULL),
-         timerInterval(0.05), focusEnabled(true),
-         wantWidgetLocationChanged(true), useTransform(false),
-         delayMouseDown(true), downTime(0.0f), touchInertia(0.0),
-         lastInertiaTime(0.0), inertiaReceiver(NULL)
+    Gui::Gui() : emptyMouse{MouseEvent::MOUSE_DOWN, MOUSE_BUTTON_NONE, 0, 0, 0, 0, 0, false, false, false}
     {
-        
-        baseWidget = new TopContainer(this,&focusMan);
+        input                       = nullptr;
+        graphicsContext             = nullptr;
+        lastToolTipTime             = 0.0;
+        toolTipShowLength           = 4.0;
+        toolTip                     = nullptr;
+        maxToolTipWidth             = 300;
+        hasHiddenToolTip            = true;
+        destroyingFlaggedWidgets    = true;
+        cursorProvider              = nullptr;
+        timerInterval               = 0.05;
+        focusEnabled                = true;
+        wantWidgetLocationChanged   = true;
+        useTransform                = false;
+        delayMouseDown              = true;
+        downTime                    = 0.0f;
+        touchInertia                = 0.0;
+        lastInertiaTime             = 0.0;
+        inertiaReceiver             = nullptr;
+        widgetUnderMouse            = 0;
+        previousWidgetUnderMouse    = 0;
+        lastMouseDownControl        = 0;
+        controlWithLock             = 0;
+        hoverInterval               = 2.5;
+        doubleClickInterval         = 0.35;
+        doubleClickExpireTime       = 0;
+        tabbingEnabled              = true;
+        tabNextKey                  = KEY_TAB;
+        tabNextExtKey               = EXT_KEY_NONE;
+        tabPreviousKey              = KEY_TAB;
+        tabPreviousExtKey           = EXT_KEY_NONE;
+        tabNextShift                = false;
+        tabNextControl              = false;
+        tabNextAlt                  = false;
+        tabPreviousShift            = true;
+        tabPreviousControl          = false;
+        tabPreviousAlt              = false;
+        enableExistanceCheck        = true;
+        lastMouseButton             = MOUSE_BUTTON_NONE;
 
-        //initialize variables
-        widgetUnderMouse = 0;
-        previousWidgetUnderMouse = 0;
-        lastMouseDownControl = 0;
-        controlWithLock = 0;
-        hoverInterval = 2.5;
-        doubleClickInterval = 0.35;
-        doubleClickExpireTime = 0;
-        tabbingEnabled = true;
-        tabNextKey = KEY_TAB;
-        tabNextExtKey = EXT_KEY_NONE;
-        tabPreviousKey = KEY_TAB;
-        tabPreviousExtKey = EXT_KEY_NONE;
-        tabNextShift = false;
-        tabNextControl = false;
-        tabNextAlt = false;
-        tabPreviousShift = true;
-        tabPreviousControl = false;
-        tabPreviousAlt = false;
-        enableExistanceCheck = true;
-
-        lastMouseButton = MOUSE_BUTTON_NONE;
+        baseWidget = new TopContainer(this, &focusMan);
     }
 
 
@@ -330,7 +335,7 @@ namespace agui
                 if(input->wantMouseWheelOnDrag() && widgetExists(baseWidget,controlWithLock) &&
                    !controlWithLock->isCausingLocationChange())
                 {
-                    int delta = mouse.y - lastDragPos.getY();
+                    int delta = mouse.y - lastDragPos.y;
                     if(delta != 0)
                     {
                         MouseInput moi = mouse;
@@ -357,8 +362,8 @@ namespace agui
                     }
                 }
                 
-                lastDragPos.setX(mouse.x);
-                lastDragPos.setY(mouse.y);
+                lastDragPos.x = mouse.x;
+                lastDragPos.y = mouse.y;
             }
         }
 
@@ -454,8 +459,8 @@ namespace agui
             mouseUpControl = widgetUnderMouse;
         }
 
-        lastDragPos.setX(mouse.x);
-        lastDragPos.setY(mouse.y);
+        lastDragPos.x = mouse.x;
+        lastDragPos.y = mouse.y;
         
         startDragPos = lastDragPos;
         
@@ -522,7 +527,7 @@ namespace agui
             if(getInput()->isUsingTouchCompatibility() && input->getTime() - downTime >= 0.3f)
                 clickAllowed = false;
             
-            float delta = abs(mouse.y - startDragPos.getY());
+            float delta = abs(mouse.y - startDragPos.y);
             if(delta > 30)
                 clickAllowed = false;
             
@@ -545,7 +550,7 @@ namespace agui
                 
                 if(!tapListeners.empty() && widgetExists(baseWidget,widgetUnderMouse) && lastMouseDownControl == widgetUnderMouse)
                 {
-                    for(std::vector<TapListener*>::iterator it =
+                    for(Vector<TapListener*>::iterator it =
                         tapListeners.begin();
                         it != tapListeners.end(); ++it)
                     {
@@ -640,7 +645,7 @@ namespace agui
         
         if(controlWithLock && input->wantInertiaScrolling() && !controlWithLock->isCausingLocationChange())
         {
-            double deltaY = mouse.y - startDragPos.getY();
+            double deltaY = mouse.y - startDragPos.y;
             double timeDifference = input->getTime() - downTime;
             
             double maxSpeed = 90;
@@ -649,7 +654,7 @@ namespace agui
             {
                 if (timeDifference < 0.081 && abs(deltaY) > 138) {
                     maxSpeed = 350;
-                    deltaY = (mouse.y - startDragPos.getY()) / (timeDifference * 5);
+                    deltaY = (mouse.y - startDragPos.y) / (timeDifference * 5);
                 }
                 
                 if      (deltaY > maxSpeed)         { deltaY =  maxSpeed; }
@@ -712,9 +717,9 @@ namespace agui
                 currentNode = q.top();
                 q.pop();
 
-                if((currentNode->intersectionWithPoint(Point(
-                    mouse.getPosition().getX() - currentNode->getAbsolutePosition().getX(),
-                    mouse.getPosition().getY() - currentNode->getAbsolutePosition().getY())))
+                if((currentNode->intersectionWithPoint(Vector2i(
+                    mouse.getPosition().x - currentNode->getAbsolutePosition().x,
+                    mouse.getPosition().y - currentNode->getAbsolutePosition().y)))
                     && currentNode->isEnabled() && currentNode->isVisible())
                 {
                     wMouse = currentNode;
@@ -722,9 +727,9 @@ namespace agui
 
 
                 if(currentNode == root || 
-                    ((currentNode->intersectionWithPoint(Point(
-                    mouse.getPosition().getX() - currentNode->getAbsolutePosition().getX(),
-                    mouse.getPosition().getY() - currentNode->getAbsolutePosition().getY())))
+                    ((currentNode->intersectionWithPoint(Vector2i(
+                    mouse.getPosition().x - currentNode->getAbsolutePosition().x,
+                    mouse.getPosition().y - currentNode->getAbsolutePosition().y)))
                     && currentNode->isEnabled() && currentNode->isVisible()))
                 {
                     for (WidgetArray::reverse_iterator rit =
@@ -874,7 +879,7 @@ namespace agui
         {
             button = lastMouseButton;
         }
-        mouseEvent = MouseEvent(Point
+        mouseEvent = MouseEvent(Vector2i
             (mouse.x,mouse.y),mouse.wheel,button,mouse.timeStamp,
             mouse.pressure,
             mouse.isAlt, mouse.isControl, mouse.isShift);
@@ -929,8 +934,7 @@ namespace agui
                         }
                         if(widgetExists(baseWidget,widgetUnderMouse))
                         {
-                            showToolTip(widgetUnderMouse,
-                                mouseEvent.getX(),mouseEvent.getY());
+                            showToolTip(widgetUnderMouse, mouseEvent.getX(), mouseEvent.getY());
                             widgetUnderMouse->mouseHover(relArgs);
                         }
                     }
@@ -1275,9 +1279,9 @@ namespace agui
 
     void Gui::makeRelArgs( Widget *source )
     {
-        relArgs = MouseEvent(Point(
-            mouseEvent.getX() - source->getAbsolutePosition().getX(),
-            mouseEvent.getY() - source->getAbsolutePosition().getY()),
+        relArgs = MouseEvent(Vector2i(
+            mouseEvent.getX() - source->getAbsolutePosition().x,
+            mouseEvent.getY() - source->getAbsolutePosition().y),
             mouseEvent.getMouseWheelChange(),
             mouseEvent.getButton(),mouseEvent.getTimeStamp(),
             mouseEvent.getPressure(),
@@ -1366,7 +1370,7 @@ namespace agui
         baseWidget->setSize(width,height);
     }
 
-    Dimension Gui::getSize() const
+    Vector2i Gui::getSize() const
     {
         return baseWidget->getSize();
     }
@@ -1377,8 +1381,8 @@ namespace agui
         graphicsContext->_beginPaint();
         baseWidget->_recursivePaintChildren(baseWidget,true,1.0f,graphicsContext);
         graphicsContext->clearClippingStack();
-        graphicsContext->setOffset(Point(0,0));
-        graphicsContext->pushClippingRect(Rectangle(Point(0,0),baseWidget->getSize()));
+        graphicsContext->setOffset(Vector2i(0,0));
+        graphicsContext->pushClippingRect(Recti(Vector2i(0,0),baseWidget->getSize()));
         graphicsContext->_endPaint();
 
     }
@@ -1395,14 +1399,14 @@ namespace agui
 
     void Gui::removeKeyPreviewListener( KeyboardListener* listener )
     {
-        keyPreviewListeners.erase(std::remove(keyPreviewListeners.begin(),
+        keyPreviewListeners.erase(eastl::remove(keyPreviewListeners.begin(),
             keyPreviewListeners.end(), listener), keyPreviewListeners.end());
     }
 
     void Gui::_dispatchKeyPreview( KeyEvent &keyEvent, 
         KeyEvent::KeyboardEventEnum type )
     {
-        for(std::vector<KeyboardListener*>::iterator it =
+        for(Vector<KeyboardListener*>::iterator it =
             keyPreviewListeners.begin();
             it != keyPreviewListeners.end(); ++it)
         {
@@ -1540,9 +1544,9 @@ namespace agui
         baseWidget->remove(widget);
     }
 
-    void Gui::removeAll()
+    void Gui::clear()
     {
-        baseWidget->removeAll();
+        baseWidget->clear();
     }
 
     void Gui::resizeToDisplay()
@@ -1619,7 +1623,7 @@ namespace agui
         return baseWidget;
     }
 
-    std::stack<Widget*>& Gui::getFlaggedWidgets()
+    Stack<Widget*>& Gui::getFlaggedWidgets()
     {
         return flaggedWidgets;
     }
@@ -1691,8 +1695,8 @@ namespace agui
             toolTip->showToolTip(
                 widget->getToolTipText(),
                 getMaxToolTipWidth(),
-                x + toolTip->getPreferredOffset().getX(),
-                y + toolTip->getPreferredOffset().getY(),
+                x + toolTip->getPreferredOffset().x,
+                y + toolTip->getPreferredOffset().y,
                 widget);
 
             hasHiddenToolTip = false;
@@ -1740,7 +1744,7 @@ namespace agui
         {
             widgetUnderMouse = recursiveGetWidgetUnderMouse(baseWidget, mouseEvent);
         }
-        for(std::vector<MouseListener*>::iterator it =
+        for(Vector<MouseListener*>::iterator it =
             mousePreviewListeners.begin();
             it != mousePreviewListeners.end(); ++it)
         {
@@ -1774,7 +1778,7 @@ namespace agui
 
     void Gui::removeMousePreviewListener( MouseListener* listener )
     {
-        mousePreviewListeners.erase(std::remove(mousePreviewListeners.begin(),
+        mousePreviewListeners.erase(eastl::remove(mousePreviewListeners.begin(),
             mousePreviewListeners.end(), listener), mousePreviewListeners.end());
     }
     
@@ -1785,7 +1789,7 @@ namespace agui
     
     void Gui::removeTapListener( TapListener* listener )
     {
-        tapListeners.erase(std::remove(tapListeners.begin(),
+        tapListeners.erase(eastl::remove(tapListeners.begin(),
                                                 tapListeners.end(), listener), tapListeners.end());
     }
 

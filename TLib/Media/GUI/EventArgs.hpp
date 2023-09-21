@@ -38,365 +38,363 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef AGUI_EVENT_ARGS_HPP
-#define AGUI_EVENT_ARGS_HPP
-
+#pragma once
 #include <TLib/Media/GUI/BaseTypes.hpp>
-namespace agui {
-	class AGUI_CORE_DECLSPEC Widget;
-	/**
+
+namespace agui
+{
+    class AGUI_CORE_DECLSPEC Widget;
+    /**
      * Class for a mouse event.
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC MouseEvent {
-		Point position;
-		int mouseWheelChange;
-		MouseButtonEnum button;
-		double timeStamp;
-		float pressure; 
-		bool handled;
+    class AGUI_CORE_DECLSPEC MouseEvent
+    {
+        Vector2i        position;
+        int             mouseWheelChange;
+        MouseButtonEnum button;
+        double          timeStamp;
+        float           pressure; 
+        bool            handled;
 
-		bool isAlt;
-		bool isControl;
-		bool isShift;
-		Widget* source;
-	public:
-		enum MouseEventEnum{
-			MOUSE_DOWN,
-			MOUSE_UP,
-			MOUSE_MOVE,
-			MOUSE_CLICK,
-			MOUSE_DOUBLE_CLICK,
-			MOUSE_WHEEL_UP,
-			MOUSE_WHEEL_DOWN,
-			MOUSE_ENTER,
-			MOUSE_LEAVE,
-			MOUSE_HOVER,
-			MOUSE_DRAG,
-			MOUSE_MODAL_DOWN,
-			MOUSE_MODAL_UP
-		};
-	/**
-	 * This position is usually relative to the widget it is sent to.
+        bool    isAlt;
+        bool    isControl;
+        bool    isShift;
+        Widget* source;
+    public:
+        enum MouseEventEnum{
+            MOUSE_DOWN,
+            MOUSE_UP,
+            MOUSE_MOVE,
+            MOUSE_CLICK,
+            MOUSE_DOUBLE_CLICK,
+            MOUSE_WHEEL_UP,
+            MOUSE_WHEEL_DOWN,
+            MOUSE_ENTER,
+            MOUSE_LEAVE,
+            MOUSE_HOVER,
+            MOUSE_DRAG,
+            MOUSE_MODAL_DOWN,
+            MOUSE_MODAL_UP
+        };
+    /**
+     * This position is usually relative to the widget it is sent to.
      * @return The position of the mouse when the event occurred.
      * @since 0.1.0
      */
-		Point getPosition() const;
-	/**
+        Vector2i getPosition() const;
+    /**
      * @return The vertical mouse wheel change (Delta Z). It can be negative.
      * @since 0.1.0
      */
-		int getMouseWheelChange() const;
-	/**
+        int getMouseWheelChange() const;
+    /**
      * @return The mouse button that was pressed down, or released.
      * @since 0.1.0
      */
-		MouseButtonEnum getButton() const;
-	/**
+        MouseButtonEnum getButton() const;
+    /**
      * Not currently implemented by any back ends.
      * @since 0.1.0
      */
-		float getPressure() const;
-	/**
+        float getPressure() const;
+    /**
      * @return How much time the application had been running when the event occurred.
      * @since 0.1.0
      */
-		double getTimeStamp() const;
-	/**
+        double getTimeStamp() const;
+    /**
      * @return The X position of the mouse relative to the source widget.
      * @since 0.1.0
      */
-		int getX() const;
-	/**
+        int getX() const;
+    /**
      * @return The Y position of the mouse relative to the source widget.
      * @since 0.1.0
      */
-		int getY() const;
-	/**
+        int getY() const;
+    /**
      * @return True if alt was pressed when the event occurred.
      * @since 0.1.0
      */
-		bool alt() const;
-	/**
+        bool alt() const;
+    /**
      * @return True if control was pressed when the event occurred.
      * @since 0.1.0
      */
-		bool control() const;
-	/**
+        bool control() const;
+    /**
      * @return True if shift was pressed when the event occurred.
      * @since 0.1.0
      */
-		bool shift() const;
-	/**
+        bool shift() const;
+    /**
      * @return True if meta was pressed when the event occurred.
      * @since 0.1.1
      */
-		bool meta() const;
-	/**
+        bool meta() const;
+    /**
      * @return True if the event has been consumed.
      * @since 0.1.0
      */
-		bool isConsumed() const;
-	/**
+        bool isConsumed() const;
+    /**
      * Consumes the event. When an event is consumed, it allows the listeners to make decisions based on this.
      * @since 0.1.0
      */
-		void consume();
+        void consume();
 
-	/**
+    /**
      * @return The source widget.
      * @since 0.1.0
      */
-		Widget* getSourceWidget() const;
-	/**
+        Widget* getSourceWidget() const;
+    /**
      * Default constructor.
      * @since 0.1.0
      */
-		MouseEvent();
-	/**
+        MouseEvent();
+    /**
      * Constructs the mouse event.
-	 *
-	 * The position must already be relative to the source.
+     *
+     * The position must already be relative to the source.
      * @since 0.1.0
      */
-		MouseEvent(const Point &position,
-			int mouseWheelChange, MouseButtonEnum button, double timeStamp, float pressure, 
-			bool isAlt, bool isControl, bool isShift, Widget* source = NULL, bool handled = false);
-	};
-	/**
+        MouseEvent(const Vector2i &position,
+            int mouseWheelChange, MouseButtonEnum button, double timeStamp, float pressure, 
+            bool isAlt, bool isControl, bool isShift, Widget* source = NULL, bool handled = false);
+    };
+    /**
      * Class for a key event.
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC KeyEvent {
-		UTF8 utf8Manager;
-		int unichar;
-		double timeStamp;
-		int _key;
-		int _modKey;
-		ExtendedKeyEnum extKey;
-		KeyEnum key;
-		bool isAlt;
-		bool isControl;
-		bool isShift;
-		bool isMeta;
-		bool handled;
+    class AGUI_CORE_DECLSPEC KeyEvent {
+        UTF8 utf8Manager;
+        int unichar;
+        double timeStamp;
+        int _key;
+        int _modKey;
+        ExtendedKeyEnum extKey;
+        KeyEnum key;
+        bool isAlt;
+        bool isControl;
+        bool isShift;
+        bool isMeta;
+        bool handled;
 
-		Widget* source;
-	public:
-		enum KeyboardEventEnum {
-			KEY_DOWN,
-			KEY_UP,
-			KEY_REPEAT
-		};
+        Widget* source;
+    public:
+        enum KeyboardEventEnum {
+            KEY_DOWN,
+            KEY_UP,
+            KEY_REPEAT
+        };
 
-	/**
+    /**
      * @return True if alt was pressed when the event occurred.
      * @since 0.1.0
      */
-		bool alt() const;
-	/**
+        bool alt() const;
+    /**
      * @return True if control was pressed when the event occurred.
      * @since 0.1.0
      */
-		bool control() const;
-	/**
+        bool control() const;
+    /**
      * @return True if shift was pressed when the event occurred.
      * @since 0.1.0
      */
-		bool shift() const;
-	/**
+        bool shift() const;
+    /**
      * @return True if meta was pressed when the event occurred.
      * @since 0.1.0
      */
-		bool meta() const;
-	/**
+        bool meta() const;
+    /**
      * Consumes the event. When an event is consumed, it allows the listeners to make decisions based on this.
      * @since 0.1.0
      */
-		void consume();
-	/**
+        void consume();
+    /**
      * @return True if the event has been consumed.
      * @since 0.1.0
      */
-		bool isConsumed() const;
-	/**
+        bool isConsumed() const;
+    /**
      * @return The number of bytes this character occupies (from 1 to 4 bytes).
      * @since 0.1.0
      */
-		size_t getUtf8Length() const;
-	/**
-	* @return The character as a std::string since UTF8 characters can be more than 1 byte.
+        size_t getUtf8Length() const;
+    /**
+    * @return The character as a String since UTF8 characters can be more than 1 byte.
      * @since 0.1.0
      */
-		std::string getUtf8String() const;
-	/**
+        String getUtf8String() const;
+    /**
      * @return How much time the application had been running when the event occurred.
      * @since 0.1.0
      */
-		double getTimeStamp() const;
-	/**
+        double getTimeStamp() const;
+    /**
      * @return The key code specific to the back end.
      * @since 0.1.0
      */
-		int getBackendKeycode() const;
-	/**
+        int getBackendKeycode() const;
+    /**
      * @return The UTF32 code point for this key event.
      * @since 0.1.0
      */
-		unsigned int getUnichar() const;
-	/**
+        unsigned int getUnichar() const;
+    /**
      * @return The modifier flags specific to the back end.
      * @since 0.1.0
      */
-		int getBackendModifierKeyFlags() const;
-	/**
+        int getBackendModifierKeyFlags() const;
+    /**
      * @return The extended key pressed or EXT_KEY_NONE if no extended key was pressed.
      * @since 0.1.0
      */
-		ExtendedKeyEnum getExtendedKey() const;
-	/**
+        ExtendedKeyEnum getExtendedKey() const;
+    /**
      * @return The ascii key pressed or KEY_NONE if no ascii key was pressed.
      * @since 0.1.0
      */
-		KeyEnum getKey() const;
-	/**
+        KeyEnum getKey() const;
+    /**
      * Default constructor.
      * @since 0.1.0
      */
-		KeyEvent();
-	/**
+        KeyEvent();
+    /**
      * Constructs the key event.
-	 *
-	 * The unichar is a UTF32 code point.
+     *
+     * The unichar is a UTF32 code point.
      * @since 0.1.0
      */
-		KeyEvent(KeyEnum key, ExtendedKeyEnum extKey,
-			int _key, int _modKey, 
-			unsigned int unichar, double timeStamp, bool isAlt,
-			bool isControl, bool isShift, bool isMeta,
-			Widget* source = 0, bool handled = false);
-	};
+        KeyEvent(KeyEnum key, ExtendedKeyEnum extKey,
+            int _key, int _modKey, 
+            unsigned int unichar, double timeStamp, bool isAlt,
+            bool isControl, bool isShift, bool isMeta,
+            Widget* source = 0, bool handled = false);
+    };
 
-	/**
+    /**
      * Class for a paint event.
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC PaintEvent {
-		bool enabled;
-		Graphics *graphicsContext;
-	public:
-	
-	/**
-	* Although the widget itself may be enabled, 
-	* if any of its parents are disabled, all the children are inherently disabled.
+    class AGUI_CORE_DECLSPEC PaintEvent {
+        bool enabled;
+        Graphics *graphicsContext;
+    public:
+    
+    /**
+    * Although the widget itself may be enabled, 
+    * if any of its parents are disabled, all the children are inherently disabled.
      * @return Whether the widget should be drawn with an enabled or disabled look.
      * @since 0.1.0
      */
-		bool isEnabled() const;
-	/**
+        bool isEnabled() const;
+    /**
      * @return The graphics context used to call drawing methods.
      * @since 0.1.0
      */
-		Graphics* graphics() const;
-	/**
+        Graphics* graphics() const;
+    /**
      * Constructs the paint event.
      * @since 0.1.0
      */
-		PaintEvent(bool enabled,Graphics *g);
-	/**
+        PaintEvent(bool enabled,Graphics *g);
+    /**
      * Default constructor.
      * @since 0.1.0
      */
-		PaintEvent();
-	/**
+        PaintEvent();
+    /**
      * Default destructor.
      * @since 0.1.0
      */
-		virtual ~PaintEvent();
+        virtual ~PaintEvent();
 
-	};
+    };
 
-	/**
+    /**
      * Generic mouse input class generated by back ends when they receive a mouse event.
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC MouseInput {
-	public:
-		MouseButtonEnum button;
-		int x;
-		int y;
-		int wheel;
-		float pressure;
-		double timeStamp;
-		MouseEvent::MouseEventEnum type;
+    class AGUI_CORE_DECLSPEC MouseInput {
+    public:
+        MouseButtonEnum button;
+        int x;
+        int y;
+        int wheel;
+        float pressure;
+        double timeStamp;
+        MouseEvent::MouseEventEnum type;
 
-		bool isAlt;
-		bool isControl;
-		bool isShift;
+        bool isAlt;
+        bool isControl;
+        bool isShift;
 
-		MouseInput(MouseEvent::MouseEventEnum event,MouseButtonEnum button, int x, int y, int wheel, 
-			float pressure, double timeStamp,bool isAlt,
-		bool isShift,bool isControl)
+        MouseInput(MouseEvent::MouseEventEnum event, MouseButtonEnum button, int x, int y, int wheel, 
+            float pressure, double timeStamp, bool isAlt, bool isShift,bool isControl)
+        {
+            this->button = button;
+            this->x = x;
+            this->y = y;
+            this->wheel = wheel;
+            this->pressure = pressure;
+            this->timeStamp = timeStamp;
 
-		{
-			this->button = button;
-			this->x = x;
-			this->y = y;
-			this->wheel = wheel;
-			this->pressure = pressure;
-			this->timeStamp = timeStamp;
+            this->isAlt = isAlt;
+            this->isShift = isShift;
+            this->isControl = isControl;
+            this->type = event;
+        }
 
-			this->isAlt = isAlt;
-			this->isShift = isShift;
-			this->isControl = isControl;
-			this->type = event;
-		}
+    };
 
-	};
-
-	/**
+    /**
      * Generic keyboard input class generated by back ends when they receive a keyboard event.
      * @author Joshua Larouche
      * @since 0.1.0
      */
-	class AGUI_CORE_DECLSPEC KeyboardInput {
-	public:
-		KeyEnum key;
-		KeyEvent::KeyboardEventEnum type;
-		ExtendedKeyEnum extKey;
-		int _key;
-		int _modifierKey;
-		unsigned int unichar;
-		double timeStamp;
+    class AGUI_CORE_DECLSPEC KeyboardInput {
+    public:
+        KeyEnum key;
+        KeyEvent::KeyboardEventEnum type;
+        ExtendedKeyEnum extKey;
+        int _key;
+        int _modifierKey;
+        unsigned int unichar;
+        double timeStamp;
 
-		bool isAlt;
-		bool isShift;
-		bool isControl;
-		bool isMeta;
+        bool isAlt;
+        bool isShift;
+        bool isControl;
+        bool isMeta;
 
-		KeyboardInput(KeyEvent::KeyboardEventEnum event, KeyEnum key, ExtendedKeyEnum extKey,
-			unsigned int unichar,
-			double timeStamp, bool isAlt, bool isShift, bool isControl, bool isMeta,
-			int _key = 0, 
-			int _modifierKey = 0)
-		{
-			this->key = key;
-			this->extKey = extKey;
-			this->_key = _key;
-			this->_modifierKey = _modifierKey;
-			this->unichar = unichar;
-			this->timeStamp = timeStamp;
-			this->isAlt = isAlt;
-			this->isShift = isShift;
-			this->isControl = isControl;
-			this->isMeta = isMeta;
-			this->type = event;
-		}
+        KeyboardInput(KeyEvent::KeyboardEventEnum event, KeyEnum key, ExtendedKeyEnum extKey,
+            unsigned int unichar,
+            double timeStamp, bool isAlt, bool isShift, bool isControl, bool isMeta,
+            int _key = 0, 
+            int _modifierKey = 0)
+        {
+            this->key = key;
+            this->extKey = extKey;
+            this->_key = _key;
+            this->_modifierKey = _modifierKey;
+            this->unichar = unichar;
+            this->timeStamp = timeStamp;
+            this->isAlt = isAlt;
+            this->isShift = isShift;
+            this->isControl = isControl;
+            this->isMeta = isMeta;
+            this->type = event;
+        }
 
-	};
+    };
 }
-#endif

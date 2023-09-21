@@ -60,7 +60,7 @@ namespace agui {
 	{
 	public:
 		SelectionListener(void);
-		virtual void selectionChanged(Widget *source, const std::string &item, int index, bool selected) = 0;
+		virtual void selectionChanged(Widget *source, const String &item, int index, bool selected) = 0;
 		virtual ~SelectionListener(void);
 	};
 }

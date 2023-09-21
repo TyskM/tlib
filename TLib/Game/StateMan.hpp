@@ -27,7 +27,8 @@ struct StateMan
     // Returns popped state ptr
     StateType* popState()
     {
-        auto* rstate = cont.front();
+        StateType* rstate = cont.front();
+        if (!rstate) { return nullptr; }
         rstate->onExit();
         cont.pop_front();
         return rstate;

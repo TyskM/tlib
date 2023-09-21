@@ -64,14 +64,14 @@ namespace agui {
 		virtual void paintComponent(const PaintEvent &paintEvent);
     virtual void paintBackground(const PaintEvent&) {}
 	public:
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
 
 	/**
 	 * Sets the size of the content pane to the parameter size and properly factors in margins.
      * @since 0.2.0
      */
-		virtual void setClientSize(const Dimension &size);
+		virtual void setClientSize(const Vector2i &size);
 	/**
 	 * @return The ImageWidget's top margin (not the same as widget margins).
      * @since 0.1.0

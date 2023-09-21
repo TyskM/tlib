@@ -41,17 +41,17 @@
 #ifndef AGUI_CLIPBOARD_HPP
 #define AGUI_CLIPBOARD_HPP
 #include <stdlib.h>
-#include <string>
+#include <TLib/String.hpp>
 #include <TLib/Media/GUI/Platform.hpp>
 namespace agui
 {
 	class AGUI_CORE_DECLSPEC Clipboard
 	{
-		static std::string inClipboard;
-		static std::string _filter(const std::string& str);
+		static String inClipboard;
+		static String _filter(const String& str);
 	public:
-		static void copy(const std::string& input);
-		static std::string paste();
+		static void copy(const String& input);
+		static String paste();
 		Clipboard(void);
 		virtual ~Clipboard(void);
 	};

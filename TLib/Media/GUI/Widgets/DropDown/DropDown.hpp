@@ -63,29 +63,29 @@ namespace agui {
 		protected ListBoxListener
 	{
 	private:
-		Point listPosOffset;
-		Dimension listSizeIncrease;
+		Vector2i listPosOffset;
+		Vector2i listSizeIncrease;
 		int selIndex;
 		bool isMaintainingListBox;
 		ListBox *pChildListBox;
 		int listBoxHeight;
 		bool resizeToWidestItem;
 		bool mouseInside;
-		std::vector<SelectionListener*> selectionListeners;
-		std::vector<DropDownListener*> dropDownListeners;
-		std::string noSelectionText;
+		Vector<SelectionListener*> selectionListeners;
+		Vector<DropDownListener*> dropDownListeners;
+		String noSelectionText;
     static int dropDownArrowWidth;
 	protected:
 	/**
      * Called when the internal ListBox adds an item.
      * @since 0.1.0
      */
-		virtual void itemAdded(ListBox* source, const std::string& item);
+		virtual void itemAdded(ListBox* source, const String& item);
 	/**
      * Called when the internal ListBox removes an item.
      * @since 0.1.0
      */
-		virtual void itemRemoved(ListBox* source, const std::string& item);
+		virtual void itemRemoved(ListBox* source, const String& item);
 	/**
      * Called to dispatch a selection event to the selection listeners.
      * @since 0.1.0
@@ -150,25 +150,25 @@ namespace agui {
      * Adds an item to the internal ListBox.
      * @since 0.1.0
      */
-		virtual void addItem(const std::string &item);
+		virtual void addItem(const String &item);
 	/**
      * Adds an item to the internal ListBox at the specified index.
      * @since 0.1.0
      */
-		virtual void addItemAt(const std::string& item, int index);
+		virtual void addItemAt(const String& item, int index);
     /**
      * @return The string at the specified index
      */
-    virtual std::string getItemAt(int index) const;
+    virtual String getItemAt(int index) const;
 	/**
      * @return The index of the first found instance of the parameter string in the internal ListBox, or -1 if not found.
      */
-    virtual int getIndexOf(const std::string &item) const;
+    virtual int getIndexOf(const String &item) const;
 	/**
      * Removes an item from the internal ListBox.
      * @since 0.1.0
      */
-	virtual void removeItem(const std::string& item);
+	virtual void removeItem(const String& item);
 	/**
      * Removes an item from the internal ListBox at the specified index.
      * @since 0.1.0
@@ -219,9 +219,9 @@ namespace agui {
 		virtual void mouseDown(MouseEvent &mouseEvent);
         virtual void mouseClick(MouseEvent &mouseEvent);
 		virtual void mouseClickCB(MouseEvent &mouseEvent);
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
-		virtual void setLocation(const Point &location);
+		virtual void setLocation(const Vector2i &location);
 		virtual void setLocation(int width,int height);
 	/**
      * Sets the maximum height of the internal ListBox. If the ListBox overflows its
@@ -238,32 +238,32 @@ namespace agui {
 		/**
      * Sets the offset for the position of the ListBox when it is shown.
      * @since 0.1.0
-     */void setListPositionOffset(const Point& offset);
+     */void setListPositionOffset(const Vector2i& offset);
 	/**
      * @return The text that will be presented when no item is selected.
      * @since 0.2.1
      */
-		const std::string& getNoSelectionText() const;
+		const String& getNoSelectionText() const;
 
 				/**
      * Sets the text that will be presented when no item is selected.
      * @since 0.2.1
-	 */void setNoSelectionText(const std::string& text);
+	 */void setNoSelectionText(const String& text);
 	/**
      * @return The offset for the position of the ListBox when it is shown.
      * @since 0.1.0
      */
-		const Point& getListPositionOffset() const;
+		const Vector2i& getListPositionOffset() const;
 
 	/**
      * Sets the offset for the position of the ListBox when it is shown.
      * @since 0.1.0
-     */void setListSizePadding(const Dimension& padding);
+     */void setListSizePadding(const Vector2i& padding);
 	/**
      * @return The offset for the position of the ListBox when it is shown.
      * @since 0.1.0
      */
-		const Dimension& getListSizePadding() const;
+		const Vector2i& getListSizePadding() const;
 
 		virtual void mouseEnter(MouseEvent &mouseEvent);
 		virtual void mouseLeave(MouseEvent &mouseEvent);

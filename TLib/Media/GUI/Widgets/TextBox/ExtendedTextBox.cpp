@@ -64,35 +64,35 @@ namespace agui {
 		int hoffset = 0;
 		if(isHScrollVisible())
 		{
-			hoffset = getHSrollSize().getHeight();
+			hoffset = getHSrollSize().y;
 		}
 		if(isVScrollVisible())
 		{
 
-			voffset = getVScrollSize().getWidth();
+			voffset = getVScrollSize().x;
 		}
 
 
-		paintEvent.graphics()->pushClippingRect(Rectangle(getLeftPadding(),
+		paintEvent.graphics()->pushClippingRect(Recti(getLeftPadding(),
 			getTopPadding(), getAdjustedWidth() - voffset + 1, getAdjustedHeight() - hoffset));
 
 		//only show selection if it's not hidden
 	if(!isHidingSelection() || (isHidingSelection() && isFocused()))
 		for(int i = 0; i < getSelLineCount(); ++i)
 		{
-			paintEvent.graphics()->drawFilledRectangle(Rectangle(
-				getSelLineAt(i).first.getX() + textX,
-				getSelLineAt(i).first.getY() + textY,
-				getSelLineAt(i).second.getX(),
-				getSelLineAt(i).second.getY()),getSelectionBackColor());
+			paintEvent.graphics()->drawFilledRectangle(Recti(
+				getSelLineAt(i).first.x + textX,
+				getSelLineAt(i).first.y + textY,
+				getSelLineAt(i).second.x,
+				getSelLineAt(i).second.y),getSelectionBackColor());
 		}
 
 
 		drawText(paintEvent);
 
 		if(isFocused() && isBlinking())
-			paintEvent.graphics()->drawLine(Point(getCaretColumnLocation() + 1 , getCaretRowLocation() ),
-			Point(getCaretColumnLocation() + 1, getCaretRowLocation() + getLineHeight()),
+			paintEvent.graphics()->drawLine(Vector2i(getCaretColumnLocation() + 1 , getCaretRowLocation() ),
+			Vector2i(getCaretColumnLocation() + 1, getCaretRowLocation() + getLineHeight()),
 			Color(0,0,0));
 
 		paintEvent.graphics()->popClippingRect();
@@ -119,7 +119,7 @@ namespace agui {
 
 	}
 
-	const Point& ExtendedTextBox::getColorIndexStart() const
+	const Vector2i& ExtendedTextBox::getColorIndexStart() const
 	{
 		return colorIndexStart;
 	}
@@ -135,11 +135,11 @@ namespace agui {
 			{
 				unicodeFunctions.bringToNextUnichar(y,getText());
 			}
-			colorIndexStart = Point(int(x), int(y));
+			colorIndexStart = Vector2i(int(x), int(y));
 
 	}
 
-	void ExtendedTextBox::setText( const std::string &text )
+	void ExtendedTextBox::setText( const String &text )
 	{
 		//maintain
 
@@ -165,8 +165,8 @@ namespace agui {
 		{
 			size_t uniPos = 0;
 			int bytesSkipped = 0;
-			std::string newStr;
-			std::string curChar;
+			String newStr;
+			String curChar;
 			size_t textLen = unicodeFunctions.length(text);
 
 
@@ -299,7 +299,7 @@ namespace agui {
 	}
 
 
-	void ExtendedTextBox::appendText( const std::string &text, bool atCurrentPosition /* = true */,
+	void ExtendedTextBox::appendText( const String &text, bool atCurrentPosition /* = true */,
 										 bool repositionCaret /* = true */ )
 	{
 		int index = 0;
@@ -314,8 +314,8 @@ namespace agui {
 
 		size_t uniPos = 0;
 		int bytesSkipped = 0;
-		std::string newStr;
-		std::string curChar;
+		String newStr;
+		String curChar;
 		size_t textLen = unicodeFunctions.length(text);
 		
 
@@ -372,8 +372,8 @@ namespace agui {
 		size_t bytesSkipped = 0;
 
 
-		int colorIndex = getColorIndexStart().getX();
-		colorUniPos = getColorIndexStart().getY();
+		int colorIndex = getColorIndexStart().x;
+		colorUniPos = getColorIndexStart().y;
 		int stopPos = 0;
 		size_t stopUnichar;
 		const Color *color;
@@ -460,7 +460,7 @@ namespace agui {
 					color = &textColors[colorIndex].first;
 				}
 
-				paintEvent.graphics()->drawText(Point(textX + getLineOffset(i),
+				paintEvent.graphics()->drawText(Vector2i(textX + getLineOffset(i),
 					textY + (i * getLineHeight())),
 					getTextLineAt(i).c_str(),*color,getFont());
 
@@ -498,16 +498,16 @@ namespace agui {
 					{
 						paintEvent.graphics()->drawScaledImage(
 							img,
-							Point(textX + totalWidth  + getLineOffset(i),
+							Vector2i(textX + totalWidth  + getLineOffset(i),
 							textY + (i * getLineHeight())),
-							Point(),Dimension(img->getWidth(),img->getHeight()),
-							Dimension(curWidth,curWidth)
+							Vector2i(),Vector2i(img->getWidth(),img->getHeight()),
+							Vector2i(curWidth,curWidth)
 							);
 					}
 					else
 					{
 						//draw the char
-						paintEvent.graphics()->drawText(Point(textX + totalWidth  + getLineOffset(i),
+						paintEvent.graphics()->drawText(Vector2i(textX + totalWidth  + getLineOffset(i),
 							textY + (i * getLineHeight())),
 							curStr.c_str(),*color,getFont());
 					}
@@ -539,7 +539,7 @@ namespace agui {
 					}
 
 					//draw the chunk
-					paintEvent.graphics()->drawText(Point(textX + totalWidth  + getLineOffset(i),
+					paintEvent.graphics()->drawText(Vector2i(textX + totalWidth  + getLineOffset(i),
 						textY + (i * getLineHeight())),
 						&getTextLineAt(i)[stopUnichar],*color,getFont());
 				}
@@ -582,7 +582,7 @@ namespace agui {
 		selFontColor = wantSelectionColor;
 	}
 
-	void ExtendedTextBox::registerEmoticon( const std::string& triggerChar, Image* image, const std::string& clipboardText )
+	void ExtendedTextBox::registerEmoticon( const String& triggerChar, Image* image, const String& clipboardText )
 	{
 		icons[triggerChar] = image;
 		if(clipboardText != "")
@@ -591,9 +591,9 @@ namespace agui {
 		}
 	}
 
-	Image* ExtendedTextBox::getEmoticon(const std::string& triggerChar )
+	Image* ExtendedTextBox::getEmoticon(const String& triggerChar )
 	{
-		std::map<std::string,Image*>::iterator it = icons.find(triggerChar);
+		std::map<String,Image*>::iterator it = icons.find(triggerChar);
 
 		if(it != icons.end())
 		{
@@ -603,9 +603,9 @@ namespace agui {
 		return NULL;
 	}
 
-	std::string ExtendedTextBox::getEmoticonClipboardText( Image* emoticon )
+	String ExtendedTextBox::getEmoticonClipboardText( Image* emoticon )
 	{
-		std::map<Image*,std::string>::iterator it = iconClipboardText.find(emoticon);
+		std::map<Image*,String>::iterator it = iconClipboardText.find(emoticon);
 
 		if(it != iconClipboardText.end())
 		{
@@ -620,11 +620,11 @@ namespace agui {
 		if(getSelectionLength() > 0)
 		{
 			int start = getSelectionStart();
-			std::string text = getSelectedText();
+			String text = getSelectedText();
 			size_t uniPos = 0;
 			int bytesSkipped = 0;
-			std::string newStr;
-			std::string curChar;
+			String newStr;
+			String curChar;
 			size_t textLen = unicodeFunctions.length(text);
 
 			for(size_t i = 0; i < textLen; ++i)

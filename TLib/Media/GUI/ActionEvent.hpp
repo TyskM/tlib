@@ -42,7 +42,7 @@
 #define AGUI_ACTION_EVENT_HPP
 #include <TLib/Media/GUI/Platform.hpp>
 #include <stdlib.h>
-#include <string>
+#include <TLib/String.hpp>
 
 namespace agui
 {
@@ -55,14 +55,14 @@ namespace agui
      * @since 0.1.0
      */
 	class AGUI_CORE_DECLSPEC ActionEvent {
-		std::string id;
+		String id;
 		Widget* source;
 	public:
 	/**
      * @return The Action Event ID string.
      * @since 0.1.0
      */
-		const std::string& getId() const;
+		const String& getId() const;
 	/**
      * @return The widget that raised the event.
      * @since 0.1.0
@@ -79,7 +79,7 @@ namespace agui
 	 * @param id The optional event identifier.
      * @since 0.1.0
      */
-		ActionEvent(Widget* source,const std::string &id = "");
+		ActionEvent(Widget* source,const String &id = "");
 	/**
      * Default destructor.
      * @since 0.1.0

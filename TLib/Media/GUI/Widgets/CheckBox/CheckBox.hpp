@@ -71,13 +71,13 @@ namespace agui {
 
 	private:
 		int sidePadding;
-		Rectangle wordWrapRect;
-		std::vector<std::string> wordWrappedLines;
-		std::vector<CheckBoxListener*> checkBoxListeners;
+		Recti wordWrapRect;
+		Vector<String> wordWrappedLines;
+		Vector<CheckBoxListener*> checkBoxListeners;
 		bool autosizingCheckbox;
-		Dimension checkBoxSize;
-		Point checkBoxPosition;
-		Rectangle checkBoxRect;
+		Vector2i checkBoxSize;
+		Vector2i checkBoxPosition;
+		Recti checkBoxRect;
 		AreaAlignmentEnum textAlignment;
 		AreaAlignmentEnum checkBoxAlignment;
 		CheckBox::CheckBoxStateEnum checkBoxState;
@@ -88,21 +88,21 @@ namespace agui {
 	protected:
 		ResizableText textAreaMan;
 	 /**
-	 * @return std::vector of strings used to draw the text.
+	 * @return Vector of strings used to draw the text.
      * @since 0.1.0
      */
-		virtual const std::vector<std::string>& getTextLines() const;
+		virtual const Vector<String>& getTextLines() const;
 
 	 /**
-	 * @return Rectangle provided when drawing the text.
+	 * @return Recti provided when drawing the text.
      * @since 0.1.0
      */
-		virtual const Rectangle& getWordWrapRect() const;
+		virtual const Recti& getWordWrapRect() const;
 	 /**
 	 * Internally sets the widget size.
      * @since 0.1.0
      */
-		void _setSizeInternal(const Dimension &size);
+		void _setSizeInternal(const Vector2i &size);
 	 /**
 	 * Internally changes the CheckBox's state.
      * @since 0.1.0
@@ -124,7 +124,7 @@ namespace agui {
      */
 		virtual void nextCheckState();
 	/**
-	 * Generates the Rectangle used to draw the CheckBox.
+	 * Generates the Recti used to draw the CheckBox.
      * @since 0.1.0
      */
 		virtual void positionCheckBox();
@@ -132,17 +132,17 @@ namespace agui {
 	 * @return The position of the actual CheckBox.
      * @since 0.1.0
      */
-		virtual const Point& getCheckBoxPosition() const;
+		virtual const Vector2i& getCheckBoxPosition() const;
 		/**
 	 * Internally resizes the caption text.
      * @since 0.1.0
      */
 		virtual void resizeCaption();
 	/**
-	 * @return The Rectangle used to draw the CheckBox itself.
+	 * @return The Recti used to draw the CheckBox itself.
      * @since 0.1.0
      */
-		virtual const Rectangle& getCheckBoxRectangle() const;
+		virtual const Recti& getCheckBoxRectangle() const;
 
 		virtual void paintComponent(const PaintEvent &paintEvent);
 		virtual void paintBackground(const PaintEvent &paintEvent);
@@ -159,12 +159,12 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual void setSidePadding(int padding);
-		virtual void setLocation(const Point &location);
+		virtual void setLocation(const Vector2i &location);
 		virtual void setLocation(int x, int y);
 		virtual void setFont(const Font *font);
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
-		virtual void setText(const std::string &text);
+		virtual void setText(const String &text);
 		virtual void focusGained();
 		virtual void focusLost();
 		virtual void mouseEnter(MouseEvent &mouseEvent);
@@ -204,12 +204,12 @@ namespace agui {
 	 * Sets the size of the actual CheckBox.
      * @since 0.1.0
      */
-		virtual void setCheckBoxSize(const Dimension &size);
+		virtual void setCheckBoxSize(const Vector2i &size);
 	/**
 	 * @return The size of the actual CheckBox.
      * @since 0.1.0
      */
-		virtual const Dimension& getCheckBoxSize() const;
+		virtual const Vector2i& getCheckBoxSize() const;
 		virtual void setFontColor(const Color &color);
 	/**
 	 * Sets the alignment of the actual CheckBox.

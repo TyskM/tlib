@@ -70,12 +70,12 @@ namespace agui {
 		int dragY;
 		bool moving;
 		bool resizing;
-		Dimension initialSize;
+		Vector2i initialSize;
 
 		bool isMaintainingContainer;
 		Widget *pChildContainer;
 
-		std::vector<FrameListener*> frameListeners;
+		Vector<FrameListener*> frameListeners;
 	protected:
 		virtual void paintComponent(const PaintEvent &paintEvent);
 		virtual void paintBackground(const PaintEvent &paintEvent);
@@ -88,7 +88,7 @@ namespace agui {
 	 * @return The bottom right rectangle used to determine if dragging results in a resize.
      * @since 0.1.0
      */
-		virtual Rectangle getBRResizeRect() const;
+		virtual Recti getBRResizeRect() const;
 	public:
 	/**
 	 * Adds the parameter FrameListener.
@@ -136,7 +136,7 @@ namespace agui {
 	 * @return The inner size of the content pane.
      * @since 0.1.0
      */
-		virtual const Dimension& getContentSize() const;
+		virtual const Vector2i& getContentSize() const;
 		virtual void mouseDown(MouseEvent &mouseEvent);
 		virtual void mouseDrag(MouseEvent &mouseEvent);
 	/**
@@ -152,14 +152,14 @@ namespace agui {
      */
 		virtual bool isMovable() const;
 		virtual void mouseUp(MouseEvent &mouseEvent);
-		virtual void setSize(const Dimension &size);
+		virtual void setSize(const Vector2i &size);
 		virtual void setSize(int width, int height);
 
 	/**
 	 * Sets the size of the content pane to the parameter size and properly factors in margins.
      * @since 0.2.0
      */
-		virtual void setClientSize(const Dimension &size);
+		virtual void setClientSize(const Vector2i &size);
 			/**
 	 * Sets the size of the content pane to the parameter size and properly factors in margins.
      * @since 0.2.0

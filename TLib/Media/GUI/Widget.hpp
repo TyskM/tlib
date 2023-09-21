@@ -38,8 +38,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef AGUI_WIDGET_HPP
-#define AGUI_WIDGET_HPP
+#pragma once
+
+#include <TLib/String.hpp>
+#include <TLib/Containers/List.hpp>
 
 #include <TLib/Media/GUI/BaseTypes.hpp>
 #include <TLib/Media/GUI/EventArgs.hpp>
@@ -52,11 +54,9 @@
 #include <TLib/Media/GUI/Graphics.hpp>
 #include <TLib/Media/GUI/FocusManager.hpp>
 #include <TLib/Media/GUI/CursorProvider.hpp>
-#include <list>
-
 
 namespace agui {
-    typedef std::list<Widget*> WidgetArray;
+    typedef List<Widget*> WidgetArray;
     class AGUI_CORE_DECLSPEC Gui;
 
      /**
@@ -75,52 +75,52 @@ namespace agui {
     {
 
     private:
-        std::vector<Widget*> rects;
-        static Font* globalFont;
-        static int globalFontID;
-        bool flaggedForDestruction;
-        Color fontColor;
-        Font *font;
-        int textLen;
-        float opacity;
-        Color backColor;
-        Point location;
-        Dimension maxSize;
-        Dimension minSize;
-        Dimension size;
-        Dimension innerSize;
-        int tMargin;
-        int lMargin;
-        int bMargin;
-        int rMargin;
-        bool isWidgetEnabled;
-        bool isWidgetVisible;
-        bool isWidgetFocusable;
-        bool isWidgetTabable;
-        bool usingGlobalFont;
-        bool paintingChildren;
-        std::string text;
-        int previousFontNum;
-        std::stack<Rectangle> stackRects;
-        Point stackOffset;
-        WidgetArray children;
-        WidgetArray privateChildren;
-        std::string toolTipText;
-        bool handlesChildLogic;
-        bool prevTabable;
-        bool layoutWidget;
-        float globalOpacity;
-        bool causesLocationChange;
+        Vector<Widget*> rects;
+        static Font*    globalFont;
+        static int      globalFontID;
+        bool            flaggedForDestruction;
+        Color           fontColor;
+        Font*           font;
+        int             textLen;
+        float           opacity;
+        Color           backColor;
+        Vector2i        location;
+        Vector2i        maxSize;
+        Vector2i        minSize;
+        Vector2i        size;
+        Vector2i        innerSize;
+        int             tMargin;
+        int             lMargin;
+        int             bMargin;
+        int             rMargin;
+        bool            isWidgetEnabled;
+        bool            isWidgetVisible;
+        bool            isWidgetFocusable;
+        bool            isWidgetTabable;
+        bool            usingGlobalFont;
+        bool            paintingChildren;
+        String          text;
+        int             previousFontNum;
+        Stack<Recti>    stackRects;
+        Vector2i        stackOffset;
+        WidgetArray     children;
+        WidgetArray     privateChildren;
+        String          toolTipText;
+        bool            handlesChildLogic;
+        bool            prevTabable;
+        bool            layoutWidget;
+        float           globalOpacity;
+        bool            causesLocationChange;
 
 
-        std::vector<MouseListener*> mouseListeners;
-        std::vector<KeyboardListener*> keyboardListeners;
+        Vector<MouseListener*> mouseListeners;
+        Vector<KeyboardListener*> keyboardListeners;
 
-        std::vector<FocusListener*>focusListeners;
+        Vector<FocusListener*>focusListeners;
 
-        std::vector<WidgetListener*>widgetListeners;
+        Vector<WidgetListener*>widgetListeners;
 
-        std::vector<ActionListener*>actionListeners;
+        Vector<ActionListener*>actionListeners;
 
      /**
      * Generates a new mouse event where the source is the widget.
@@ -231,7 +231,7 @@ namespace agui {
      */
         virtual bool containsPrivateChild(Widget *widget) const;
     /**
-    * @return The index of the private child in the internal private widget std::vector.
+    * @return The index of the private child in the internal private widget vector.
     *
     * @return -1 if not found.
     * @param  widget The widget you would like to get the index of.
@@ -292,8 +292,8 @@ namespace agui {
     * @return An anchor position for a given alignment.
     * @since 0.1.0
     */
-        Point createAlignedPosition(AreaAlignmentEnum alignment,
-            const Rectangle &parentRect,const Dimension &childSize) const;
+        Vector2i createAlignedPosition(AreaAlignmentEnum alignment,
+            const Recti& parentRect,const Vector2i& childSize) const;
 
     /**
     * @return The rounded parameter value. Ex: 1.3f returns 1 and 1.8f returns 2.
@@ -391,26 +391,26 @@ namespace agui {
 
 
     /**
-    * @return A begin iterator to the public children std::list.
+    * @return A begin iterator to the public children list.
     * @since 0.1.0
     */
         WidgetArray::iterator			getChildBegin();
 
     /**
-    * @return A reverse begin iterator to the public children std::list.
+    * @return A reverse begin iterator to the public children list.
     * @since 0.1.0
     */
         WidgetArray::reverse_iterator	getChildRBegin();
 
     /**
-    * @return An end iterator to the public children std::list.
+    * @return An end iterator to the public children list.
     * @since 0.1.0
     */
 
         WidgetArray::iterator			getChildEnd();
 
     /**
-    * @return A reverse end iterator to the public children std::list.
+    * @return A reverse end iterator to the public children list.
     * @since 0.1.0
     */
 
@@ -438,22 +438,22 @@ namespace agui {
         WidgetArray::const_reverse_iterator	getChildREnd() const;
 
             /**
-    * @return A begin iterator to the private children std::vector.
+    * @return A begin iterator to the private children vector.
     * @since 0.1.0
     */
         WidgetArray::iterator			getPrivateChildBegin();
         /**
-    * @return A reverse begin iterator to the private children std::vector.
+    * @return A reverse begin iterator to the private children vector.
     * @since 0.1.0
     */
         WidgetArray::reverse_iterator	getPrivateChildRBegin();
             /**
-    * @return An end iterator to the private children std::vector.
+    * @return An end iterator to the private children vector.
     * @since 0.1.0
     */
         WidgetArray::iterator			getPrivateChildEnd();
     /**
-    * @return A reverse end iterator to the private children std::vector.
+    * @return A reverse end iterator to the private children vector.
     * @since 0.1.0
     */
         WidgetArray::reverse_iterator	getPrivateChildREnd();
@@ -518,19 +518,13 @@ namespace agui {
         virtual void	remove	(Widget *widget);
 
     /**
-    * Removes all this widgets children
-    * @since TLib
-    */
-        virtual void removeAll();
-
-    /**
     * @return A boolean indicating if the parameter widget is a child of this widget.
     * @param widget Widget to check for.
     * @since 0.1.0
     */
         bool	containsChildWidget(Widget *widget) const;
     /**
-    * @return The index of the parameter widget in this widget's public children std::vector.
+    * @return The index of the parameter widget in this widget's public children vector.
     *
     * @return -1 if not found.
     * @param widget Widget to get the index of.
@@ -705,7 +699,7 @@ namespace agui {
 
     /**
     * @return The public child at that index or NULL if not found.
-    * @param index The index where the child is in the std::vector.
+    * @param index The index where the child is in the vector.
     * @since 0.1.0
     */
         Widget*				getChildAt		(int index) const;
@@ -757,7 +751,7 @@ namespace agui {
         */
         virtual bool			isTabable()				const;
         /**
-        * @return This widget's index in its parent's public children std::vector.
+        * @return This widget's index in its parent's public children vector.
         *
         * @return -1 if this widget has no parent or is a private child of its parent.
         * @since 0.1.0
@@ -789,38 +783,38 @@ namespace agui {
         */
         float					getOpacity()			const;
         /**
-        * @return A rectangle where the top left Point is the widget's location.
+        * @return A rectangle where the top left Vector2i is the widget's location.
         *
         * The size of the rectangle is this widget's size.
         * @since 0.1.0
         */
-        virtual const Rectangle getRelativeRectangle() const;
+        virtual const Recti getRelativeRectangle() const;
         /**
-        * @return A rectangle where the top left Point is 0,0.
+        * @return A rectangle where the top left Vector2i is 0,0.
         *
         * The size of the rectangle is this widget's size.
         * @since 0.1.0
         */
-        virtual const Rectangle getSizeRectangle() const;
+        virtual const Recti getSizeRectangle() const;
         /**
         * @return The widget's location.
         *
         * This value is relative to the parent, and factors in the parent's margins.
         * @since 0.1.0
         */
-        virtual const Point& getLocation()			const;
+        virtual const Vector2i& getLocation()			const;
         /**
-        * @return A rectangle where the top left Point is the widget's absolute position.
+        * @return A rectangle where the top left Vector2i is the widget's absolute position.
         *
         * The size of the rectangle is this widget's size.
         * @since 0.1.0
         */
-        virtual const Rectangle getAbsoluteRectangle()	const;
+        virtual const Recti getAbsoluteRectangle()	const;
         /**
         * @return The size of the widget.
         * @since 0.1.0
         */
-        virtual const Dimension&	getSize()				const;
+        virtual const Vector2i&	getSize()				const;
 
         /**
         * @return The width of the widget.
@@ -852,7 +846,7 @@ namespace agui {
         * The size can never be set to less than this.
         * @since 0.1.0
         */
-        virtual const Dimension& getMinSize()			const;
+        virtual const Vector2i& getMinSize()			const;
         /**
         * The size can never be set to more than this.
         *
@@ -861,7 +855,7 @@ namespace agui {
         * @return The maximum size of the widget.
         * @since 0.1.0
         */
-        virtual const Dimension& getMaxSize()			const;
+        virtual const Vector2i& getMaxSize()			const;
         /**
         * The Gui calls this to know if the mouse is over this widget.
         *
@@ -871,7 +865,7 @@ namespace agui {
         * @param p Relative point.
         * @since 0.1.0
         */
-        virtual bool			intersectionWithPoint	(const Point &p) const;
+        virtual bool			intersectionWithPoint	(const Vector2i &p) const;
         /**
         * Positions this widget to the given anchor in its parent.
         * @param alignment The alignment to align this wdget to.
@@ -882,13 +876,13 @@ namespace agui {
         * @return The UTF8 encoded text string of this widget.
         * @since 0.1.0
         */
-        virtual const std::string&	getText()			const;
+        virtual const String&	getText()			const;
         /**
-        * Sets the size to the parameter Dimension and will clamp it to the minimum and maximum sizes.
+        * Sets the size to the parameter Vector2i and will clamp it to the minimum and maximum sizes.
         * @param size The desired size.
         * @since 0.1.0
         */
-        virtual void			setSize					(const Dimension &size);
+        virtual void			setSize					(const Vector2i &size);
         /**
         * Sets the size to the parameter width and height and will clamp them to the minimum and maximum sizes.
         * @param width The desired width.
@@ -954,13 +948,13 @@ namespace agui {
         */
         virtual void			setFont					(const Font *font);
         /**
-        * Sets the location to the parameter Point.
+        * Sets the location to the parameter Vector2i.
         *
         * The location is relative to its parent.
         * @param location The desired relative location.
         * @since 0.1.0
         */
-        virtual void			setLocation				(const Point &location);
+        virtual void			setLocation				(const Vector2i &location);
         /**
         * Sets the location to the parameter x and y.
         *
@@ -971,27 +965,27 @@ namespace agui {
         */
         virtual void			setLocation				(int x, int y);
         /**
-        * Sets the minimum size of the widget to the parameter Dimension.
+        * Sets the minimum size of the widget to the parameter Vector2i.
         * @param size The minimum size.
         * @since 0.1.0
         */
-        virtual void			setMinSize			(const Dimension &size);
+        virtual void			setMinSize			(const Vector2i &size);
         /**
-        * Sets the maximum size of the widget to the parameter Dimension.
+        * Sets the maximum size of the widget to the parameter Vector2i.
         *
         * Note: Setting a value of 0 for either axis
         * indicates that this axis has no restriction.
         * @param size The maximum size.
         * @since 0.1.0
         */
-        virtual void			setMaxSize			(const Dimension &size);
+        virtual void			setMaxSize			(const Vector2i &size);
         /**
         * Sets the widget's text to the UTF8 encoded parameter string.
         *
         * @param text The UTF8 encoded string.
         * @since 0.1.0
         */
-        virtual void			setText					(const std::string &text);
+        virtual void			setText					(const String &text);
         /**
         * Sets the widget's background Color.
         *
@@ -1021,17 +1015,17 @@ namespace agui {
         */
         virtual void			setVisibility			(bool visible);
         /**
-        * @return A rectangle where the top left Point is LEFT_MARGIN, TOP_MARGIN.
+        * @return A rectangle where the top left Vector2i is LEFT_MARGIN, TOP_MARGIN.
         *
         * The size of the rectangle is this widget's inner size.
         * @since 0.1.0
         */
-        virtual const Rectangle	getInnerRectangle   () const;
+        virtual const Recti	getInnerRectangle   () const;
         /**
         * @return This widget's absolute position.
         * @since 0.1.0
         */
-        Point				getAbsolutePosition		() const;	
+        Vector2i				getAbsolutePosition		() const;	
         /**
         * Makes this widget the front most child in its parent.
         *
@@ -1069,12 +1063,12 @@ namespace agui {
         * Set the text used to display the ToolTip. 
         * @since 0.2.0
         */
-        virtual void			setToolTipText			(const std::string& text);
+        virtual void			setToolTipText			(const String& text);
         /**
         * @return The text used to display the ToolTip.
         * @since 0.2.0
         */
-        virtual std::string		getToolTipText					();
+        virtual String		getToolTipText					();
 
         /**
         * Makes this widget visible.
@@ -1092,7 +1086,7 @@ namespace agui {
         * @return The width minus the left and right margins and the height minus the top and bottom margins.
         * @since 0.1.0
         */
-        const Dimension&			getInnerSize			() const;	
+        const Vector2i&			getInnerSize			() const;	
         /**
         * @return A boolean indicating if this widget's font is the globally shared font.
         * @since 0.1.0
@@ -1263,5 +1257,3 @@ namespace agui {
     virtual float getGlobalOpacity() const;
     };
 }
-
-#endif

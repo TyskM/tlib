@@ -105,11 +105,11 @@ namespace agui {
 
 		bool hideSelection;
 		bool selfSetText;
-		std::vector<std::string> textRows;
-		std::vector<int> lineOffset;
-		std::vector<std::pair<Point,Point> > selPts;
-		std::vector<int> rowLengths;
-		Point selectionIndexes;
+		Vector<String> textRows;
+		Vector<int> lineOffset;
+		Vector<std::pair<Vector2i,Vector2i> > selPts;
+		Vector<int> rowLengths;
+		Vector2i selectionIndexes;
 
 		int maxLength;
 		bool selectable;
@@ -122,7 +122,7 @@ namespace agui {
 		bool isMaintainingHScroll;
 		bool isMaintainingVScroll;
 		bool isMaintainingScrollInset;
-		std::vector<TextBoxListener*> textBoxListeners;
+		Vector<TextBoxListener*> textBoxListeners;
 		virtual void handleKeyboard(const KeyEvent &keyEvent);
 	protected:
 	 /**
@@ -134,13 +134,13 @@ namespace agui {
 	 * Used internally to set the text.
      * @since 0.1.0
      */
-		void setThisText(const std::string &text);
+		void setThisText(const String &text);
 	 /**
 	 * @return The width of the string. Modify this if you want to return
 	 * custom widths for Image characters like emoticons for a chat box.
      * @since 0.1.0
      */
-		virtual int getTextWidth(const std::string &text) const;
+		virtual int getTextWidth(const String &text) const;
 	 /**
 	 * @return The number of UTF8 characters this row contains.
      * @since 0.1.0
@@ -228,7 +228,7 @@ namespace agui {
      * Used to find which character the mouse is on.
      * @since 0.1.0
      */
-		virtual Point columnRowFromRelPosition(const Point &pos) const;
+		virtual Vector2i columnRowFromRelPosition(const Vector2i &pos) const;
 	/**
      * @return The index in the text (in UTF8 characters) given a column and a row.
      * @since 0.1.0
@@ -238,12 +238,12 @@ namespace agui {
      * @return The column and row given a UTF8 index in the text.
      * @since 0.1.0
      */
-		virtual Point columnRowFromIndex(int index) const;
+		virtual Vector2i columnRowFromIndex(int index) const;
 	/**
      * Positions the caret at the specified column and row using mouse rules.
      * @since 0.1.0
      */
-		virtual void mousePositionCaret(const Point& pos);
+		virtual void mousePositionCaret(const Vector2i& pos);
 	/**
      * Positions the caret at the specified column and row using keyboard rules.
      * @since 0.1.0
@@ -253,7 +253,7 @@ namespace agui {
      * Positions the caret at the specified column and row using resizing rules.
      * @since 0.1.0
      */
-		virtual void sizePositionCaret(const Point& pos);
+		virtual void sizePositionCaret(const Vector2i& pos);
 	/**
      * Updates the widest line if splitting by newline, but with WordWrap, sets to 0.
      * @since 0.1.0
@@ -273,14 +273,14 @@ namespace agui {
      * @return The UTF8 encoded string representing the parameter line.
      * @since 0.1.0
      */
-		virtual const std::string& getTextLineAt(int line) const;
+		virtual const String& getTextLineAt(int line) const;
 	/**
-     * @return The Point, Point pair representing the Top Left, and Bottom Right points.
+     * @return The Vector2i, Vector2i pair representing the Top Left, and Bottom Right points.
 	 * needed to construct the selection rectangle for this line. It is not given as a rectangle
 	 * for flexibility.
      * @since 0.1.0
      */
-		virtual const std::pair<Point,Point>& getSelLineAt(int line) const;
+		virtual const std::pair<Vector2i,Vector2i>& getSelLineAt(int line) const;
 	/**
      * @return The number of selection lines to query when rendering.
      * @since 0.1.0
@@ -410,7 +410,7 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual void logic(double timeElapsed);
-		virtual bool intersectionWithPoint(const Point &p) const;
+		virtual bool intersectionWithPoint(const Vector2i &p) const;
 	/**
 	 * Sets the text alignment (LEFT, CENTER, RIGHT). Only applicable when word wrap is on.
      * @since 0.1.0
@@ -430,7 +430,7 @@ namespace agui {
 	 * @return The UTF8 encoded string representing the selection.
      * @since 0.1.0
      */
-		std::string getSelectedText() const;
+		String getSelectedText() const;
 	/**
 	 * @return True if standard arrow key rules are in use.
 	 *
@@ -480,18 +480,18 @@ namespace agui {
      * @since 0.1.0
      */
 		
-		virtual void appendText(const std::string &text,
+		virtual void appendText(const String &text,
 			bool atCurrentPosition = true, bool repositionCaret = true);
 	/**
 	 * @return The size of the Horizontal Scrollbar.
      * @since 0.1.0
      */
-		const Dimension& getHSrollSize() const;
+		const Vector2i& getHSrollSize() const;
 			/**
 	 * @return The size of the Vertical Scrollbar.
      * @since 0.1.0
      */
-		const Dimension& getVScrollSize() const;
+		const Vector2i& getVScrollSize() const;
 	/**
 	 * @return The zero based index of the selection start.
      * @since 0.1.0
@@ -604,8 +604,8 @@ namespace agui {
      * @since 0.1.0
      */
 		virtual void scrollToCaret();
-		virtual void setText(const std::string &text);
-		virtual void setSize(const Dimension &size );
+		virtual void setText(const String &text);
+		virtual void setSize(const Vector2i &size );
 		virtual void setSize(int width, int height);
 	/**
 	 * Sets the Horizontal Scrollbar's policy. (SHOW_ALWAYS, SHOW_AUTO, SHOW_NEVER).

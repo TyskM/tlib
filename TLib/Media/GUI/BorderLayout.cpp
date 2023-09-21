@@ -315,14 +315,14 @@ namespace agui
 
 		if(isNorth)
 		{
-			if(northMargin < north->getMinSize().getHeight() && north->getMinSize().getHeight() > 0)
+			if(northMargin < north->getMinSize().y && north->getMinSize().y > 0)
 			{
-				northMargin = north->getMinSize().getHeight();
+				northMargin = north->getMinSize().y;
 			}
 
-			if(northMargin > north->getMaxSize().getHeight() && north->getMaxSize().getHeight() > 0)
+			if(northMargin > north->getMaxSize().y && north->getMaxSize().y > 0)
 			{
-				northMargin = north->getMaxSize().getHeight();
+				northMargin = north->getMaxSize().y;
 			}
 			north->setLocation(0,0);
 			north->setSize(getInnerWidth(),northMargin);
@@ -331,14 +331,14 @@ namespace agui
 		//layout south
 		if(isSouth)
 		{
-			if(southMargin < south->getMinSize().getHeight() && south->getMinSize().getHeight() > 0)
+			if(southMargin < south->getMinSize().y && south->getMinSize().y > 0)
 			{
-				southMargin = south->getMinSize().getHeight();
+				southMargin = south->getMinSize().y;
 			}
 
-			if(southMargin > south->getMaxSize().getHeight() && south->getMaxSize().getHeight() > 0)
+			if(southMargin > south->getMaxSize().y && south->getMaxSize().y > 0)
 			{
-				southMargin = south->getMaxSize().getHeight();
+				southMargin = south->getMaxSize().y;
 			}
 
 			south->setLocation(0,getInnerHeight() - southMargin);
@@ -360,14 +360,14 @@ namespace agui
 		//layout west
 		if(isWest)
 		{
-			if(westMargin < west->getMinSize().getWidth() && west->getMinSize().getWidth() > 0)
+			if(westMargin < west->getMinSize().x && west->getMinSize().x > 0)
 			{
-				westMargin = west->getMinSize().getWidth();
+				westMargin = west->getMinSize().x;
 			}
 
-			if(westMargin > west->getMaxSize().getWidth() && west->getMaxSize().getWidth() > 0)
+			if(westMargin > west->getMaxSize().x && west->getMaxSize().x > 0)
 			{
-				westMargin = west->getMaxSize().getHeight();
+				westMargin = west->getMaxSize().y;
 			}
 
 			west->setLocation(0,vGapNorth);
@@ -379,14 +379,14 @@ namespace agui
 		//layout east
 		if(isEast)
 		{
-			if(eastMargin < east->getMinSize().getWidth() && east->getMinSize().getWidth() > 0)
+			if(eastMargin < east->getMinSize().x && east->getMinSize().x > 0)
 			{
-				eastMargin = east->getMinSize().getWidth();
+				eastMargin = east->getMinSize().x;
 			}
 
-			if(eastMargin > east->getMaxSize().getWidth() && east->getMaxSize().getWidth() > 0)
+			if(eastMargin > east->getMaxSize().x && east->getMaxSize().x > 0)
 			{
-				eastMargin = east->getMaxSize().getHeight();
+				eastMargin = east->getMaxSize().y;
 			}
 
 			east->setLocation(getInnerWidth() - eastMargin,vGapNorth);

@@ -54,8 +54,8 @@ namespace agui {
      */
 	class AGUI_CORE_DECLSPEC RadioButtonGroup : public RadioButtonListener
 	{
-		std::string groupId;
-		std::vector<RadioButton*> radioButtons;
+		String groupId;
+		Vector<RadioButton*> radioButtons;
 		RadioButton* selectedRButton;
 	protected:
 	/**
@@ -80,12 +80,12 @@ namespace agui {
      * Constructs with a group id string.
      * @since 0.1.0
      */
-		RadioButtonGroup(const std::string &id);
+		RadioButtonGroup(const String &id);
 	/**
      * @return The group id string.
      * @since 0.1.0
      */
-		const std::string& getGroupId() const;
+		const String& getGroupId() const;
 	/**
      * Adds the parameter RadioButton to the group.
      * @since 0.1.0

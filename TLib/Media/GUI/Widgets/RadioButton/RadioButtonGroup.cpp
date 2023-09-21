@@ -45,7 +45,7 @@ namespace agui {
 		selectedRButton = NULL;
 	}
 
-	RadioButtonGroup::RadioButtonGroup( const std::string &id )
+	RadioButtonGroup::RadioButtonGroup( const String &id )
 	{
 		selectedRButton = NULL;
 		groupId = id;
@@ -53,14 +53,14 @@ namespace agui {
 
 	RadioButtonGroup::~RadioButtonGroup(void)
 	{
-		for(std::vector<RadioButton*>::iterator	it = radioButtons.begin();
+		for(Vector<RadioButton*>::iterator	it = radioButtons.begin();
 			it != radioButtons.end(); ++it)
 		{
 			(*it)->removeRadioButtonListener(this);
 		}
 	}
 
-	const std::string& RadioButtonGroup::getGroupId() const
+	const String& RadioButtonGroup::getGroupId() const
 	{
 		return groupId;
 	}
@@ -71,7 +71,7 @@ namespace agui {
 		{
 			return;
 		}
-		for(std::vector<RadioButton*>::iterator	it = radioButtons.begin();
+		for(Vector<RadioButton*>::iterator	it = radioButtons.begin();
 			it != radioButtons.end(); ++it)
 		{
 			if((*it) == radioButton)

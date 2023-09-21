@@ -41,18 +41,18 @@
 #ifndef AGUI_WIN_CLIPBOARD_HPP
 #define AGUI_WIN_CLIPBOARD_HPP
 #include <stdlib.h>
-#include <string>
+#include <TLib/String.hpp>
 #include <TLib/Media/GUI/Platform.hpp>
 namespace agui
 {
 	class AGUI_CORE_DECLSPEC WinClipboard
 	{	
-		static std::string _winUTF16ToUTF8(const std::wstring& input);
-		static std::wstring _winUTF8ToUTF16(const std::string& input);
+		static String _winUTF16ToUTF8(const std::wstring& input);
+		static std::wstring _winUTF8ToUTF16(const String& input);
 	public:
 
-		static void copy(const std::string& input);
-		static std::string paste();
+		static void copy(const String& input);
+		static String paste();
 		WinClipboard(void);
 		virtual ~WinClipboard(void);
 	};

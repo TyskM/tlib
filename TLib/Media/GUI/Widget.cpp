@@ -53,7 +53,7 @@ namespace agui {
     layoutWidget(false), globalOpacity(1.0f),causesLocationChange(false),
     parentWidget(NULL), _focusManager(NULL), _container(NULL)
     {
-        setLocation(Point(0,0));
+        setLocation(Vector2i(0,0));
         setMargins(1,1,1,1);
         setFont(globalFont);
         setOpacity(1.0f);
@@ -69,7 +69,7 @@ namespace agui {
     if(top && top->_focusManager && top->_focusManager->getFocusedWidget() == this)
             top->_focusManager->setFocusedWidget(NULL);
 
-        for(std::vector<WidgetListener*>::iterator it = 
+        for(Vector<WidgetListener*>::iterator it = 
             widgetListeners.begin();
             it != widgetListeners.end(); ++it)
         {
@@ -118,12 +118,12 @@ namespace agui {
         paintEvent.graphics()->setOffset(getAbsolutePosition());
         paintBackground(paintEvent);
 
-        paintEvent.graphics()->pushClippingRect(Rectangle(getMargin(SIDE_LEFT),
+        paintEvent.graphics()->pushClippingRect(Recti(getMargin(SIDE_LEFT),
             getMargin(SIDE_TOP),
-            getInnerSize().getWidth(),getInnerSize().getHeight()));
+            getInnerSize().x,getInnerSize().y));
 
-        paintEvent.graphics()->setOffset(Point(getAbsolutePosition().getX() + getMargin(SIDE_LEFT),
-            getAbsolutePosition().getY() + getMargin(SIDE_TOP)));
+        paintEvent.graphics()->setOffset(Vector2i(getAbsolutePosition().x + getMargin(SIDE_LEFT),
+            getAbsolutePosition().y + getMargin(SIDE_TOP)));
 
         paintComponent(paintEvent);
         
@@ -131,9 +131,9 @@ namespace agui {
 
 
 
-    void Widget::setText(const std::string &text )
+    void Widget::setText(const String &text )
     {
-        for(std::vector<WidgetListener*>::iterator it = 
+        for(Vector<WidgetListener*>::iterator it = 
             widgetListeners.begin();
             it != widgetListeners.end(); ++it)
         {
@@ -145,12 +145,10 @@ namespace agui {
 
     }
 
-
-    const std::string& Widget::getText() const
+    const String& Widget::getText() const
     {
         return text;
     }
-
 
     void Widget::add( Widget *widget )
     {
@@ -163,7 +161,7 @@ namespace agui {
 
         if(widget->parentWidget == NULL && !containsChildWidget(widget))
         {
-            for(std::vector<WidgetListener*>::iterator it =
+            for(Vector<WidgetListener*>::iterator it =
                 widgetListeners.begin();
                 it != widgetListeners.end(); ++it)
             {
@@ -203,7 +201,7 @@ namespace agui {
             if(getGui())
             { getGui()->_dispatchWidgetDestroyed(widget); }
 
-            for(std::vector<WidgetListener*>::iterator it =
+            for(Vector<WidgetListener*>::iterator it =
                 widgetListeners.begin();
                 it != widgetListeners.end(); ++it)
             {
@@ -212,7 +210,7 @@ namespace agui {
             }
 
             WidgetArray::iterator i = children.begin();
-            std::advance(i,getChildWidgetIndex(widget));
+            eastl::advance(i,getChildWidgetIndex(widget));
             children.erase(i);
 
             widget->clearParentWidget();
@@ -222,12 +220,6 @@ namespace agui {
         removePrivateChild(widget);
         if(getGui())
         { getGui()->_widgetLocationChanged(); }
-    }
-
-    void Widget::removeAll()
-    {
-        for (auto& child : children)
-        { remove(child); }
     }
 
     void Widget::checkLostFocusRecursive()
@@ -312,7 +304,7 @@ namespace agui {
 
     void Widget::focusGained()
     {
-        for(std::vector<FocusListener*>::iterator it = focusListeners.begin();
+        for(Vector<FocusListener*>::iterator it = focusListeners.begin();
             it != focusListeners.end(); ++it)
         {
             (*it)->focusGainedCB(this);
@@ -322,7 +314,7 @@ namespace agui {
 
     void Widget::focusLost()
     {
-        for(std::vector<FocusListener*>::iterator it = focusListeners.begin();
+        for(Vector<FocusListener*>::iterator it = focusListeners.begin();
             it != focusListeners.end(); ++it)
         {
             (*it)->focusLostCB(this);
@@ -350,21 +342,21 @@ namespace agui {
         return parent;
     }
 
-    bool Widget::intersectionWithPoint(const Point &p ) const
+    bool Widget::intersectionWithPoint(const Vector2i &p ) const
     {
-        return getSizeRectangle().pointInside(p);
+        return getSizeRectangle().contains(p);
     }
 
-    const Rectangle Widget::getAbsoluteRectangle() const
+    const Recti Widget::getAbsoluteRectangle() const
     {
-        Point absLocation;
+        Vector2i absLocation;
 
         absLocation = getLocation();
 
         if(!getParent())
         {
-            return Rectangle(absLocation.getX(),absLocation.getY(),
-                getSize().getWidth(),getSize().getHeight());
+            return Recti(absLocation.x,absLocation.y,
+                getSize().x,getSize().y);
         }
         
         const Widget* parent = this;
@@ -378,42 +370,42 @@ namespace agui {
             eX = parent->getMargin(SIDE_LEFT);
             eY = parent->getMargin(SIDE_TOP);
         
-            absLocation.setX(absLocation.getX() + parent->getLocation().getX() + eX);
-            absLocation.setY(absLocation.getY() + parent->getLocation().getY() + eY);
+            absLocation.x = (absLocation.x + parent->getLocation().x + eX);
+            absLocation.y = (absLocation.y + parent->getLocation().y + eY);
         }
 
-        return Rectangle(absLocation,getSize());
+        return Recti(absLocation,getSize());
     }
 
-    const Dimension& Widget::getSize() const
+    const Vector2i& Widget::getSize() const
     {
         return size;
     }
 
-    void Widget::setSize(const Dimension &size )
+    void Widget::setSize(const Vector2i &size )
     {
-        int x = size.getWidth();
-        int y = size.getHeight();
+        int x = size.x;
+        int y = size.y;
 
-        if(x > maxSize.getWidth() && maxSize.getWidth() > 0)
+        if(x > maxSize.x && maxSize.x > 0)
         {
-            x = maxSize.getWidth();
+            x = maxSize.x;
         }
-        else if(x < minSize.getWidth())
+        else if(x < minSize.x)
         {
-            x = minSize.getWidth();
-        }
-
-        if(y > maxSize.getHeight() && maxSize.getHeight() > 0)
-        {
-            y = maxSize.getHeight();
-        }
-        else if(y < minSize.getHeight())
-        {
-            y = minSize.getHeight();
+            x = minSize.x;
         }
 
-        this->size = Dimension(x,y);
+        if(y > maxSize.y && maxSize.y > 0)
+        {
+            y = maxSize.y;
+        }
+        else if(y < minSize.y)
+        {
+            y = minSize.y;
+        }
+
+        this->size = Vector2i(x,y);
         _setInnerSize();
 
         if(getGui() && getGui()->getLockWidget() == NULL)
@@ -435,7 +427,7 @@ namespace agui {
             (*it)->parentSizeChanged();
         }
 
-        for(std::vector<WidgetListener*>::iterator it =
+        for(Vector<WidgetListener*>::iterator it =
             widgetListeners.begin();
             it != widgetListeners.end(); ++it)
         {
@@ -447,19 +439,19 @@ namespace agui {
 
     void Widget::setSize( int width, int height )
     {
-        setSize(Dimension(width,height));
+        setSize(Vector2i(width,height));
     }
 
-    const Point& Widget::getLocation() const
+    const Vector2i& Widget::getLocation() const
     {
         return location;
     }
 
-    void Widget::setLocation(const Point &location )
+    void Widget::setLocation(const Vector2i &location )
     {
         this->location = location;
 
-        for(std::vector<WidgetListener*>::iterator it = 
+        for(Vector<WidgetListener*>::iterator it = 
             widgetListeners.begin();
             it != widgetListeners.end(); ++it)
         {
@@ -475,7 +467,7 @@ namespace agui {
 
     void Widget::setLocation( int x, int y )
     {
-        setLocation(Point(x,y));
+        setLocation(Vector2i(x,y));
     }
 
 
@@ -539,7 +531,7 @@ namespace agui {
         }
         else if(!visible)
         {
-            std::queue<Widget*> q;
+            Queue<Widget*> q;
             q.push(this);
             Widget* top = getTopWidget();
 
@@ -573,7 +565,7 @@ namespace agui {
         {
             this->isWidgetVisible = visible;
 
-            for(std::vector<WidgetListener*>::iterator it = 
+            for(Vector<WidgetListener*>::iterator it = 
                 widgetListeners.begin();
                 it != widgetListeners.end(); ++it)
             {
@@ -623,7 +615,7 @@ namespace agui {
         }
         else if(!enabled)
         {
-            std::queue<Widget*> q;
+            Queue<Widget*> q;
             q.push(this);
             Widget* top = getTopWidget();
         
@@ -658,7 +650,7 @@ namespace agui {
         {
             this->isWidgetEnabled = enabled;
 
-            for(std::vector<WidgetListener*>::iterator it = 
+            for(Vector<WidgetListener*>::iterator it = 
                 widgetListeners.begin();
                 it != widgetListeners.end(); ++it)
             {
@@ -735,7 +727,7 @@ namespace agui {
         if(index < 0 || index > (int)children.size() -1) return NULL;
 
         WidgetArray::const_iterator i = children.begin();
-        std::advance(i,index);
+        eastl::advance(i,index);
         return (*i);
     }
 
@@ -765,11 +757,11 @@ namespace agui {
 
 
 
-    void Widget::setMinSize( const Dimension &size )
+    void Widget::setMinSize( const Vector2i &size )
     {
 
-        int x = size.getWidth();
-        int y = size.getHeight();
+        int x = size.x;
+        int y = size.y;
 
         if(x < 0)
         {
@@ -779,19 +771,19 @@ namespace agui {
         {
             y = 0;
         }
-        if(x > maxSize.getWidth() && maxSize.getWidth() > 0)
+        if(x > maxSize.x && maxSize.x > 0)
         {
-            x = maxSize.getWidth();
+            x = maxSize.x;
         }
-        if(y > maxSize.getHeight() && maxSize.getHeight() > 0)
+        if(y > maxSize.y && maxSize.y > 0)
         {
-            y = maxSize.getHeight();
+            y = maxSize.y;
         }
 
-        minSize = Dimension(x,y);
+        minSize = Vector2i(x,y);
         setSize(getSize());
 
-        for(std::vector<WidgetListener*>::iterator it = 
+        for(Vector<WidgetListener*>::iterator it = 
             widgetListeners.begin();
             it != widgetListeners.end(); ++it)
         {
@@ -801,11 +793,11 @@ namespace agui {
 
     }
 
-    void Widget::setMaxSize( const Dimension &size )
+    void Widget::setMaxSize( const Vector2i &size )
     {
 
-        int x = size.getWidth();
-        int y = size.getHeight();
+        int x = size.x;
+        int y = size.y;
 
 
         if(x < 0)
@@ -817,20 +809,20 @@ namespace agui {
             y = 0;
         }
 
-        if(x < minSize.getWidth() && x != 0)
+        if(x < minSize.x && x != 0)
         {
-            x = minSize.getWidth();
+            x = minSize.x;
         }
-        if(y < minSize.getHeight() && y != 0)
+        if(y < minSize.y && y != 0)
         {
-            y = minSize.getHeight();
+            y = minSize.y;
         }
 
-        maxSize = Dimension(x,y);
+        maxSize = Vector2i(x,y);
 
         setSize(getSize());
 
-        for(std::vector<WidgetListener*>::iterator it = 
+        for(Vector<WidgetListener*>::iterator it = 
             widgetListeners.begin();
             it != widgetListeners.end(); ++it)
         {
@@ -899,7 +891,7 @@ namespace agui {
             usingGlobalFont = false;
         }
 
-        for(std::vector<WidgetListener*>::iterator it = 
+        for(Vector<WidgetListener*>::iterator it = 
             widgetListeners.begin();
             it != widgetListeners.end(); ++it)
         {
@@ -922,7 +914,7 @@ namespace agui {
 
     void Widget::modalFocusGained()
     {
-        for(std::vector<FocusListener*>::iterator it = focusListeners.begin();
+        for(Vector<FocusListener*>::iterator it = focusListeners.begin();
             it != focusListeners.end(); ++it)
         {
             (*it)->modalFocusGainedCB(this);
@@ -932,7 +924,7 @@ namespace agui {
 
     void Widget::modalFocusLost()
     {
-        for(std::vector<FocusListener*>::iterator it = focusListeners.begin();
+        for(Vector<FocusListener*>::iterator it = focusListeners.begin();
             it != focusListeners.end(); ++it)
         {
             (*it)->modalFocusLostCB(this);
@@ -1174,7 +1166,7 @@ namespace agui {
 
         KeyEvent kArgs = addSourceToKeyEvent(keyEvent);
 
-        for(std::vector<KeyboardListener*>::iterator it 
+        for(Vector<KeyboardListener*>::iterator it 
             = keyboardListeners.begin(); it != keyboardListeners.end(); ++it)
         {
             switch (event)
@@ -1206,7 +1198,7 @@ namespace agui {
 
         MouseEvent mArgs = addSourceToMouseEvent(mouseEvent);
 
-        for(std::vector<MouseListener*>::iterator it 
+        for(Vector<MouseListener*>::iterator it 
             = mouseListeners.begin(); it != mouseListeners.end(); ++it)
         {
 
@@ -1269,7 +1261,7 @@ namespace agui {
         {
             return;
         }
-        for (std::vector<MouseListener*>::iterator it = mouseListeners.begin();
+        for (Vector<MouseListener*>::iterator it = mouseListeners.begin();
             it != mouseListeners.end(); ++it)
         {
             if((*it) == listener)
@@ -1282,7 +1274,7 @@ namespace agui {
 
     void Widget::removeMouseListener( MouseListener* listener )
     {
-        mouseListeners.erase(std::remove(mouseListeners.begin(),
+        mouseListeners.erase(eastl::remove(mouseListeners.begin(),
             mouseListeners.end(), listener), mouseListeners.end());
 
     }
@@ -1293,7 +1285,7 @@ namespace agui {
         {
             return;
         }
-        for (std::vector<KeyboardListener*>::iterator it = 
+        for (Vector<KeyboardListener*>::iterator it = 
             keyboardListeners.begin();
             it != keyboardListeners.end(); ++it)
         {
@@ -1307,7 +1299,7 @@ namespace agui {
 
     void Widget::removeKeyboardListener( KeyboardListener* listener )
     {
-        keyboardListeners.erase(std::remove(keyboardListeners.begin(),
+        keyboardListeners.erase(eastl::remove(keyboardListeners.begin(),
             keyboardListeners.end(), listener), keyboardListeners.end());
     }
 
@@ -1318,7 +1310,7 @@ namespace agui {
         {
             return;
         }
-        for(std::vector<WidgetListener*>::iterator it = 
+        for(Vector<WidgetListener*>::iterator it = 
             widgetListeners.begin();
             it != widgetListeners.end(); ++it)
         {
@@ -1333,7 +1325,7 @@ namespace agui {
                                         WidgetListener *listener )
     {
         widgetListeners.erase(
-            std::remove(widgetListeners.begin(),
+            eastl::remove(widgetListeners.begin(),
             widgetListeners.end(), listener),
             widgetListeners.end());
     }
@@ -1345,7 +1337,7 @@ namespace agui {
         {
             return;
         }
-        for(std::vector<FocusListener*>::iterator it = focusListeners.begin();
+        for(Vector<FocusListener*>::iterator it = focusListeners.begin();
             it != focusListeners.end(); ++it)
         {
             if((*it) == listener)
@@ -1357,7 +1349,7 @@ namespace agui {
 
     void Widget::removeFocusListener( FocusListener* listener )
     {
-        focusListeners.erase(std::remove(focusListeners.begin(),
+        focusListeners.erase(eastl::remove(focusListeners.begin(),
             focusListeners.end(), listener), focusListeners.end());
     }
 
@@ -1368,7 +1360,7 @@ namespace agui {
             if(children.front() == widget)
                 return;
 
-            children.erase(std::remove(children.begin(), 
+            children.erase(eastl::remove(children.begin(),
                 children.end(), widget), children.end());
 
 
@@ -1380,7 +1372,7 @@ namespace agui {
             if(privateChildren.front() == widget)
                 return;
 
-            privateChildren.erase(std::remove(privateChildren.begin(), 
+            privateChildren.erase(eastl::remove(privateChildren.begin(),
                 privateChildren.end(), widget), privateChildren.end());
 
 
@@ -1396,7 +1388,7 @@ namespace agui {
             if(children.back() == widget)
                 return;
 
-            children.erase(std::remove(children.begin(), 
+            children.erase(eastl::remove(children.begin(),
                 children.end(), widget), children.end());
 
             children.push_back(widget);
@@ -1407,7 +1399,7 @@ namespace agui {
             if(privateChildren.back() == widget)
                 return;
 
-            privateChildren.erase(std::remove(privateChildren.begin(), 
+            privateChildren.erase(eastl::remove(privateChildren.begin(),
                 privateChildren.end(), widget), privateChildren.end());
 
             privateChildren.push_back(widget);
@@ -1440,9 +1432,9 @@ namespace agui {
         setVisibility(false);
     }
 
-    Point Widget::getAbsolutePosition() const
+    Vector2i Widget::getAbsolutePosition() const
     {
-        return getAbsoluteRectangle().getLeftTop();
+        return getAbsoluteRectangle().getPos();
     }
 
     
@@ -1475,63 +1467,59 @@ namespace agui {
     }
 
 
-    Point Widget::createAlignedPosition( AreaAlignmentEnum alignment,
-                                                const Rectangle &parentRect,
-                                                const Dimension &childSize ) const
+    Vector2i Widget::createAlignedPosition( AreaAlignmentEnum alignment,
+                                         const Recti& parentRect,
+                                         const Vector2i& childSize ) const
     {
 
         switch (alignment)
         {
         case ALIGN_TOP_LEFT:
-            return parentRect.getLeftTop();
+            return parentRect.getPos();
             break;
         case ALIGN_TOP_CENTER:
-            return Point(parentRect.getLeftTop().getX()
-                + ((parentRect.getWidth() / 2) - childSize.getWidth() / 2)
-                , parentRect.getLeftTop().getY());
+            return Vector2i(
+                parentRect.getPos().x + ((parentRect.width / 2) - childSize.x / 2),
+                parentRect.getPos().y);
             break;
         case ALIGN_TOP_RIGHT:
-            return Point(parentRect.getLeftTop().getX()
-                + (parentRect.getWidth() - childSize.getWidth())
-                , parentRect.getLeftTop().getY());
+            return Vector2i(
+                parentRect.getPos().x + (parentRect.width - childSize.x),
+                parentRect.getPos().y);
             break;
         case ALIGN_MIDDLE_LEFT:
-            return Point(parentRect.getLeftTop().getX()
-                , parentRect.getLeftTop().getY() +
-                ((parentRect.getHeight() / 2) - childSize.getHeight() / 2));
+            return Vector2i(
+                parentRect.getPos().x,
+                parentRect.getPos().y + ((parentRect.height / 2) - childSize.y / 2));
             break;
         case ALIGN_MIDDLE_CENTER:
-            return Point(parentRect.getLeftTop().getX()
-                + ((parentRect.getWidth() / 2) - childSize.getWidth() / 2)
-                , parentRect.getLeftTop().getY() + 
-                ((parentRect.getHeight() / 2) - childSize.getHeight() / 2));
+            return Vector2i(
+                parentRect.getPos().x + ((parentRect.width  / 2) - childSize.x / 2),
+                parentRect.getPos().y + ((parentRect.height / 2) - childSize.y / 2));
             break;
         case ALIGN_MIDDLE_RIGHT:
-            return Point(parentRect.getLeftTop().getX()
-                + (parentRect.getWidth() - childSize.getWidth())
-                , parentRect.getLeftTop().getY() + 
-                ((parentRect.getHeight() / 2) - childSize.getHeight() / 2));
+            return Vector2i(
+                parentRect.getPos().x +  (parentRect.width - childSize.x),
+                parentRect.getPos().y + ((parentRect.height / 2) - childSize.y / 2));
             break;
 
         case ALIGN_BOTTOM_LEFT:
-            return Point(parentRect.getLeftTop().getX()
-                , parentRect.getLeftTop().getY() + 
-                (parentRect.getHeight()  - childSize.getHeight()));
+            return Vector2i(
+                parentRect.getPos().x,
+                parentRect.getPos().y + (parentRect.height  - childSize.y));
             break;
         case ALIGN_BOTTOM_CENTER:
-            return Point(parentRect.getLeftTop().getX()
-                + ((parentRect.getWidth() / 2) - childSize.getWidth() / 2)
-                , parentRect.getLeftTop().getY() + 
-                (parentRect.getHeight() - childSize.getHeight()));
+            return Vector2i(
+                parentRect.getPos().x + ((parentRect.width / 2) - childSize.x / 2),
+                parentRect.getPos().y +  (parentRect.height - childSize.y));
             break;
         case ALIGN_BOTTOM_RIGHT:
-            return Point(parentRect.getLeftTop().getX()
-                + (parentRect.getWidth() - childSize.getWidth())
-                , parentRect.getLeftTop().getY() + 
-                (parentRect.getHeight() - childSize.getHeight()));
+            return Vector2i(
+                parentRect.getPos().x + (parentRect.width - childSize.x),
+                parentRect.getPos().y + (parentRect.height - childSize.y));
             break;
         default:
-            return Point();
+            return Vector2i();
             break;
         }
     }
@@ -1627,7 +1615,7 @@ namespace agui {
         if(containsPrivateChild(widget))
         {
             WidgetArray::iterator i = privateChildren.begin();
-            std::advance(i,getPrivateChildIndex(widget));
+            eastl::advance(i,getPrivateChildIndex(widget));
             privateChildren.erase(i);
 
       widget->clearParentWidget();
@@ -1661,7 +1649,7 @@ namespace agui {
         {
             return;
         }
-        for(std::vector<ActionListener*>::iterator it = 
+        for(Vector<ActionListener*>::iterator it = 
             actionListeners.begin();
             it != actionListeners.end(); ++it)
         {
@@ -1675,23 +1663,23 @@ namespace agui {
     void Widget::removeActionListener( ActionListener *listener )
     {
         actionListeners.erase(
-            std::remove(actionListeners.begin(),
+            eastl::remove(actionListeners.begin(),
             actionListeners.end(), listener),
             actionListeners.end());
     }
 
     void Widget::dispatchActionEvent( const ActionEvent &evt )
     {
-        for(std::vector<ActionListener*>::iterator it = actionListeners.begin();
+        for(Vector<ActionListener*>::iterator it = actionListeners.begin();
             it != actionListeners.end(); ++it)
         {
             (*it)->actionPerformed(evt);
         }
     }
 
-    const Rectangle Widget::getRelativeRectangle() const
+    const Recti Widget::getRelativeRectangle() const
     {
-        return Rectangle(getLocation(),getSize());
+        return Recti(getLocation(),getSize());
     }
 
     int Widget::getTextLength() const
@@ -1730,9 +1718,9 @@ namespace agui {
                 pWidget = rects.front();
 
                 paintEvent.graphics()->setOffset(
-                    Point(pWidget->getAbsolutePosition().getX() +
+                    Vector2i(pWidget->getAbsolutePosition().x +
                     pWidget->getMargin(SIDE_LEFT),
-                    pWidget->getAbsolutePosition().getY() +
+                    pWidget->getAbsolutePosition().y +
                     pWidget->getMargin(SIDE_TOP)));
 
                 paintEvent.graphics()->pushClippingRect
@@ -1809,17 +1797,17 @@ namespace agui {
 
     }
 
-    const Rectangle Widget::getSizeRectangle() const
+    const Recti Widget::getSizeRectangle() const
     {
-        return Rectangle(0,0,getSize().getWidth(),getSize().getHeight());
+        return Recti(0,0,getSize().x,getSize().y);
     }
 
-    const Dimension& Widget::getMinSize() const
+    const Vector2i& Widget::getMinSize() const
     {
         return minSize;
     }
 
-    const Dimension& Widget::getMaxSize() const
+    const Vector2i& Widget::getMaxSize() const
     {
         return maxSize;
     }
@@ -1857,38 +1845,38 @@ namespace agui {
 
     void Widget::_setInnerSize()
     {
-        innerSize = Dimension(getSize().getWidth() - lMargin - rMargin,
-            getSize().getHeight() - tMargin - bMargin);
+        innerSize = Vector2i(getSize().x - lMargin - rMargin,
+            getSize().y - tMargin - bMargin);
     }
 
-    const Dimension& Widget::getInnerSize() const
+    const Vector2i& Widget::getInnerSize() const
     {
         return innerSize;
     }
 
-    const Rectangle Widget::getInnerRectangle() const
+    const Recti Widget::getInnerRectangle() const
     {
-        return Rectangle(0,0,getInnerSize().getWidth(),getInnerSize().getHeight());
+        return Recti(0, 0, getInnerSize().x, getInnerSize().y);
     }
 
     int Widget::getWidth() const
     {
-        return getSize().getWidth();
+        return getSize().x;
     }
 
     int Widget::getHeight() const
     {
-        return getSize().getHeight();
+        return getSize().y;
     }
 
     int Widget::getInnerWidth() const
     {
-        return getInnerSize().getWidth();
+        return getInnerSize().x;
     }
 
     int Widget::getInnerHeight() const
     {
-        return getInnerSize().getHeight();
+        return getInnerSize().y;
     }
 
     void Widget::clear()
@@ -1991,12 +1979,12 @@ namespace agui {
             return (int)val;
     }
 
-    std::string Widget::getToolTipText()
+    String Widget::getToolTipText()
     {
         return toolTipText;
     }
 
-    void Widget::setToolTipText( const std::string& text )
+    void Widget::setToolTipText( const String& text )
     {
         toolTipText = text;
     }
@@ -2011,7 +1999,7 @@ namespace agui {
         if(index < 0 || index > (int)privateChildren.size() -1) return NULL;
 
         WidgetArray::const_iterator i = privateChildren.begin();
-        std::advance(i,index);
+        eastl::advance(i,index);
         return (*i);
     }
 
@@ -2032,7 +2020,7 @@ namespace agui {
 
     void Widget::_parentSizeChangedEvent()
     {
-        for(std::vector<WidgetListener*>::iterator it = 
+        for(Vector<WidgetListener*>::iterator it = 
             widgetListeners.begin();
             it != widgetListeners.end(); ++it)
         {

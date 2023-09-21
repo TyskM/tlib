@@ -60,14 +60,14 @@ namespace agui {
 	{
 	}
 
-	PopUpMenuItem::PopUpMenuItem( const std::string& text, Image* image /*= NULL*/ )
+	PopUpMenuItem::PopUpMenuItem( const String& text, Image* image /*= NULL*/ )
 		: itemType(ITEM), icon(image),
 		subMenu(NULL),parentMenu(NULL)
 	{
 		setText(text);
 	}
 
-	PopUpMenuItem::PopUpMenuItem( const std::string& text, const std::string& shortcutText, Image* image /*= NULL*/ )
+	PopUpMenuItem::PopUpMenuItem( const String& text, const String& shortcutText, Image* image /*= NULL*/ )
 		: itemType(ITEM), icon(image),
 		subMenu(NULL),parentMenu(NULL)
 	{
@@ -87,7 +87,7 @@ namespace agui {
 	{
 	}
 
-	PopUpMenuItem::PopUpMenuItem( PopUpMenu* menu,const std::string&text )
+	PopUpMenuItem::PopUpMenuItem( PopUpMenu* menu,const String&text )
 		: itemType(SUB_MENU), icon(NULL),
 		subMenu(menu),parentMenu(NULL)
 	{
@@ -104,12 +104,12 @@ namespace agui {
 		icon = image;
 	}
 
-	void PopUpMenuItem::setShortcutText( const std::string& text )
+	void PopUpMenuItem::setShortcutText( const String& text )
 	{
 		shortcutText = text;
 	}
 
-	const std::string& PopUpMenuItem::getShortcutText() const
+	const String& PopUpMenuItem::getShortcutText() const
 	{
 		return shortcutText;
 	}

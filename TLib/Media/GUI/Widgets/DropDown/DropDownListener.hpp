@@ -42,7 +42,7 @@
 #define AGUI_DROPDOWN_LISTENER_HPP
 #include <TLib/Media/GUI/Platform.hpp>
 #include <stdio.h>
-#include <string>
+#include <TLib/String.hpp>
 namespace agui
 {
 	class AGUI_CORE_DECLSPEC Widget;
@@ -62,8 +62,8 @@ namespace agui
 		virtual void dropDownHidden(DropDown* source) { (void)(source); }
 		virtual void resizeToWidestItemChanged(DropDown* source, bool resize) { (void)(source); (void)(resize); }
 		virtual void maxDropDownHeightChanged(DropDown* source, int height) { (void)(source);  (void)(height); }
-		virtual void itemAdded(DropDown* source, const std::string& item) { (void)(source);  (void)(item); }
-		virtual void itemRemoved(DropDown* source, const std::string& item) { (void)(source);  (void)(item); }
+		virtual void itemAdded(DropDown* source, const String& item) { (void)(source);  (void)(item); }
+		virtual void itemRemoved(DropDown* source, const String& item) { (void)(source);  (void)(item); }
 		DropDownListener(void);
 		virtual ~DropDownListener(void);
 	};

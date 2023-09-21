@@ -94,7 +94,7 @@ namespace agui
 	 * the mouse is outside a resizable region.
      * @since 0.1.0
      */
-		BorderLayoutEnum getPointRegion(const Point &p);
+		BorderLayoutEnum getPointRegion(const Vector2i &p);
 	/**
      * Sets whether or not the margins will be resized with the mouse.
      * @since 0.2.0
