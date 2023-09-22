@@ -6,6 +6,7 @@
 #include <TLib/Media/Platform/FPSLimit.hpp>
 #include <TLib/Timer.hpp>
 #include <TLib/Media/Camera2D.hpp>
+#include <TLib/Media/Camera2DDebug.hpp>
 #include <TLib/Media/ImGuiWidgets.hpp>
 
 #include <TLib/Media/GUI/Agui.hpp>

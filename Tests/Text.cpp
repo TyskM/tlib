@@ -28,7 +28,8 @@ Fusce sodales est scelerisque erat iaculis elementum.
     {
         GameTest::create();
         window.setTitle("Text Test");
-        font.loadFromFile("assets/arial.ttf");
+        font.loadFromFile("assets/arial.ttf", 24, 0, 512);
+        font.getAtlas().writeToFile("atlas.png");
     }
 
     void mainLoop(float delta) override
@@ -47,9 +48,11 @@ Fusce sodales est scelerisque erat iaculis elementum.
         static float time = 0.f;
         time += delta;
 
-        Renderer2D::drawCircle(mwpos, 12.f);
+        Vector2f textPos = {50, 50};
+        Vector2f fontSize = font.calcTextSize(text);
+        Renderer2D::drawTexture(font.getAtlas(), {textPos - Vector2f(0, 20) - Vector2f(font.getAtlas().getSize()), Vector2f(font.getAtlas().getSize())});
         Renderer2D::drawText(text, font, { 50, 50 });
-
+        Renderer2D::drawCircle(mwpos, 12.f);
         Renderer2D::render();
 
         drawDiagWidget(&fpslimit);

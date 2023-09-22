@@ -602,9 +602,13 @@ private:
                            const float       scale = 1.f)
     {
         ASSERT(inited); // Forgot to call Renderer2D::init()
+        ASSERT(font.getAtlas().created());
+
         if (!font.created()) { return; }
+
         Vector2f currentPos = pos;
-        for (auto& strchar : text)
+        WideString wide = toWide(text);
+        for (auto& strchar : wide)
         {
             if (strchar == '\n')
             {
@@ -615,17 +619,17 @@ private:
 
             // TODO: add default unknown character, and use that instead
             if (!font.containsChar(strchar))
-            { std::cout << "Font does not contain character \"" << strchar << "\"" << std::endl; continue; }
+            { tlog::warn("Font does not contain character \"{}\"", (int32_t)strchar); continue; }
 
-            FontCharacter& ch = font.getChar(strchar);
+            FontAtlasChar& ch = font.getChar(strchar);
             float xpos = currentPos.x + ch.bearing.x * scale;
             float ypos = currentPos.y + (font.getChar('H').bearing.y - ch.bearing.y) * scale;
-            float w    = ch.size.x * scale;
-            float h    = ch.size.y * scale;
+            float w    = ch.rect.width  * scale;
+            float h    = ch.rect.height * scale;
             currentPos.x += (ch.advance >> 6) * scale;
 
-            sprite_batch(ch.texture,
-                         { Vector2f(0,0), Vector2f(ch.texture.getSize()) },
+            sprite_batch(font.getAtlas(),
+                         Rectf(ch.rect),
                          { xpos, ypos, w, h },
                          layer,
                          color,

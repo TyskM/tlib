@@ -64,6 +64,18 @@ enum class UVMode
     ClampToBorder       [[maybe_unused]] = GL_CLAMP_TO_BORDER
 };
 
+static inline int32_t getFormatSize(TexInternalFormats format)
+{
+    switch (format)
+    {
+    case TexInternalFormats::RED:  return 1; break;
+    case TexInternalFormats::RG:   return 2; break;
+    case TexInternalFormats::RGB:  return 3; break;
+    case TexInternalFormats::RGBA: return 4; break;
+    default: break;
+    }
+}
+
 // OpenGL Texture
 struct Texture : NonCopyable
 {
@@ -84,6 +96,7 @@ private:
     int    width           =  0;
     int    height          =  0;
     int    boundSlot       = -1;
+    TexInternalFormats internalFormat = TexInternalFormats::Unknown;
     fs::path _path;
 
 public:
@@ -97,10 +110,11 @@ public:
         other.glHandle  = 0;
         other.boundSlot = -1;
 
-        width      = other.width;
-        height     = other.height;
-        boundSlot  = other.boundSlot;
-        _path      = other._path;
+        width          = other.width;
+        height         = other.height;
+        boundSlot      = other.boundSlot;
+        internalFormat = other.internalFormat;
+        _path          = other._path;
     }
 
     Texture& operator=(Texture&& other) noexcept
@@ -109,10 +123,11 @@ public:
         other.glHandle  = 0;
         other.boundSlot = -1;
 
-        width      = other.width;
-        height     = other.height;
-        boundSlot  = other.boundSlot;
-        _path      = other._path;
+        width          = other.width;
+        height         = other.height;
+        boundSlot      = other.boundSlot;
+        internalFormat = other.internalFormat;
+        _path          = other._path;
     }
 
     ~Texture() { reset(); }
@@ -126,6 +141,7 @@ public:
             width           =  0;
             height          =  0;
             boundSlot       = -1;
+            internalFormat  = TexInternalFormats::Unknown;
         }
     }
 
@@ -165,6 +181,22 @@ public:
         return true;
     }
 
+    bool writeToFile(const fs::path& path)
+    {
+        ASSERT(created());
+        bind();
+
+        Vector2i size = getSize();
+        int32_t  comp = 4;
+        size_t   bufferSize = (size_t)size.x * size.y * comp;
+
+        Vector<char> buffer;
+        buffer.reserve(bufferSize);
+
+        GL_CHECK(glGetnTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, bufferSize, buffer.data()));
+        stbi_write_png(path.string().c_str(), size.x, size.y, comp, buffer.data(), size.x * comp);
+    }
+
     void setData(const TextureData&       data,
                  const TexPixelFormats    format         = defaultFormat,
                  const TexInternalFormats internalFormat = defaultInternalFormat,
@@ -188,10 +220,27 @@ public:
 
         setFilter(defaultTexFiltering);
         setUVMode(defaultUVMode);
+        this->internalFormat = internalFormat;
         
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalFormat, width, height, 0, (GLenum)format, GL_UNSIGNED_BYTE, data));
         if (generateMipmap)
         { GL_CHECK(glGenerateMipmap(GL_TEXTURE_2D)); }
+    }
+
+    void setSubData(
+        const void*           data,    // Your provided data
+        const int             width,   // of your provided data
+        const int             height,  // of your provided data
+        const int             xoffset, // where to put your data on the x
+        const int             yoffset, // where to put your data on the y
+        const TexPixelFormats format = defaultFormat) // format of your provided data
+    {
+        int target = GL_TEXTURE_2D;
+        int level  = 0;
+        int type   = GL_UNSIGNED_BYTE;
+
+        bind();
+        GL_CHECK(glTexSubImage2D(target, level, xoffset, yoffset, width, height, (GLint)format, type, data));
     }
 
     void bind(int slot = 0)

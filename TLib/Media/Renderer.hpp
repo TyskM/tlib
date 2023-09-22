@@ -56,13 +56,8 @@ public:
                       std::string(reinterpret_cast<const char*>(glGetString(GL_VERSION))),
                       std::string(reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION))));
 
-        int maxTextureUnits;
-        GL_CHECK(glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits));
-        rendlog->info("Available texture units: {}", maxTextureUnits);
-
-        int maxTextureSize;
-        GL_CHECK(glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize));
-        rendlog->info("Max texture size: {}", maxTextureSize);
+        rendlog->info("Available texture units: {}", getMaxTextureUnits());
+        rendlog->info("Max texture size: {}", getMaxTextureSize());
 
         GL_CHECK(glEnable(GL_DEBUG_OUTPUT));
         GL_CHECK(glDebugMessageCallback( defaultGLCallback, 0 ));
@@ -127,4 +122,18 @@ public:
     [[nodiscard]] [[maybe_unused]]
     static inline VSyncMode getVSync()
     { return static_cast<VSyncMode>(SDL_GL_GetSwapInterval()); }
+
+    static inline int32_t getMaxTextureUnits()
+    {
+        int maxTextureUnits;
+        GL_CHECK(glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureUnits));
+        return maxTextureUnits;
+    }
+
+    static inline int32_t getMaxTextureSize()
+    {
+        int maxTextureSize;
+        GL_CHECK(glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize));
+        return maxTextureSize;
+    }
 };
