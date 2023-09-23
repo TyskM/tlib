@@ -13,9 +13,10 @@ namespace agui
     class AGUI_BACKEND_DECLSPEC TLibGraphics : public Graphics
     {
         std::wstring wide;
-        Recti    clRct;
+        Recti        clRct;
         int          height;
         Camera2D     origCamera;
+        bool         debugDraw = false;
 
         inline std::wstring StringToUnicode(const String& strIn)
         {
@@ -156,7 +157,12 @@ namespace agui
             Vector2f pos =
                { (float)(position.x + getOffset().x),
                  (float)(position.y + getOffset().y) };
-            Renderer2D::drawCircle(Vector2f(pos), 3.f, 1, ColorRGBAf::red(), true, 12);
+
+            if (debugDraw)
+            {
+                Renderer2D::drawCircle(Vector2f(pos), 3.f, 1, ColorRGBAf::red(), true, 12);
+            }
+
             pos.y -= font->getLineHeight() / 4; // TODO: fix ur friggin font rendering bro
 
             // TODO: handle ALIGN_CENTER && ALIGN_RIGHT

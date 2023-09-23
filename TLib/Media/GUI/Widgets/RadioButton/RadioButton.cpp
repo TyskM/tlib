@@ -510,7 +510,7 @@ namespace agui {
         Widget::setSize(width,height);
     }
 
-    void RadioButton::setText( const std::string &text )
+    void RadioButton::setText( const String& text )
     {
         Widget::setText(text);
         resizeCaption();

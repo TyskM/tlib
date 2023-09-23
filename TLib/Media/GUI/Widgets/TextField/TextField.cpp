@@ -1002,7 +1002,7 @@ namespace agui {
 
 	int TextField::parseInteger() const
 	{
-		std::stringstream sstr;
+		StringStream sstr;
 		sstr << getText();
 		int retVal = 0;
 		sstr >> retVal;
