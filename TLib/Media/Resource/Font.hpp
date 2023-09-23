@@ -60,6 +60,7 @@ protected:
     Texture textureAtlas;
     Vector<FontAtlasChar> characters;
     int32_t _newLineHeight = 0;
+    uint32_t _size = 0;
 
 public:
     [[nodiscard]]
@@ -71,13 +72,22 @@ public:
     { return c >= 0 && c < characters.size(); }
 
     [[nodiscard]]
+    inline FontAtlasChar& getFallbackChar()
+    { return characters.back(); }
+
+    [[nodiscard]]
     inline int32_t newLineHeight() const
     { return _newLineHeight; }
+
+    [[nodiscard]]
+    inline uint32_t size() const
+    { return _size; }
 
     [[nodiscard]]
     inline bool created() const
     { return characters.size() > 0; }
 
+    [[nodiscard]]
     Texture& getAtlas()
     { return textureAtlas; }
 
@@ -88,7 +98,7 @@ public:
         for (auto& strchar : text)
         {
             if (!containsChar(strchar))
-            { tlog::error(("Font does not contain character \"{}\""), strchar); continue; }
+            { continue; }
 
             FontAtlasChar& ch = characters.at(strchar);
             size.x += (ch.advance >> 6) * scale;
@@ -101,6 +111,8 @@ public:
 
 struct SDFFont : FontBase
 {
+public:
+
     bool loadFromFile(const String& path, unsigned int size = 24, size_t rangeMin = 0, size_t rangeMax = SIZE_MAX)
     {
         ///// Load font and cache basic details
@@ -116,18 +128,22 @@ struct SDFFont : FontBase
         FT_Select_Charmap(face, ft_encoding_unicode);
         FT_Set_Pixel_Sizes(face, 0, size);
         FT_GlyphSlot slot = face->glyph;
+        FT_Bitmap* bmp = &slot->bitmap;
 
         size_t charCount = FontDetail::getGlyphCount(face);
         charCount = std::min(charCount, rangeMax);
         characters.resize(charCount);
         _newLineHeight = (face->size->metrics.ascender - face->size->metrics.descender) >> 6;
+        _size = size;
 
         // DONE: Pack glyphs better, theres tons of wasted space!!!
         // Used rectpack2d for nice packing :)
-        // TODO: speed up loading times somehow
+        // DONE: speed up loading times somehow
         // stopped loading non existent characters for big speed up
         // it's still pretty slow
         // Profiler says most of the time is spent in FT_Render_Glyph
+        // Started copying the first call to FT_Render_Glyph and using that for second iteration
+        // It's not painfully slow anymore yeehaw
 
         ///// Loop through chars once to find minimum size needed to pack everything
         const auto maxTexSize = Renderer::getMaxTextureSize();
@@ -140,20 +156,51 @@ struct SDFFont : FontBase
 
         std::vector<rect_type> rects;
         rects.reserve(charCount);
+        Vector<Vector<char>> sdfBitmapBuffer;
+        sdfBitmapBuffer.reserve(charCount);
+
         for (size_t c = rangeMin; c < charCount; c++)
         {
             if (!FT_Get_Char_Index(face, c))
-            { rects.emplace_back(rect_xywh()); continue; }
+            {
+                rects.emplace_back(rect_xywh());
+                sdfBitmapBuffer.emplace_back();
+                continue;
+            }
 
             if (FT_Load_Char(face, c, FT_LOAD_DEFAULT))
             { tlog::error("Failed to load character '{}' from font file '{}'", c, path); continue; }
+
             FT_Render_Glyph(slot, FT_RENDER_MODE_SDF);
-            FT_Bitmap* bmp = &slot->bitmap;
+
+            // Save glyph rect for packing, and save bitmap buffer for second iteration
             rects.emplace_back(rect_xywh(0, 0, bmp->width, bmp->rows));
+            sdfBitmapBuffer.emplace_back(bmp->buffer, bmp->buffer + bmp->width * bmp->rows);
+
+            //// Write their info into the char map so we can actually use them
+            FontAtlasChar& ch = characters.at(c);
+            ch.bearing        = Vector2i(slot->bitmap_left, slot->bitmap_top);
+            ch.advance        = slot->advance.x;
+            ch.rect.width     = slot->bitmap.width;
+            ch.rect.height    = slot->bitmap.rows;
         }
+
+        /// Save a fallback character
+        // 0 is null https://www.cs.cmu.edu/~pattis/15-1XX/common/handouts/ascii.html
+        FT_Load_Char(face, 0, FT_LOAD_DEFAULT);
+        FT_Render_Glyph(slot, FT_RENDER_MODE_SDF);
+        rects.emplace_back(rect_xywh(0, 0, bmp->width, bmp->rows));
+        sdfBitmapBuffer.emplace_back(bmp->buffer, bmp->buffer + bmp->width * bmp->rows);
+        FontAtlasChar& ch = characters.emplace_back();
+        ch.bearing        = Vector2i(slot->bitmap_left, slot->bitmap_top);
+        ch.advance        = slot->advance.x;
+        ch.rect.width     = slot->bitmap.width;
+        ch.rect.height    = slot->bitmap.rows;
+
         const auto result_size = find_best_packing<spaces_type>(rects,
             make_finder_input(maxTexSize, discard_step, report_successful, report_unsuccessful, flipping_option::DISABLED));
 
+        // Surely this wont happen... surely?
         if (result_size.w > maxTexSize || result_size.h > maxTexSize)
         {
             tlog::critical("The font '{}' is too large for a texture atlas! try reducing the size or range.", path);
@@ -165,28 +212,24 @@ struct SDFFont : FontBase
         textureAtlas.setData(NULL, result_size.w, result_size.h, TexPixelFormats::RED, TexInternalFormats::RED);
         textureAtlas.setUnpackAlignment(1);
         
-        //// Loop through chars again,
+        //// Loop through saved sdf bitmaps,
         //// load them into GPU texture using the positions we found with rectpack2d
-        for (size_t c = rangeMin; c < charCount; c++)
+        for (size_t i = 0; i < sdfBitmapBuffer.size(); i++)
         {
-            if (!FT_Get_Char_Index(face, c)) { continue; }
+            auto& bitmap = sdfBitmapBuffer[i];
+            if (bitmap.empty()) { continue; }
 
-            if (FT_Load_Char(face, c, FT_LOAD_DEFAULT))
-            { tlog::error("Failed to load character '{}' from font file '{}'", c, path); continue; }
-            FT_Render_Glyph(slot, FT_RENDER_MODE_SDF);
-            FT_Bitmap* bmp = &slot->bitmap;
+            FontAtlasChar& ch = characters.at(i);
 
-            auto x = rects[c].x;
-            auto y = rects[c].y;
+            auto x = rects[i].x;
+            auto y = rects[i].y;
 
-            textureAtlas.setSubData(bmp->buffer, bmp->width, bmp->rows,
+            textureAtlas.setSubData(bitmap.data(), ch.rect.width, ch.rect.height,
                 x, y, TexPixelFormats::RED);
 
-            //// Write their info into the char map so we can actually use them
-            FontAtlasChar& ch = characters.at(c);
-            ch.rect    = {Vector2i(x, y), Vector2i(bmp->width, bmp->rows)};
-            ch.bearing = Vector2i(slot->bitmap_left, slot->bitmap_top);
-            ch.advance = slot->advance.x;
+            // Write their assigned positions
+            ch.rect.x = x;
+            ch.rect.y = y;
         }
 
         // All done, yeehaw

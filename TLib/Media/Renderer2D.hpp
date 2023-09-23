@@ -617,19 +617,20 @@ private:
                 continue;
             }
 
-            // TODO: add default unknown character, and use that instead
+            FontAtlasChar* ch;
             if (!font.containsChar(strchar))
-            { tlog::warn("Font does not contain character \"{}\"", (int32_t)strchar); continue; }
+            { ch = &font.getFallbackChar(); }
+            else
+            { ch = &font.getChar(strchar); }
 
-            FontAtlasChar& ch = font.getChar(strchar);
-            float xpos = currentPos.x + ch.bearing.x * scale;
-            float ypos = currentPos.y + (font.getChar('H').bearing.y - ch.bearing.y) * scale;
-            float w    = ch.rect.width  * scale;
-            float h    = ch.rect.height * scale;
-            currentPos.x += (ch.advance >> 6) * scale;
+            float xpos = currentPos.x + ch->bearing.x * scale;
+            float ypos = currentPos.y - ch->bearing.y + font.newLineHeight() * scale;
+            float w    = ch->rect.width  * scale;
+            float h    = ch->rect.height * scale;
+            currentPos.x += (ch->advance >> 6) * scale;
 
             sprite_batch(font.getAtlas(),
-                         Rectf(ch.rect),
+                         Rectf(ch->rect),
                          { xpos, ypos, w, h },
                          layer,
                          color,

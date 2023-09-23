@@ -21,14 +21,15 @@ Pellentesque semper orci quis massa vestibulum, in dapibus risus volutpat.
 Proin sollicitudin et tortor non pulvinar. Sed tempus purus quam, quis faucibus dui maximus vitae.
 Maecenas aliquam consequat odio, quis mattis diam hendrerit id. Praesent vitae ipsum sed sapien consectetur condimentum.
 Nullam molestie nisl vitae dapibus tristique. Duis nec lacus mi. Proin id est eget odio facilisis egestas.
-Fusce sodales est scelerisque erat iaculis elementum. 
+Fusce sodales est scelerisque erat iaculis elementum.
+ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456789!@#$%^&*()-=_+\|,./;'[]<>?:"{}`~
 )";
 
     void create() override
     {
         GameTest::create();
         window.setTitle("Text Test");
-        font.loadFromFile("assets/arial.ttf", 24, 0, 512);
+        font.loadFromFile("assets/arial.ttf", 24, 0, 256);
         font.getAtlas().writeToFile("atlas.png");
     }
 
@@ -50,8 +51,9 @@ Fusce sodales est scelerisque erat iaculis elementum.
 
         Vector2f textPos = {50, 50};
         Vector2f fontSize = font.calcTextSize(text);
-        Renderer2D::drawTexture(font.getAtlas(), {textPos - Vector2f(0, 20) - Vector2f(font.getAtlas().getSize()), Vector2f(font.getAtlas().getSize())});
-        Renderer2D::drawText(text, font, { 50, 50 });
+        Renderer2D::drawTexture(font.getAtlas(), {textPos - Vector2f(0, 20) - Vector2f(0, font.getAtlas().getSize().y), Vector2f(font.getAtlas().getSize())});
+        Renderer2D::drawCircle(textPos, 3.f, 1, ColorRGBAf::red(), true);
+        Renderer2D::drawText(text, font, textPos);
         Renderer2D::drawCircle(mwpos, 12.f);
         Renderer2D::render();
 
