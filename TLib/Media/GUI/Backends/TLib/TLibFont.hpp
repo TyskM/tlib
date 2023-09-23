@@ -8,9 +8,9 @@ namespace agui
 {
     class AGUI_BACKEND_DECLSPEC TLibFont : public Font
     {
-        SDFFont* font;
-        bool autoFree;
-        int characterSize;
+        ::Font*  font;
+        bool     autoFree;
+        int      characterSize;
         fs::path path;
 
     public:
@@ -21,7 +21,7 @@ namespace agui
                  FontFlags     fontFlags = FONT_DEFAULT_FLAGS) :
                  autoFree{true}, characterSize{height}, path{fileName}
         {
-            font = new SDFFont();
+            font = new ::Font();
             if (!font->loadFromFile(fileName, height))
             {
                 free();
@@ -44,7 +44,7 @@ namespace agui
             characterSize = 0;
         }
 
-        SDFFont* getFont() const
+        ::Font* getFont() const
         { return font; }
 
         virtual int getLineHeight() const
@@ -66,7 +66,7 @@ namespace agui
         virtual const String& getPath() const
         { return path.string(); }
 
-        virtual void setFont(SDFFont*      font,
+        virtual void setFont(::Font*      font,
                              const String& path,
                              int           characterSize,
                              bool          autoFree = false)
@@ -89,7 +89,7 @@ namespace agui
             this->autoFree      = true;
             this->characterSize = characterSize;
 
-            font = new SDFFont();
+            font = new ::Font();
             if (!font->loadFromFile(fileName, height))
             {
                 free();

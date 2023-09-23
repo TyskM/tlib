@@ -152,7 +152,7 @@ namespace agui
             AlignmentEnum    align = ALIGN_LEFT)
         {
             TLibFont* tlFont = (TLibFont*)(font);
-            SDFFont* realFont = tlFont->getFont();
+            ::Font* realFont = tlFont->getFont();
 
             Vector2f pos =
                { (float)(position.x + getOffset().x),
