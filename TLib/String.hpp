@@ -10,9 +10,7 @@
 #include <vector>
 #include <boost/algorithm/string/predicate.hpp>
 #include <TLib/Containers/Vector.hpp>
-#include <EASTL/string.h>
 #include <codecvt>
-
 
 using String       = std::string;
 using StringStream = std::stringstream;

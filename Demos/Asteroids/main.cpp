@@ -96,7 +96,7 @@ struct Game
     Player  player;
     RNG     rng;
 
-    SDFFont font;
+    Font    font;
     Texture shipTex;
     Texture plumeTex;
 

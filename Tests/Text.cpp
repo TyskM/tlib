@@ -9,7 +9,7 @@
 
 struct TextTest : GameTest
 {
-    SDFFont font;
+    Font font;
 
     String text =
 R"(Lorem ipsum dolor sit amet, consectetur adipiscing elit.

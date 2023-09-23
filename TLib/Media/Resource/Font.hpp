@@ -28,6 +28,12 @@ struct FontAtlasChar
     uint32_t advance;
 };
 
+enum class FontRenderMode
+{
+    SDF    = FT_Render_Mode_::FT_RENDER_MODE_SDF,
+    Normal = FT_Render_Mode_::FT_RENDER_MODE_NORMAL
+};
+
 struct FontDetail
 {
     static inline FT_Library ft = nullptr;
@@ -53,7 +59,7 @@ struct FontDetail
     }
 };
 
-struct FontBase : NonAssignable
+struct Font : NonAssignable
 {
 protected:
     // DONE: a map isn't needed, use an array and instance by char. they're just numbers
@@ -107,13 +113,13 @@ public:
         }
         return size;
     }
-};
 
-struct SDFFont : FontBase
-{
-public:
-
-    bool loadFromFile(const String& path, unsigned int size = 24, size_t rangeMin = 0, size_t rangeMax = SIZE_MAX)
+    bool loadFromFile(
+        const String&  path,
+        unsigned int   size       = 24,
+        size_t         rangeMin   = 0,
+        size_t         rangeMax   = 128,
+        FontRenderMode renderMode = FontRenderMode::SDF)
     {
         ///// Load font and cache basic details
         FontDetail::initFreetype();
@@ -171,8 +177,8 @@ public:
             if (FT_Load_Char(face, c, FT_LOAD_DEFAULT))
             { tlog::error("Failed to load character '{}' from font file '{}'", c, path); continue; }
 
-            FT_Render_Glyph(slot, FT_RENDER_MODE_SDF);
-
+            FT_Render_Glyph(slot, static_cast<FT_Render_Mode_>(renderMode));
+            
             // Save glyph rect for packing, and save bitmap buffer for second iteration
             rects.emplace_back(rect_xywh(0, 0, bmp->width, bmp->rows));
             sdfBitmapBuffer.emplace_back(bmp->buffer, bmp->buffer + bmp->width * bmp->rows);
@@ -211,7 +217,7 @@ public:
         textureAtlas.create();
         textureAtlas.setData(NULL, result_size.w, result_size.h, TexPixelFormats::RED, TexInternalFormats::RED);
         textureAtlas.setUnpackAlignment(1);
-        
+
         //// Loop through saved sdf bitmaps,
         //// load them into GPU texture using the positions we found with rectpack2d
         for (size_t i = 0; i < sdfBitmapBuffer.size(); i++)
@@ -237,49 +243,3 @@ public:
         return true;
     }
 };
-
-//struct BitmapFont : FontBase
-//{
-//    bool loadFromFile(const String& path, unsigned int size = 24)
-//    {
-//        FontDetail::initFreetype();
-//        characters.clear();
-//        FT_Face face;
-//        FT_Error err = FT_New_Face(FontDetail::ft, path.c_str(), 0, &face);
-//        if (err)
-//        {
-//            tlog::error("FREETYPE: Failed to load font : Error code: {}", err);
-//            return false;
-//        }
-//        FT_Set_Pixel_Sizes(face, 0, size);
-//
-//        _newLineHeight = (face->size->metrics.ascender - face->size->metrics.descender) >> 6;
-//
-//        // HACK: load all chars from font
-//        size_t charCount = 128;
-//        characters.resize(charCount);
-//        for (unsigned char c = 0; c < charCount; c++)
-//        {
-//            // load character glyph 
-//            if (FT_Load_Char(face, c, FT_LOAD_RENDER))
-//            {
-//                std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-//                continue;
-//            }
-//
-//            FontCharacter& ch = characters.at(c);
-//            ch.texture.create();
-//            ch.texture.setUnpackAlignment(1);
-//            ch.texture.setData(
-//                face->glyph->bitmap.buffer, face->glyph->bitmap.width, face->glyph->bitmap.rows,
-//                TexPixelFormats::RED, TexInternalFormats::RED, true);
-//
-//            ch.size = Vector2i(face->glyph->bitmap.width, face->glyph->bitmap.rows);
-//            ch.bearing = Vector2i(face->glyph->bitmap_left, face->glyph->bitmap_top);
-//            ch.advance = face->glyph->advance.x;
-//        }
-//
-//        FT_Done_Face(face);
-//        return true;
-//    }
-//};

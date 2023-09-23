@@ -256,7 +256,7 @@ public:
     }
 
     static void drawText(const String&     text,
-                         FontBase&         font,
+                         Font&             font,
                          const Vector2f&   pos,
                          const int         layer = DefaultTextLayer,
                          const ColorRGBAf& color = ColorRGBAf::white(),
@@ -595,7 +595,7 @@ private:
     }
 
     static void text_batch(const String&     text,
-                                 FontBase&   font,
+                                 Font&       font,
                            const Vector2f&   pos,
                            const int         layer = DefaultTextLayer,
                            const ColorRGBAf& color = ColorRGBAf::white(),

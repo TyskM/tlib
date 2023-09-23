@@ -109,8 +109,8 @@ struct Vector2
     bool isNan() const
     { return isnan(x) || isnan(y); }
 
-    std::string toString() const
-    { return this->operator std::string(); }
+    String toString() const
+    { return this->operator String(); }
 
     Vector2<T> floored()    const { return Vector2<T>( static_cast<T>(floor(x)),            static_cast<T>(floor(y))           ); }
     Vector2<T> ceiled()     const { return Vector2<T>( static_cast<T>(ceil(x)),             static_cast<T>(ceil(y))            ); }

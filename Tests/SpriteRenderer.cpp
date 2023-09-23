@@ -9,9 +9,9 @@
 
 struct SpriteTest : GameTest
 {
-    Texture    tex;
-    SDFFont    sdffont;
-    BitmapFont bmfont;
+    Texture tex;
+    Font    sdfFont;
+    Font    bitmapFont;
 
     bool  rotationEnabled   = true;
     int   spriteCount       = 30;
@@ -23,8 +23,8 @@ struct SpriteTest : GameTest
         window.setTitle("Sprite Renderer");
         tex.loadFromFile("assets/ship.png");
         tex.setFilter(TextureFiltering::Nearest);
-        sdffont.loadFromFile("assets/roboto.ttf");
-        bmfont.loadFromFile("assets/roboto.ttf");
+        sdfFont.loadFromFile("assets/roboto.ttf", 24);
+        bitmapFont.loadFromFile("assets/roboto.ttf", 24, 0, 128, FontRenderMode::Normal);
     }
 
     void mainLoop(float delta) override
@@ -68,8 +68,8 @@ struct SpriteTest : GameTest
         Renderer2D::drawCircle(mwpos, 12.f);
         Renderer2D::drawCircle(mwpos + Vector2f(20, 20), 12.f);
         Renderer2D::drawRect({ mwpos, Vector2f(20, 20) });
-        Renderer2D::drawText("Hello world!", sdffont, { 50, 50 });
-        Renderer2D::drawText("Hello world!", bmfont,  { 50, 50 + float(sdffont.newLineHeight()) });
+        Renderer2D::drawText("Hello world!", sdfFont,    { 50, 50 });
+        Renderer2D::drawText("Hello world!", bitmapFont, { 50, 50 + float(sdfFont.newLineHeight()) });
 
         Renderer2D::render();
 
