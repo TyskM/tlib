@@ -349,9 +349,9 @@ public:
 struct SubTexture
 {
     Texture* texture = nullptr;
-    Recti rect;
+    Rectf rect;
 
     SubTexture() { }
-    SubTexture(Texture& tex, const Recti& rect) : texture{ &tex }, rect{ rect } { }
-    SubTexture(Texture& tex) : texture{ &tex }, rect{ Vector2i{0,0}, texture->getSize() } { }
+    SubTexture(Texture& tex, const Rectf& rect) : texture{ &tex }, rect{ rect } { }
+    SubTexture(Texture& tex) : texture{ &tex }, rect{ Vector2f{0,0}, Vector2f(texture->getSize()) } { }
 };
