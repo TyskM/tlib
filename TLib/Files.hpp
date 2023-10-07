@@ -18,7 +18,7 @@ String readFile(const Path& filePath)
 {
     // http://insanecoding.blogspot.de/2011/11/how-to-read-in-file-in-c.html
     std::ifstream in(filePath, std::ios::in | std::ios::binary);
-    if (!in) throw FileReadError("Failed to read file: " + filePath.string());
+    if (!in) String(); // return empty string on failure
     return String(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
@@ -39,14 +39,20 @@ Vector<char> readFileBytes(const Path& filePath)
     return buffer;
 }
 
-void writeToFile(const Path& filePath, const String& value)
+bool writeToFile(const Path& filePath, const String& value)
 {
-    if (fs::is_directory(filePath.parent_path()))
-    { fs::create_directories(filePath.parent_path()); }
+    auto parentPath = filePath.parent_path();
+    if (!parentPath.empty())
+    { fs::create_directories(parentPath); }
+
     std::ofstream out(filePath, std::ios::out | std::ios::binary | std::ios::trunc);
-    if (!out) throw FileWriteError("Failed to write file: " + filePath.string());
     out << value;
     out.close();
+
+    if (out.fail())
+    { return false; }
+
+    return true;
 }
 
 // Puts each line of a file into a vector of strings
