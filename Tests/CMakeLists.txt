@@ -15,6 +15,7 @@ set(TLib_Tests
         Model
         GUI
         Box2D
+        NinePatchTest
 )
 
 enable_testing()

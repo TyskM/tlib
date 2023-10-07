@@ -39,11 +39,24 @@ public:
     static bool created()      { return inited; }
     static void create()       { init();        }
 
-    // Ignore layer parameter and draw everthing back to front
-    static void render()       { flush(false);  }
-
-    // Sort everything by the layer parameter before drawing
-    static void renderSorted() { flush(true); }
+    /*
+    @param sort If false, Ignore layer parameter and draw everthing back to front
+    @param ignoreCamera If true, will render using the default camera. Useful for drawing UI and FBOs
+    */
+    static void render(bool sort = false, bool ignoreCamera = false)
+    {
+        if (ignoreCamera)
+        {
+            auto oldCam = Renderer2D::getView();
+            Renderer2D::resetView();
+            flush(sort);
+            Renderer2D::setView(oldCam);
+        }
+        else
+        {
+            flush(sort);
+        }
+    }
 
     static void setView(const Camera2D& camera)
     {
@@ -65,6 +78,14 @@ public:
     static inline Camera2D getView()
     { return view; }
 
+    static void resetView()
+    {
+        Camera2D startCam;
+        auto size = Renderer::getFramebufferSize();
+        startCam.setBounds(Rectf(0, 0, size.x, size.y));
+        setView(startCam);
+    }
+
     static void clearColor(const ColorRGBAf& color = { 0.1f, 0.1f, 0.1f, 1.f })
     { Renderer::clearColor(color); }
 
@@ -74,22 +95,48 @@ public:
                             const int                 layer    = DefaultSpriteLayer,
                             const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
                             const float               rotation = 0.f,
-                            const Renderer2DOrigin&   origin   = OriginCenter)
+                            const Renderer2DOrigin&   origin   = OriginCenter,
+                            bool flipUvX = false,
+                            bool flipUvY = false,
+                            Shader& shader = defaultShader)
     {
         sprite_batch(tex, Rectf(Vector2f{ 0.f,0.f },
-                                Vector2f(tex.getSize())), dstrect, layer, color, rotation, origin);
+                                Vector2f(tex.getSize())), dstrect, layer, color, rotation, origin, flipUvX, flipUvY, shader);
     }
 
     // Rotation is in radians
-    static void drawTexture(      SubTexture&         subTex,
+    static void drawTexture(const SubTexture&         subTex,
                             const Rectf&              dstrect,
                             const int                 layer    = DefaultSpriteLayer,
                             const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
                             const float               rotation = 0.f,
-                            const Renderer2DOrigin&   origin   = OriginCenter)
+                            const Renderer2DOrigin&   origin   = OriginCenter,
+                            bool flipUvX = false,
+                            bool flipUvY = false,
+                            Shader& shader = defaultShader)
     {
         ASSERT(subTex.texture);
-        sprite_batch(*subTex.texture, Rectf(subTex.rect), dstrect, layer, color, rotation, origin);
+        sprite_batch(*subTex.texture, Rectf(subTex.rect), dstrect, layer, color, rotation, origin, flipUvX, flipUvY, shader);
+    }
+
+    // Rotation is in radians
+    static void drawTexture(const SubTexture&         subTex,
+                            const Vector2f&           pos,
+                            const Vector2f&           scale    = { 1.f, 1.f },
+                            const int                 layer    = DefaultSpriteLayer,
+                            const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
+                            const float               rotation = 0.f,
+                            const Renderer2DOrigin&   origin   = OriginCenter,
+                            bool flipUvX = false,
+                            bool flipUvY = false,
+                            Shader& shader = defaultShader)
+    {
+        ASSERT(subTex.texture);
+        Vector2f texSize     = Vector2f(subTex.rect.getSize()) * scale;
+        Vector2f halfTexSize = texSize/2.f;
+
+        sprite_batch(*subTex.texture, subTex.rect,
+                          Rectf(pos - halfTexSize, texSize), layer, color, rotation, origin, flipUvX, flipUvY, shader);
     }
 
     // Rotation is in radians
@@ -99,9 +146,12 @@ public:
                             const int                 layer    = DefaultSpriteLayer,
                             const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
                             const float               rotation = 0.f,
-                            const Renderer2DOrigin&   origin   = OriginCenter)
+                            const Renderer2DOrigin&   origin   = OriginCenter,
+                            bool flipUvX = false,
+                            bool flipUvY = false,
+                            Shader& shader = defaultShader)
     {
-        sprite_batch(tex, srcrect, dstrect, layer, color, rotation, origin);
+        sprite_batch(tex, srcrect, dstrect, layer, color, rotation, origin, flipUvX, flipUvY, shader);
     }
 
     // Rotation is in radians
@@ -112,13 +162,16 @@ public:
                             const int                 layer    = DefaultSpriteLayer,
                             const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
                             const float               rotation = 0.f,
-                            const Renderer2DOrigin&   origin   = OriginCenter)
+                            const Renderer2DOrigin&   origin   = OriginCenter,
+                            bool flipUvX = false,
+                            bool flipUvY = false,
+                            Shader& shader = defaultShader)
     {
         Vector2f texSize     = Vector2f(tex.getSize()) * scale;
         Vector2f halfTexSize = texSize/2.f;
 
         sprite_batch(tex, srcrect,
-                          Rectf(pos - halfTexSize, texSize), layer, color, rotation, origin);
+                          Rectf(pos - halfTexSize, texSize), layer, color, rotation, origin, flipUvX, flipUvY, shader);
     }
 
     // Rotation is in radians
@@ -128,10 +181,75 @@ public:
                             const int                 layer    = DefaultSpriteLayer,
                             const ColorRGBAf&         color    = { 1.f, 1.f, 1.f, 1.f },
                             const float               rotation = 0.f,
-                            const Renderer2DOrigin&   origin   = OriginCenter)
+                            const Renderer2DOrigin&   origin   = OriginCenter,
+                            bool flipUvX = false,
+                            bool flipUvY = false,
+                            Shader& shader = defaultShader)
     {
         drawTexture(tex, Rectf(Vector2f{0.f,0.f}, Vector2f(tex.getSize())),
-                    pos, scale, layer, color, rotation, origin);
+                    pos, scale, layer, color, rotation, origin, flipUvX, flipUvY, shader);
+    }
+
+    /*
+    Draws an image using 9(slice/grid/patch) scaling
+    https://en.wikipedia.org/wiki/9-slice_scaling
+
+    If your (dstRect.width < left + right || dstRect.height < top + bottom)
+    your image will probably look weird
+    */
+    static void drawNinePatchTex(
+        Texture& tex,
+        const Rectf& srcRect,
+        const Rectf& dstRect,
+        float left, float right, float top, float bottom)
+    {
+        // What a process zzzzzzzzz
+        const Vector2f& totalSize = Vector2f(srcRect.getSize());
+
+        Vector2f centerSize = totalSize;
+        centerSize.x -= left + right;
+        centerSize.y -= top + bottom;
+        Vector2f centerPos = srcRect.getPos() + Vector2f{left, top};
+        Rectf centerSrc ={centerPos, centerSize};
+
+        Rectf mtSrc ={srcRect.getPos() + Vector2f(left,                0), centerSize.x, top};
+        Rectf mlSrc ={srcRect.getPos() + Vector2f(0,                   top), left,         centerSize.y};
+        Rectf mrSrc ={srcRect.getPos() + Vector2f(totalSize.x - right, top), right,        centerSize.y};
+        Rectf mbSrc ={srcRect.getPos() + Vector2f(left,                totalSize.y - bottom), centerSize.x, bottom};
+        Rectf tlSrc ={srcRect.getPos() + Vector2f(0,                   0), left,         right};
+        Rectf trSrc ={srcRect.getPos() + Vector2f(totalSize.x - right, 0), right,        top};
+        Rectf blSrc ={srcRect.getPos() + Vector2f(0,                   totalSize.y - bottom), left,         bottom};
+        Rectf brSrc ={srcRect.getPos() + Vector2f(totalSize.x - right, totalSize.y - bottom), right,        bottom};
+
+        Rectf centerDst ={dstRect.x + left, dstRect.y + top, dstRect.width - right - left, dstRect.height - bottom - top};
+
+        Rectf mtDst ={dstRect.x + left,           dstRect.y,                    centerDst.width, top};
+        Rectf mlDst ={dstRect.x,                  dstRect.y + top,              left,            centerDst.height};
+        Rectf mrDst ={dstRect.getRight() - right, dstRect.y + top,              right,           centerDst.height};
+        Rectf mbDst ={dstRect.x + left,           dstRect.getBottom() - bottom, centerDst.width, bottom};
+
+        Rectf tlDst ={dstRect.getPos(),                           tlSrc.getSize()};
+        Rectf trDst ={dstRect.getRight() - right,                 dstRect.y,                    trSrc.getSize()};
+        Rectf blDst ={dstRect.x,                                  dstRect.getBottom() - bottom, blSrc.getSize()};
+        Rectf brDst ={dstRect.getRightBottom() - brSrc.getSize(), brSrc.getSize()};
+
+        drawTexture(tex, mtSrc, mtDst); // Draw sides
+        drawTexture(tex, mlSrc, mlDst);
+        drawTexture(tex, mrSrc, mrDst);
+        drawTexture(tex, mbSrc, mbDst);
+        drawTexture(tex, tlSrc, tlDst); // Then corners
+        drawTexture(tex, trSrc, trDst);
+        drawTexture(tex, blSrc, blDst);
+        drawTexture(tex, brSrc, brDst);
+        drawTexture(tex, centerSrc, centerDst); // Then center
+    }
+
+    static void drawNinePatchTex(
+        Texture& tex,
+        const Rectf& dstRect,
+        float left, float right, float top, float bottom)
+    {
+        drawNinePatchTex(tex, Rectf(0.f, 0.f, Vector2f(tex.getSize())), dstRect, left, right, top, bottom);
     }
 
     // loop: will draw a line between first and last point
@@ -393,10 +511,7 @@ private:
         setSDFTextEdge(0.04f);
         setSDFTextWidth(0.48f);
 
-        Camera2D startCam;
-        auto size = Renderer::getFramebufferSize();
-        startCam.setBounds(Rectf(0, 0, size.x, size.y));
-        setView(startCam);
+        resetView();
 
         SDL_AddEventWatch(&SDLEventFilterCB, NULL);
 
