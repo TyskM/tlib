@@ -3,6 +3,7 @@
 #include <glm/gtc/constants.hpp>
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 
 namespace math
 {
@@ -20,8 +21,15 @@ namespace math
     template<class T>
     inline T stepify(const T& value, const T& step)
     {
-        // return ( floor(value / step) * step );
-        return step * std::round(value / step);
+        if (value == 0.f) { return value; }
+        return ( floor(value / step) * step );
+    }
+
+    template<class T>
+    inline T stepifyRound(const T& value, const T& step)
+    {
+        if (value == 0.f) { return value; }
+        return (round(value / step) * step);
     }
 
     template<class T>
