@@ -84,12 +84,14 @@ struct WindowCreateParams
     Vector2i    size  = { 640, 480 };
     Vector2i    pos   = { SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED };
     WindowFlags flags = WindowFlags::Resizable | WindowFlags::OpenGL;
+
+    int stencilSize = 1; // Stencil bits per pixel
 };
 
 struct Window : NonAssignable
 {
     // Read only
-    SDL_Window* window = nullptr;
+    SDL_Window*   window = nullptr;
     SDL_SysWMinfo wm;
     SDL_GLContext glContext = nullptr;
 
@@ -110,6 +112,7 @@ struct Window : NonAssignable
             //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
             //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+            SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, params.stencilSize);
         }
 
         window = SDL_CreateWindow(params.title.c_str(),
@@ -227,6 +230,41 @@ struct Window : NonAssignable
 
     void setSize(int x, int y)
     { SDL_SetWindowSize(window, x, y); }
+
+    void setBordered(bool value)
+    { SDL_SetWindowBordered(window, static_cast<SDL_bool>(value)); }
+
+    void setPosition(const Vector2i& pos)
+    { setPosition(pos.x, pos.y); }
+
+    void setPosition(int x, int y)
+    { SDL_SetWindowPosition(window, x, y); }
+
+    void setResizable(bool value)
+    { SDL_SetWindowResizable(window, static_cast<SDL_bool>(value)); }
+
+    // If using with ImGui make sure to enable "ImGuiConfigFlags_NoMouseCursorChange"
+    // io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+    void showCursor(bool value)
+    { SDL_ShowCursor(value); }
+
+    bool isCursorShown() const
+    { return SDL_ShowCursor(SDL_QUERY); }
+
+    [[nodiscard]]
+    Vector2i getMaxSize() const
+    {
+        Vector2i ret;
+        SDL_GetWindowMaximumSize(window, &ret.x, &ret.y);
+        return ret;
+    }
+
+    SDL_DisplayMode getDesktopDisplayInfo(int index = 0)
+    {
+        SDL_DisplayMode info;
+        SDL_GetDesktopDisplayMode(index, &info);
+        return info;
+    }
 
     [[nodiscard]] String getTitle()
     { return SDL_GetWindowTitle(window); }
