@@ -12,8 +12,8 @@ void debugCamera(Camera2D& camera)
     static float maxZoom  = 5.f;
     static float zoomIncr = 0.15f;
 
-    Rectf bounds = camera.getBounds();
-    Vector2f zoom = camera.getZoom();
+    Rectf    bounds = camera.getBounds();
+    Vector2f zoom   = camera.getZoom();
 
     // Dragging
     if (Input::isMousePressed(Input::MOUSE_MIDDLE))
