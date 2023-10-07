@@ -35,16 +35,15 @@ struct Vector2
     T x = 0;
     T y = 0;
 
+    Vector2<T> midpoint(const Vector2<T>& other) const
+    { return Vector2<T>(std::midpoint(x, other.x), std::midpoint(y, other.y)); }
+
     // In radians
     inline T angle() const
     { return atan2(y, x); }
 
     // In radians
     T angleTo(const Vector2<T>& other) const
-    { return atan2(cross(other), dot(other)); }
-
-    // In radians
-    T angleToRel(const Vector2<T>& other) const
     { return (other - *this).angle(); }
 
     void rotate(T radians)
@@ -357,8 +356,10 @@ struct Rect
     T width  = 0;
     T height = 0;
 
-    Rect(Vector2<T> pos, Vector2<T> size) : x{ pos.x }, y{ pos.y }, width{ size.x }, height{ size.y } { }
+    Rect(const Vector2<T>& pos, const Vector2<T>& size) : x{ pos.x }, y{ pos.y }, width{ size.x }, height{ size.y } { }
     Rect(T x, T y, T width, T height) : x{ x }, y{ y }, width{ width }, height{ height } { }
+    Rect(const Vector2<T>& pos, T width, T height) : x{pos.x}, y{pos.y}, width{width}, height{height} { }
+    Rect(T x, T y, const Vector2<T>& size) : x{x}, y{y}, width{size.x}, height{size.y} { }
     Rect() = default;
 
     template <typename CT>
@@ -369,6 +370,16 @@ struct Rect
         width  = static_cast<T>(other.width);
         height = static_cast<T>(other.height);
     }
+
+    static Rect fromLTRB(T left, T top, T right, T bottom)
+    {
+        if (right < left) { std::swap(right, left); }
+        if (bottom < top) { std::swap(bottom, top); }
+        return Rect<T>(left, top, right - left, bottom - top);
+    }
+
+    static Rect fromLTRB(const Vector2<T>& lt, const Vector2<T>& rb)
+    { return fromLTRB(lt.x, lt.y, rb.x, rb.y); }
 
     Vector2<T> getPos() const
     { return Vector2<T>(x, y); }
