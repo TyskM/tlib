@@ -42,18 +42,22 @@ public:
     inline void setFarClipDistance(const float dist) { zfar = dist; }
 
     [[nodiscard]]
-    Vector2f localToWorldCoords(const Vector2f& localpos)
+    Vector2f localToWorldCoords(Vector2f localpos)
     {
         glm::mat4 mat = getMatrix();
         mat = glm::inverse(mat);
         
+        auto fbSize = Renderer::getFramebufferSize();
+
         glm::vec3 ndc = glm::vec3(
-                  localpos.x / bounds.width,
-            1.f - localpos.y / bounds.height, 0) * 2.f - 1.f;
+                  localpos.x / fbSize.x,
+            1.f - localpos.y / fbSize.y, 0) * 2.f - 1.f;
         
         glm::vec4 worldPosition = mat * glm::vec4(ndc, 1);
 
         return { worldPosition.x, worldPosition.y };
+
+        
     }
 
     [[nodiscard]]
