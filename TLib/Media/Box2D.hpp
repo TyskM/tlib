@@ -5,12 +5,17 @@
 #include <TLib/Containers/Vector.hpp>
 #include <box2d/box2d.h>
 
-//// Misc
-
 b2Vec2 tob2vec(const Vector2f& v)
 { return {v.x, v.y}; }
 
-///// Raycast
+struct Intersection
+{
+    b2Fixture* fixture = nullptr;
+    Vector2f   point;
+    Vector2f   normal;
+};
+
+using RaycastFirstFilter = std::function<bool(b2Fixture&)>; // b2Fixture::GetUserData isn't const, so this can't be const either
 
 namespace tlibdetail
 {
@@ -21,45 +26,58 @@ namespace tlibdetail
         Vector2f   point;
         Vector2f   normal;
         b2Fixture* fixture = nullptr;
+        RaycastFirstFilter filter = defaultFilter;
+
+        static bool defaultFilter(b2Fixture&)
+        { return true; }
 
         float ReportFixture(b2Fixture* _fixture, const b2Vec2& _point, const b2Vec2& _normal, float _fraction) override
         {
-            hit     = true;
-            point   = Vector2f(_point);
-            normal  = Vector2f(_normal);
-            fixture = _fixture;
-            return _fraction;
+            if (filter(*_fixture))
+            {
+                hit     = true;
+                point   = Vector2f(_point);
+                normal  = Vector2f(_normal);
+                fixture = _fixture;
+                return _fraction;
+            }
+            return 1.f;
         }
+    };
 
-        void reset()
+    class RaycastAllHandler : public b2RayCastCallback
+    {
+    public:
+        Vector<Intersection>& outVec;
+
+        RaycastAllHandler(Vector<Intersection>& outVec) : outVec{outVec} {}
+
+        float ReportFixture(b2Fixture* _fixture, const b2Vec2& _point, const b2Vec2& _normal, float _fraction) override
         {
-            hit = false;
+            outVec.emplace_back();
+            auto& back   = outVec.back();
+            back.fixture = _fixture;
+            back.normal  = Vector2f(_normal);
+            back.point   = Vector2f(_point);
+
+            return 1.f;
         }
-    } raycastFirstHandler;
+    };
 
     class AABBQueryAll : public b2QueryCallback
     {
     public:
-        Vector<b2Body*> foundBodies;
+        Vector<b2Body*>& outVec;
+
+        AABBQueryAll(Vector<b2Body*>& outVec) : outVec{outVec} {}
 
         bool ReportFixture(b2Fixture* fixture) override
         {
-            foundBodies.push_back(fixture->GetBody());
+            outVec.push_back(fixture->GetBody());
             return true;
         }
-
-        void reset()
-        { foundBodies.clear(); }
-
-    } aabbQueryAll;
+    };
 }
-
-struct Intersection
-{
-    b2Fixture* fixture = nullptr;
-    Vector2f   point;
-    Vector2f   normal;
-};
 
 struct RaycastFirst
 {
@@ -67,10 +85,15 @@ struct RaycastFirst
     Intersection intersec; // If hit is false, ignore
 };
 
-RaycastFirst raycastFirst(const b2World& world, const Vector2f& p1, const Vector2f& p2)
+// Returns first fixture the raycast collides with. Ignores backfaces of fixtures
+RaycastFirst raycastFirst(
+    const b2World&            world,
+    const Vector2f&           p1,
+    const Vector2f&           p2,
+    const RaycastFirstFilter& filter = tlibdetail::RaycastFirstHandler::defaultFilter)
 {
-    auto& rh = tlibdetail::raycastFirstHandler;
-    rh.reset();
+    tlibdetail::RaycastFirstHandler rh;
+    rh.filter = filter;
     world.RayCast(&rh, tob2vec(p1), tob2vec(p2));
 
     RaycastFirst ret;
@@ -86,14 +109,53 @@ RaycastFirst raycastFirst(const b2World& world, const Vector2f& p1, const Vector
     return ret;
 }
 
-// Returned vector can be invalidated after calling any function in this header.
-// Make a copy if you need it.
-Vector<b2Body*>& queryAABB(const b2World& world, const b2AABB& aabb)
+// Like raycastFirst, but casts a second ray backwards to find any shapes the first ray was inside.
+RaycastFirst raycastFirstBackface(const b2World& world, const Vector2f& p1, const Vector2f& p2)
 {
-    auto& q = tlibdetail::aabbQueryAll;
-    q.reset();
+    Vector<Intersection> insecs;
+    tlibdetail::RaycastAllHandler rh{insecs};
+    world.RayCast(&rh, tob2vec(p1), tob2vec(p2));
+    world.RayCast(&rh, tob2vec(p2), tob2vec(p1));
+
+    RaycastFirst ret;
+    if (insecs.empty())
+    {
+        ret.hit = false;
+        ret.intersec.point = p2;
+        return ret;
+    }
+
+    float dist = FLT_MAX;
+    auto  it   = insecs.begin();
+    for (auto& insec : insecs)
+    {
+        auto newDist = insec.point.distanceToSquared(p1);
+        if (newDist < dist)
+        {
+            dist = newDist;
+            it   = &insec;
+        }
+    }
+
+    ret.hit      = true;
+    ret.intersec = *it;
+    return ret;
+}
+
+Vector<Intersection> raycastAll(const b2World& world, const Vector2f& p1, const Vector2f& p2)
+{
+    Vector<Intersection> ret;
+    tlibdetail::RaycastAllHandler rh{ret};
+    world.RayCast(&rh, tob2vec(p1), tob2vec(p2));
+    return ret;
+}
+
+Vector<b2Body*> queryAABB(const b2World& world, const b2AABB& aabb)
+{
+    Vector<b2Body*> ret;
+    tlibdetail::AABBQueryAll q(ret);
     world.QueryAABB(&q, aabb);
-    return q.foundBodies;
+    return ret;
 }
 
 ////// Debug Draw
