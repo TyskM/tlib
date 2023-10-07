@@ -1,7 +1,7 @@
 
 #[[
     vcpkg dependencies:
-    core: spdlog magic-enum palsigslot freetype mimalloc cereal boost-algorithm boost-container SDL2 sdl2-gfx gl3w glm imgui imgui[sdl2-binding] imgui[opengl3-binding] assimp cmakerc
+    core: spdlog magic-enum palsigslot freetype mimalloc cereal boost-algorithm boost-container SDL2 sdl2-gfx gl3w glm imgui imgui[docking-experimental] imgui[sdl2-binding] imgui[opengl3-binding] assimp cmakerc
     tests: sfml
 ]]
 
