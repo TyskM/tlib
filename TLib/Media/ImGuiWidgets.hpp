@@ -17,8 +17,9 @@ void beginDiagWidgetExt(bool* p_open = NULL, ImGuiWindowFlags flags = 0)
 void drawDiagWidget(FPSLimit* fpslimit = nullptr, bool* p_open = NULL, ImGuiWindowFlags flags = 0)
 {
     float delta = ImGui::GetIO().DeltaTime;
-    const auto meminfo = sysq::getGlobalMemInfo();
+    const auto meminfo  = sysq::getGlobalMemInfo();
     const auto meminfop = sysq::getThisProcessMemUsage();
+    const auto vmeminfo = Renderer::getVideoMemoryInfo();
 
     static float snapTimeSecs = 0.66f;
     static float snapTimeCurr = 0.f;
@@ -63,15 +64,18 @@ void drawDiagWidget(FPSLimit* fpslimit = nullptr, bool* p_open = NULL, ImGuiWind
     //    ImGui::EndCombo();
     //}
 
-    ImGui::Text(            "Delta         : %f"   , delta);
-    ImGui::Text(fmt::format("FPS           : {}"   , fps).c_str());
-    ImGui::Text(fmt::format("CPU Usage     : {}%"  , sysq::getThisProcessCPUUsage()).c_str());
-    ImGui::Text(fmt::format("Phys Ram Used : {} MB", sysq::bytesToMb(meminfop.workingSetSize)).c_str());
-    ImGui::Text(fmt::format("Virt Ram Used : {} MB", sysq::bytesToMb(meminfop.privateUsage)).c_str());
-    ImGui::Text(fmt::format("Phys RAM Avail: {} MB", sysq::bytesToMb(meminfo.availPhysical)).c_str());
-    ImGui::Text(fmt::format("Phys RAM Total: {} MB", sysq::bytesToMb(meminfo.totalPhysical)).c_str());
-    ImGui::Text(fmt::format("Virt RAM Avail: {} MB", sysq::bytesToMb(meminfo.availVirtual)).c_str());
-    ImGui::Text(fmt::format("Virt RAM Total: {} MB", sysq::bytesToMb(meminfo.totalVirtual)).c_str());
+    ImGui::Text(            "Delta              : %f"   , delta);
+    ImGui::Text(fmt::format("FPS                : {}"   , fps).c_str());
+    ImGui::Text(fmt::format("CPU Usage          : {}%"  , sysq::getThisProcessCPUUsage()).c_str());
+    ImGui::Text(fmt::format("Phys RAM Used      : {} MB", sysq::bytesToMb(meminfop.workingSetSize)).c_str());
+    ImGui::Text(fmt::format("Virt RAM Used      : {} MB", sysq::bytesToMb(meminfop.privateUsage)).c_str());
+    ImGui::Text(fmt::format("Phys RAM Avail     : {} MB", sysq::bytesToMb(meminfo.availPhysical)).c_str());
+    ImGui::Text(fmt::format("Phys RAM Total     : {} MB", sysq::bytesToMb(meminfo.totalPhysical)).c_str());
+    ImGui::Text(fmt::format("Virt RAM Avail     : {} MB", sysq::bytesToMb(meminfo.availVirtual)).c_str());
+    ImGui::Text(fmt::format("Virt RAM Total     : {} MB", sysq::bytesToMb(meminfo.totalVirtual)).c_str());
+    ImGui::Text(fmt::format("VRAM Total         : {} MB", sysq::kbToMb(vmeminfo.total)).c_str());
+    ImGui::Text(fmt::format("VRAM Total Avail   : {} MB", sysq::kbToMb(vmeminfo.totalAvailable)).c_str());
+    ImGui::Text(fmt::format("VRAM Current Avail : {} MB", sysq::kbToMb(vmeminfo.currentAvailable)).c_str());
 
     ImGui::End();
 }

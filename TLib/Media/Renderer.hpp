@@ -14,6 +14,20 @@ struct RenderState
     GLBlendMode dstBlendFactor = GLBlendMode::OneMinusSrcAlpha;
 };
 
+struct VideoMemoryInfo
+{
+    // https://developer.download.nvidia.com/opengl/specs/GL_NVX_gpu_memory_info.txt
+
+    // dedicated video memory, total size (in kb) of the GPU memory
+    int32_t total            = 0;
+
+    // total available memory, total size (in Kb) of the memory available for allocations
+    int32_t totalAvailable   = 0;
+
+    // current available dedicated video memory (in kb), currently unused GPU memory
+    int32_t currentAvailable = 0;
+};
+
 struct Renderer
 {
 protected:
@@ -135,5 +149,19 @@ public:
         int maxTextureSize;
         GL_CHECK(glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize));
         return maxTextureSize;
+    }
+
+    static inline VideoMemoryInfo getVideoMemoryInfo()
+    {
+        VideoMemoryInfo info;
+        glGetIntegerv(0x9047, &info.total);
+
+        // If the last call failed, we're not on an nvidia card. clear the error and return.
+        if (glGetError() != GL_NO_ERROR)
+        { return info; }
+
+        glGetIntegerv(0x9048, &info.totalAvailable);
+        glGetIntegerv(0x9049, &info.currentAvailable);
+        return info;
     }
 };
