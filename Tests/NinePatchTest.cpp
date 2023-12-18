@@ -5,8 +5,9 @@
 #include <TLib/Media/Platform/Window.hpp>
 #include <TLib/Media/Platform/FPSLimit.hpp>
 #include <TLib/Timer.hpp>
-#include <TLib/Media/Camera2D.hpp>
+#include <TLib/Media/View.hpp>
 #include <TLib/Media/ImGuiWidgets.hpp>
+#include "Common.hpp"
 
 int main()
 {
@@ -16,7 +17,7 @@ int main()
     Timer      deltaTimer;
 
     window.create();
-    window.setTitle("Minimal Example");
+    window.setTitle("Nine Patch Rect Test");
     Renderer::create();
     Renderer2D::create();
 
@@ -51,7 +52,7 @@ int main()
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
                 auto view = Renderer2D::getView();
-                view.setBoundsSize(Vector2f(e.window.data1, e.window.data2));
+                view.size = Vector2f(e.window.data1, e.window.data2);
                 Renderer2D::setView(view);
             }
 
@@ -64,7 +65,7 @@ int main()
         Renderer::clearColor();
 
         // Update/Draw Here
-        Vector2f mousePos = Renderer2D::getView().localToWorldCoords(Input::mousePos);
+        Vector2f mousePos = getMousePos();
 
         if (Input::isMousePressed(Input::MOUSE_RIGHT))
         { br = mousePos; }

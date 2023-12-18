@@ -115,7 +115,7 @@ public:
     }
 
     bool loadFromFile(
-        const String&  path,
+        const Path&    path,
         unsigned int   size       = 24,
         size_t         rangeMin   = 0,
         size_t         rangeMax   = 128,
@@ -125,10 +125,10 @@ public:
         FontDetail::initFreetype();
         characters.clear();
         FT_Face face;
-        FT_Error err = FT_New_Face(FontDetail::ft, path.c_str(), 0, &face);
+        FT_Error err = FT_New_Face(FontDetail::ft, path.string().c_str(), 0, &face);
         if (err)
         {
-            tlog::error("FREETYPE: Failed to load font '{}' Error code: {}", path, err);
+            tlog::error("FREETYPE: Failed to load font '{}' Error code: {}", path.string(), err);
             return false;
         }
         FT_Select_Charmap(face, ft_encoding_unicode);
@@ -175,7 +175,7 @@ public:
             }
 
             if (FT_Load_Char(face, c, FT_LOAD_DEFAULT))
-            { tlog::error("Failed to load character '{}' from font file '{}'", c, path); continue; }
+            { tlog::error("Failed to load character '{}' from font file '{}'", c, path.string()); continue; }
 
             FT_Render_Glyph(slot, static_cast<FT_Render_Mode_>(renderMode));
             
@@ -209,7 +209,7 @@ public:
         // Surely this wont happen... surely?
         if (result_size.w > maxTexSize || result_size.h > maxTexSize)
         {
-            tlog::critical("The font '{}' is too large for a texture atlas! try reducing the size or range.", path);
+            tlog::critical("The font '{}' is too large for a texture atlas! try reducing the size or range.", path.string());
             return false;
         }
 

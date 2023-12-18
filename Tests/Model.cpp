@@ -3,8 +3,7 @@
 
 #include <TLib/DataStructures.hpp>
 #include <TLib/Media/Renderer.hpp>
-#include <TLib/Media/Camera2D.hpp>
-#include <TLib/Media/Camera2DDebug.hpp>
+#include <TLib/Media/View.hpp>
 #include <TLib/RNG.hpp>
 #include "Common.hpp"
 

@@ -1,20 +1,5 @@
 #pragma once
 
-#pragma comment(lib, "Setupapi.lib")
-#pragma comment(lib, "winmm.lib")
-#pragma comment(lib, "Version.lib")
-#pragma comment(lib, "imagehlp.lib")
-#pragma comment(lib, "dinput8.lib")
-#pragma comment(lib, "dxguid.lib")
-#pragma comment(lib, "user32.lib")
-#pragma comment(lib, "gdi32.lib")
-#pragma comment(lib, "imm32.lib")
-#pragma comment(lib, "ole32.lib")
-#pragma comment(lib, "oleaut32.lib")
-#pragma comment(lib, "shell32.lib")
-#pragma comment(lib, "version.lib")
-#pragma comment(lib, "uuid.lib")
-
 #define NOMINMAX
 #define SDL_MAIN_HANDLED
 

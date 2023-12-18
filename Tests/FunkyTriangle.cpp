@@ -4,6 +4,20 @@
 
 #include "Common.hpp"
 
+const char* frag_flat_floored = R"""(
+        #version 330 core
+        out vec4 FragColor;
+        in vec4 color;
+
+        uniform int res = 24;
+
+        void main()
+        {
+            vec4 col = floor(color * res) / res;
+            FragColor = col;
+        }
+        )""";
+
 struct TriangleTest : GameTest
 {
     Mesh mesh;
@@ -28,8 +42,8 @@ struct TriangleTest : GameTest
         window.setTitle("Funky Triangle");
         mesh.setLayout({ Layout::Vec2f(), Layout::Vec4f() });
         mesh.setData(triVerts, AccessType::Dynamic);
-        shader.create(vert_flat, frag_flat);
-        Camera2D view;
+        shader.create(vert_flat, frag_flat_floored);
+        View view;
         view.setBounds({ 0, 0, 1, 1 });
         shader.setMat4f("projection", view.getMatrix());
     }
@@ -50,7 +64,12 @@ struct TriangleTest : GameTest
         if (Input::isKeyPressed(SDL_SCANCODE_D))
         { pos.x -= ms * delta; }
 
-        Camera2D view;
+        if (Input::isMouseJustPressed(Input::MOUSE_WHEEL_UP))
+        { shader.setInt("res", shader.getInt("res") + 1); }
+        else if (Input::isMouseJustPressed(Input::MOUSE_WHEEL_DOWN))
+        { shader.setInt("res", shader.getInt("res") - 1); }
+
+        View view;
         view.setBounds({ pos.x, pos.y, 1, 1 });
         shader.setMat4f("projection", view.getMatrix());
 
@@ -67,9 +86,9 @@ struct TriangleTest : GameTest
         int i = 0;
         for (auto& v : triVerts)
         {
-            v.color.r = std::fmod(std::sin(i * time    ), 1.f);
-            v.color.g = std::fmod(std::sin(i * time * 2), 1.f);
-            v.color.b = std::fmod(std::sin(i * time * 3), 1.f);
+            v.color.r = 0.6f + std::fmod(std::sin(i * time    ), 1.f);
+            v.color.g = 0.3f + std::fmod(std::sin(i * time * 2), 1.f);
+            v.color.b = 0.1f + std::fmod(std::sin(i * time * 3), 1.f);
             ++i;
         }
         mesh.setData(triVerts, AccessType::Dynamic);

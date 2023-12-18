@@ -79,61 +79,69 @@ public:
     void setBool(const String& name, bool value)
     {
         bind();
-        GL_CHECK(glUniform1i(getUniform(name.c_str()), static_cast<int>(value)));
+        GL_CHECK(glUniform1i(getUniformLocation(name.c_str()), static_cast<int>(value)));
     }
 
     void setInt(const String& name, int value)
     {
         bind();
-        GL_CHECK(glUniform1i(getUniform(name.c_str()), value));
+        GL_CHECK(glUniform1i(getUniformLocation(name.c_str()), value));
+    }
+
+    GLint getInt(const String& name)
+    {
+        bind();
+        GLint ret;
+        GL_CHECK(glGetUniformiv(glHandle, getUniformLocation(name.c_str()), &ret));
+        return ret;
     }
 
     void setFloat(const String& name, float value)
     {
         bind();
-        GL_CHECK(glUniform1f(getUniform(name.c_str()), value));
+        GL_CHECK(glUniform1f(getUniformLocation(name.c_str()), value));
     }
     
     void setVec2f(const String& name, float x, float y)
     {
         bind();
-        GL_CHECK(glUniform2f(getUniform(name.c_str()), x, y));
+        GL_CHECK(glUniform2f(getUniformLocation(name.c_str()), x, y));
     }
 
     void setVec2f(const String& name, glm::vec2 value)
     {
         bind();
-        GL_CHECK(glUniform2f(getUniform(name.c_str()), value.x, value.y));
+        GL_CHECK(glUniform2f(getUniformLocation(name.c_str()), value.x, value.y));
     }
 
     void setVec3f(const String& name, float x, float y, float z)
     {
         bind();
-        GL_CHECK(glUniform3f(getUniform(name.c_str()), x, y, z));
+        GL_CHECK(glUniform3f(getUniformLocation(name.c_str()), x, y, z));
     }
 
     void setVec3f(const String& name, glm::vec3 value)
     {
         bind();
-        GL_CHECK(glUniform3f(getUniform(name.c_str()), value.x, value.y, value.z));
+        GL_CHECK(glUniform3f(getUniformLocation(name.c_str()), value.x, value.y, value.z));
     }
 
     void setVec4f(const String& name, float x, float y, float z, float w)
     {
         bind();
-        GL_CHECK(glUniform4f(getUniform(name.c_str()), x, y, z, w));
+        GL_CHECK(glUniform4f(getUniformLocation(name.c_str()), x, y, z, w));
     }
 
     void setVec4f(const String& name, glm::vec4 value)
     {
         bind();
-        GL_CHECK(glUniform4f(getUniform(name.c_str()), value.x, value.y, value.z, value.w));
+        GL_CHECK(glUniform4f(getUniformLocation(name.c_str()), value.x, value.y, value.z, value.w));
     }
 
     void setMat4f(const String& name, glm::mat4 value)
     {
         bind();
-        GL_CHECK(glUniformMatrix4fv(getUniform(name.c_str()), 1, false, glm::value_ptr(value)));
+        GL_CHECK(glUniformMatrix4fv(getUniformLocation(name.c_str()), 1, false, glm::value_ptr(value)));
     }
 
     void setUniformBlock(const String& name, UniformBuffer& ubo, int index)
@@ -148,7 +156,7 @@ public:
     {
         bind();
         ASSERT(value.size() > 0);
-        GL_CHECK(glUniformMatrix4fv(getUniform(name.c_str()), count, false, glm::value_ptr(value[0])));
+        GL_CHECK(glUniformMatrix4fv(getUniformLocation(name.c_str()), count, false, glm::value_ptr(value[0])));
     }
 
     template <typename ContainerType>
@@ -156,7 +164,7 @@ public:
     {
         bind();
         ASSERT(value.size() > 0);
-        GL_CHECK(glUniform2fv(getUniform(name.c_str()), count, glm::value_ptr(value[0])));
+        GL_CHECK(glUniform2fv(getUniformLocation(name.c_str()), count, glm::value_ptr(value[0])));
     }
 
     template <typename ContainerType>
@@ -164,13 +172,13 @@ public:
     {
         bind();
         ASSERT(value.size() > 0);
-        GL_CHECK(glUniform4fv(getUniform(name.c_str()), count, glm::value_ptr(value[0])));
+        GL_CHECK(glUniform4fv(getUniformLocation(name.c_str()), count, glm::value_ptr(value[0])));
     }
 
     bool created()
     { return glHandle != 0; }
 
-    GLint getUniform(const String& name) const
+    GLint getUniformLocation(const String& name) const
     {
         auto it = _uniformCache.find(name);
         if (it != _uniformCache.end())

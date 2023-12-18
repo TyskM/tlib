@@ -2,6 +2,7 @@
 
 #include <TLib/Media/GL/GLHelpers.hpp>
 #include <TLib/Media/Resource/Texture.hpp>
+#include <TLib/Media/GL/GLState.hpp>
 #include <TLib/DataStructures.hpp>
 #include <TLib/Misc.hpp>
 
@@ -41,10 +42,20 @@ public:
     { if (created()) glDeleteFramebuffers(1, &glHandle); }
 
     void bind()
-    { glBindFramebuffer(GL_FRAMEBUFFER, glHandle); }
+    {
+        ASSERT(created()); // Create me, idiot.
+        if (glState.boundFrameBuffer == this) { return; }
+        GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, glHandle));
+        //GL_CHECK(glClipControl(GL_UPPER_LEFT, GL_NEGATIVE_ONE_TO_ONE));
+        glState.boundFrameBuffer = this;
+    }
 
     static void unbind()
-    { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
+    {
+        GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+        //GL_CHECK(glClipControl(GL_LOWER_LEFT, GL_NEGATIVE_ONE_TO_ONE));
+        glState.boundFrameBuffer = nullptr;
+    }
 
     FrameBuffer()  { }
     ~FrameBuffer() { reset(); }

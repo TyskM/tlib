@@ -1,10 +1,9 @@
 
 #include <TLib/DataStructures.hpp>
 #include <TLib/Media/Renderer.hpp>
-#include <TLib/Media/Camera2D.hpp>
+#include <TLib/Media/View.hpp>
 #include <TLib/Media/Frustum.hpp>
 #include <TLib/Media/GL/UniformBuffer.hpp>
-#include <TLib/Media/Camera2DDebug.hpp>
 #include "Common.hpp"
 
 struct SpriteTest : GameTest
@@ -36,7 +35,7 @@ struct SpriteTest : GameTest
         debugCamera(view);
         Renderer2D::setView(view);
 
-        Vector2f mwpos = view.localToWorldCoords(Input::mousePos);
+        Vector2f mwpos = getMousePos();
 
         Renderer::clearColor();
 
@@ -58,7 +57,7 @@ struct SpriteTest : GameTest
                 };
                 const Rectf rect = { Vector2f(x, y) * offset, Vector2f(32,32) };
 
-                Renderer2D::drawTexture(tex, rect, 0, color, rot);
+                Renderer2D::drawTexture(tex, rect, rot, color, 0);
                 --count;
                 if (count == 0) break;
             }
@@ -67,6 +66,7 @@ struct SpriteTest : GameTest
 
         Renderer2D::drawCircle(mwpos, 12.f);
         Renderer2D::drawCircle(mwpos + Vector2f(20, 20), 12.f);
+        Renderer2D::drawCircle({0, 0}, 6.f);
         Renderer2D::drawRect({ mwpos, Vector2f(20, 20) });
         Renderer2D::drawText("Hello world!", sdfFont,    { 50, 50 });
         Renderer2D::drawText("Hello world!", bitmapFont, { 50, 50 + float(sdfFont.newLineHeight()) });

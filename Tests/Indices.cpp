@@ -35,7 +35,7 @@ struct IndicesTest : GameTest
         mesh.setData(vertices);
         mesh.setIndices(indices);
         shader.create(vert_flat, frag_flat);
-        Camera2D view;
+        View view;
         view.setBounds({ 0, 0, 1, 1 });
         shader.setMat4f("projection", view.getMatrix());
     }

@@ -100,9 +100,8 @@ private:
     fs::path _path;
 
 public:
-    Texture() { }
-    Texture(const String& filePath)
-    { loadFromFile(filePath); }
+    constexpr Texture() = default;
+    Texture(const Path& filePath) { loadFromFile(filePath); }
 
     Texture(Texture&& other) noexcept
     {
@@ -151,7 +150,7 @@ public:
         GL_CHECK(glGenTextures(1, &glHandle));
     }
 
-    bool loadFromFile(const fs::path& path)
+    bool loadFromFile(const Path& path)
     {
         if (!created()) { create(); }
 
@@ -181,7 +180,7 @@ public:
         return true;
     }
 
-    bool writeToFile(const fs::path& path)
+    bool writeToFile(const Path& path)
     {
         ASSERT(created());
         bind();
@@ -217,11 +216,12 @@ public:
 
         this->width  = width;
         this->height = height;
+        this->internalFormat = internalFormat;
 
+        bind();
         setFilter(defaultTexFiltering);
         setUVMode(defaultUVMode);
-        this->internalFormat = internalFormat;
-        
+
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalFormat, width, height, 0, (GLenum)format, GL_UNSIGNED_BYTE, data));
         if (generateMipmap)
         { GL_CHECK(glGenerateMipmap(GL_TEXTURE_2D)); }
@@ -349,9 +349,9 @@ public:
 struct SubTexture
 {
     Texture* texture = nullptr;
-    Rectf rect;
+    Rectf    rect;
 
-    SubTexture() { }
+    constexpr SubTexture() = default;
     SubTexture(Texture& tex, const Rectf& rect) : texture{ &tex }, rect{ rect } { }
     SubTexture(Texture& tex) : texture{ &tex }, rect{ Vector2f{0,0}, Vector2f(texture->getSize()) } { }
 };

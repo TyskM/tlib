@@ -155,7 +155,13 @@ namespace strhelp
         return StrT(str.c_str());
     }
 
-    template <typename StrT>
+    String boolToStr(bool value)
+    {
+        if (value)
+        { return "True"; }
+        return "False";
+    }
+
     inline bool compareIgnoreCase(const String& first, const String& second)
     { return boost::iequals(first, second); }
 }

@@ -191,7 +191,7 @@ public:
             verts.push_back(transformedVec);
         }
 
-        Renderer2D::drawLines(verts, layer, convColor(color), 1.f, GLDrawMode::LineLoop);
+        Renderer2D::drawLines(verts, convColor(color), GLDrawMode::LineLoop, layer);
     }
 
     void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override
@@ -205,7 +205,7 @@ public:
             verts.push_back(transformedVec);
         }
 
-        Renderer2D::drawLines(verts, layer, convColor(color), 1.f, GLDrawMode::TriangleFan);
+        Renderer2D::drawLines(verts, convColor(color), GLDrawMode::TriangleFan, layer);
     }
 
     void DrawCircle(const b2Vec2& center, float radius, const b2Color& color) override
@@ -220,7 +220,7 @@ public:
 
     void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override
     {
-        Renderer2D::drawLine(convVec(p1), convVec(p2), layer + 1, convColor(color));
+        Renderer2D::drawLine(convVec(p1), convVec(p2), convColor(color), layer + 1);
     }
 
     void DrawTransform(const b2Transform& xf) override

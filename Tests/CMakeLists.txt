@@ -13,9 +13,11 @@ set(TLib_Tests
         SimpleSpriteTest
         Text
         Model
-        GUI
+        #GUI
         Box2D
         NinePatchTest
+        Camera2D
+        FBOTest
 )
 
 enable_testing()

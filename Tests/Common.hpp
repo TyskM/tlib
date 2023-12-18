@@ -10,9 +10,8 @@
 #include <TLib/Media/Platform/Window.hpp>
 #include <TLib/Media/Platform/FPSLimit.hpp>
 #include <TLib/Timer.hpp>
-#include <TLib/Media/Camera2D.hpp>
+#include <TLib/Media/View.hpp>
 #include <TLib/Media/ImGuiWidgets.hpp>
-
 
 const char* vert_flat = R"""(
         #version 330 core
@@ -55,6 +54,11 @@ const char* vert_flat3d = R"""(
         }
         )""";
 
+Vector2f getMousePos()
+{
+    return localToWorldPoint(Vector2f(Input::mousePos), Renderer2D::getView(), Renderer::getFramebufferSize());
+}
+
 struct GameTest
 {
     Window   window;
@@ -89,7 +93,7 @@ struct GameTest
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
                 auto view = Renderer2D::getView();
-                view.setBoundsSize(Vector2f(e.window.data1, e.window.data2));
+                view.size = Vector2f(e.window.data1, e.window.data2);
                 Renderer2D::setView(view);
             }
 

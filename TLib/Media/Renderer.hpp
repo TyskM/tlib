@@ -2,6 +2,7 @@
 
 #include <TLib/Media/GL/GLHelpers.hpp>
 #include <TLib/Media/GL/Shader.hpp>
+#include <TLib/Media/GL/FrameBuffer.hpp>
 #include <TLib/Media/Resource/Texture.hpp>
 #include <TLib/Media/Resource/Mesh.hpp>
 #include <TLib/Media/Logging.hpp>
@@ -77,6 +78,7 @@ public:
         GL_CHECK(glDebugMessageCallback( defaultGLCallback, 0 ));
         GL_CHECK(glEnable(GL_BLEND));
         GL_CHECK(glEnable(GL_MULTISAMPLE));
+        //GL_CHECK(glClipControl(GL_UPPER_LEFT, GL_NEGATIVE_ONE_TO_ONE));
 
         isCreated = true;
         rendlog->info("Renderer created");
@@ -115,6 +117,18 @@ public:
 
         mesh.unbind();
     }
+
+    static void setViewport(const Recti& vp, Vector2f targetSize = {-1,-1})
+    {
+        if (targetSize.x < 0)
+        { targetSize = Vector2f(Renderer::getFramebufferSize()); }
+
+        glViewport(vp.x,     targetSize.y - vp.y - vp.height, // because glViewport uses bottom left as origin
+                   vp.width, vp.height);
+    }
+
+    static void setViewport(int x, int y, int width, int height, Vector2f targetSize ={-1,-1})
+    { setViewport(Recti(x, y, width, height), targetSize); }
 
     [[nodiscard]] [[maybe_unused]]
     static Vector2i getFramebufferSize() noexcept

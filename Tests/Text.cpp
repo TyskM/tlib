@@ -1,10 +1,9 @@
 
 #include <TLib/DataStructures.hpp>
 #include <TLib/Media/Renderer.hpp>
-#include <TLib/Media/Camera2D.hpp>
+#include <TLib/Media/View.hpp>
 #include <TLib/Media/Frustum.hpp>
 #include <TLib/Media/GL/UniformBuffer.hpp>
-#include <TLib/Media/Camera2DDebug.hpp>
 #include "Common.hpp"
 
 struct TextTest : GameTest
@@ -42,7 +41,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456789!@#$%^&*()-=_+\|,./
         debugCamera(view);
         Renderer2D::setView(view);
 
-        Vector2f mwpos = view.localToWorldCoords(Input::mousePos);
+        Vector2f mwpos = getMousePos();
 
         Renderer::clearColor();
 

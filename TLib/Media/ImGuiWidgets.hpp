@@ -4,9 +4,39 @@
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/Platform/SysQuery.hpp>
 #include <TLib/Media/Platform/FPSLimit.hpp>
+#include <TLib/Media/View.hpp>
 #include <string>
 #include <format>
 #include <magic_enum.hpp>
+
+void debugCamera(View& view)
+{
+    static bool  dragging = false;
+    static float minZoom  = 0.1f;
+    static float maxZoom  = 5.f;
+    static float zoomIncr = 0.15f;
+
+    // Dragging
+    if (Input::isMousePressed(Input::MOUSE_MIDDLE))
+    {
+        view.center.x -= Input::mouseDelta.x / view.zoom.x;
+        view.center.y -= Input::mouseDelta.y / view.zoom.y;
+    }
+
+    // Zooming
+    if (Input::isMouseJustPressed(Input::MOUSE_WHEEL_DOWN))
+    {
+        view.zoom.x -= zoomIncr * view.zoom.x;
+        view.zoom.y -= zoomIncr * view.zoom.y;
+    } else if (Input::isMouseJustPressed(Input::MOUSE_WHEEL_UP))
+    {
+        view.zoom.x += zoomIncr * view.zoom.x;
+        view.zoom.y += zoomIncr * view.zoom.y;
+    }
+    view.zoom.x = std::clamp(view.zoom.x, minZoom, maxZoom);
+    view.zoom.y = std::clamp(view.zoom.y, minZoom, maxZoom);
+}
+
 
 // End with ImGui::End()
 void beginDiagWidgetExt(bool* p_open = NULL, ImGuiWindowFlags flags = 0)

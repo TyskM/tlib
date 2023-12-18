@@ -9,6 +9,7 @@ struct VertexBuffer;
 struct ElementBuffer;
 struct ShaderStorageBuffer;
 struct UniformBuffer;
+struct FrameBuffer;
 
 struct GLState
 {
@@ -19,6 +20,7 @@ struct GLState
     ElementBuffer*        boundElementBuffer = nullptr;
     ShaderStorageBuffer*  boundSSBO          = nullptr;
     UniformBuffer*        boundUniformBuffer = nullptr;
+    FrameBuffer*          boundFrameBuffer   = nullptr;
 
     void reset() { *this = GLState(); }
 };

@@ -2,12 +2,12 @@
 #include <TLib/DataStructures.hpp>
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/Renderer2D.hpp>
-#include <TLib/Media/Camera2D.hpp>
+#include <TLib/Media/View.hpp>
 #include <TLib/Media/Frustum.hpp>
 #include <TLib/Media/GL/UniformBuffer.hpp>
-#include <TLib/Media/Camera2DDebug.hpp>
 #include <TLib/Media/Platform/Window.hpp>
 #include <TLib/Timer.hpp>
+#include "Common.hpp"
 
 struct TLibTest
 {
@@ -67,7 +67,7 @@ struct TLibTest
                     };
                     const Rectf rect ={ Vector2f(x, y) * 4.f, Vector2f(32,32) };
 
-                    rend2d.drawTexture(tex, rect, 0, color, rot);
+                    rend2d.drawTexture(tex, rect, rot, color);
 
                     --count;
                     if (count == 0) break;

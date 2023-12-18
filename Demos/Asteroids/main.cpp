@@ -127,10 +127,13 @@ struct Game
 
     void loop(float delta)
     {
-        Camera2D cam           = Renderer2D::getView();
-        Rectf    screenRect    = cam.getBounds();
-        Vector2f mouseWorldPos = cam.localToWorldCoords(Input::mousePos);
+        View     cam           = Renderer2D::getView();
+        Vector2f mouseWorldPos = localToWorldPoint(Vector2f(Input::mousePos), cam, Renderer::getFramebufferSize());
         float fb = 0.f;
+
+        
+        Vector2f camHalfSize = cam.size / 2.f;
+        Rectf screenRect = {cam.center - camHalfSize, cam.center + camHalfSize};
 
         ////////// Update
         if (!paused)
@@ -250,19 +253,19 @@ struct Game
         Renderer::clearColor();
 
         for (auto& a : asteroids)
-        { Renderer2D::drawCircle(a.pos, a.radius, 0, ColorRGBAf::white(), false, a.segmentCount); }
+        { Renderer2D::drawCircle(a.pos, a.radius, false, ColorRGBAf::white(), a.segmentCount); }
 
         for (auto& p : projectiles)
-        { Renderer2D::drawCircle(p.pos, config.projectileSize, 0, ColorRGBAf::yellow(), true, 5); }
+        { Renderer2D::drawCircle(p.pos, config.projectileSize, true, ColorRGBAf::yellow(), 5); }
 
         if (!gameOver)
         {
             const Vector2f playerCenteredPos = player.pos - player.size/2.f;;
 
-            Renderer2D::drawTexture(shipTex, { playerCenteredPos, player.size }, 0, ColorRGBAf::white(), player.rot);
+            Renderer2D::drawTexture(shipTex, { playerCenteredPos, player.size }, player.rot, ColorRGBAf::white());
 
             if (fb != 0.0f)
-            { Renderer2D::drawTexture(plumeTex, { playerCenteredPos, player.size }, 0, ColorRGBAf::white(), player.rot); }
+            { Renderer2D::drawTexture(plumeTex, { playerCenteredPos, player.size }, player.rot, ColorRGBAf::white()); }
             
             Renderer2D::drawText(fmt::format("Score: {:.0f}", score), font, { 20, 20 });
         }
@@ -494,7 +497,7 @@ int main()
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
                 auto view = Renderer2D::getView();
-                view.setBoundsSize(Vector2f(e.window.data1, e.window.data2));
+                view.size = Vector2f(e.window.data1, e.window.data2);
                 Renderer2D::setView(view);
             }
 
