@@ -12,7 +12,6 @@
 
 enum class AccessType : GLenum
 {
-    Unknown [[maybe_unused]] = -1,
     Static  [[maybe_unused]] = GL_STATIC_DRAW,
     Dynamic [[maybe_unused]] = GL_DYNAMIC_DRAW,
     Stream  [[maybe_unused]] = GL_STREAM_DRAW

@@ -7,7 +7,7 @@ if(CMAKE_VERSION VERSION_LESS "2.8.3")
    message(FATAL_ERROR "CMake >= 2.8.3 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 2.8.3...3.24)
+cmake_policy(VERSION 2.8.3...3.25)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -51,7 +51,7 @@ add_library(TLib::TLib STATIC IMPORTED)
 
 set_target_properties(TLib::TLib PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_20"
-  INTERFACE_INCLUDE_DIRECTORIES "G:/Resources/Dev/CPP/TLib"
+  INTERFACE_INCLUDE_DIRECTORIES "D:/Resources/Dev/CPP/TLib"
   INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;cereal::cereal;Boost::boost;Boost::container;box2d::box2d;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp;freetype"
 )
 
@@ -59,7 +59,7 @@ set_target_properties(TLib::TLib PROPERTIES
 set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
 set_target_properties(TLib::TLib PROPERTIES
   IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
-  IMPORTED_LOCATION_DEBUG "G:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/TLib.lib"
+  IMPORTED_LOCATION_DEBUG "D:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/TLib.lib"
   )
 
 # This file does not depend on other imported targets which have

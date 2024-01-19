@@ -5,6 +5,7 @@
 #include <TLib/Media/Platform/SysQuery.hpp>
 #include <TLib/Media/Platform/FPSLimit.hpp>
 #include <TLib/Media/View.hpp>
+#include <TLib/Containers/Pair.hpp>
 #include <string>
 #include <format>
 #include <magic_enum.hpp>
@@ -37,6 +38,28 @@ void debugCamera(View& view)
     view.zoom.y = std::clamp(view.zoom.y, minZoom, maxZoom);
 }
 
+// Returns { bool wasJustChanged, EnumType newValue }
+template <typename EnumType>
+Pair<bool, EnumType> imguiEnumCombo(const char* name, EnumType value)
+{
+    Pair<bool, EnumType> ret = { false, value };
+    auto cont = magic_enum::enum_values<EnumType>();
+    if (ImGui::BeginCombo(name, magic_enum::enum_name(value).data()))
+    {
+        for (auto& v : cont)
+        {
+            bool selected = (value == v);
+
+            if (ImGui::Selectable(magic_enum::enum_name(v).data(), selected))
+            { ret = { true, v }; }
+
+            if (selected)
+            { ImGui::SetItemDefaultFocus(); }
+        }
+        ImGui::EndCombo();
+    }
+    return ret;
+}
 
 // End with ImGui::End()
 void beginDiagWidgetExt(bool* p_open = NULL, ImGuiWindowFlags flags = 0)

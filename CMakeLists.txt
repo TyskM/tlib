@@ -15,9 +15,6 @@ add_subdirectory("Demos")
 
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h pmp/*.cpp pmp/*.hpp pmp/*.h)
 
-# Show all warnings
-add_compile_options(/W4)
-
 # Remove PMP sources
 file(GLOB_RECURSE PMP_FILES CONFIGURE_DEPENDS
 TLib/thirdparty/pmp/*.cpp TLib/thirdparty/pmp/*.hpp TLib/thirdparty/pmp/*.h)
@@ -29,6 +26,9 @@ add_library(TLib "TLib.cpp" ${SOURCE_FILES})
 add_library(TLib::TLib ALIAS TLib)
 target_compile_features(TLib PUBLIC cxx_std_20)
 
+add_executable(TLibTest "TLib/main.cpp")
+target_link_libraries(TLibTest PUBLIC TLib)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
@@ -37,15 +37,31 @@ include(FetchContent)
 message("Triplet:      ${VCPKG_TARGET_TRIPLET}")
 message("Build Type:   ${CMAKE_BUILD_TYPE}")
 message("Shared Build: ${BUILD_SHARED_LIBS}")
-if (CMAKE_BUILD_TYPE EQUAL "DEBUG")
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    message("ASan: Enabled")
+    add_compile_definitions(_DISABLE_STRING_ANNOTATION=1 _DISABLE_VECTOR_ANNOTATION=1)
     add_compile_options(-fsanitize=address)
-    add_link_options(-fsanitize=address)
+else()
+    message("ASan: Disabled")
 endif()
 
 target_include_directories(TLib PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 $<INSTALL_INTERFACE:TLib> # <prefix>/TLib
 )
+
+# TODO: Disable warning if clang-tidy enabled
+# Show all warnings
+add_compile_options(/W4)
+#add_definitions(-w)
+
+# Enable clang-tidy
+# 1. Get LLVM installer exe from here: https://releases.llvm.org/download.html
+# 2. Install, restart VS, clear cache and done
+#find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+#set(CMAKE_CXX_CLANG_TIDY clang-tidy)
+#set(CLANG_TIDY_COMMAND "${CLANG_TIDY_EXE}" "--extra-arg=/EHa;--header-filter=.*;--checks=clang-analyzer-*,performance-*")
+#set_target_properties(TLib PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 
 include(CMakeFindDependencyMacro)
 
@@ -117,6 +133,7 @@ target_link_libraries(TLib PUBLIC freetype)
 enable_testing()
 add_executable(Embedder "Embedder/embedder.cpp")
 target_compile_features(Embedder PUBLIC cxx_std_20)
+set_target_properties(Embedder PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 
 find_dependency(CLI11 CONFIG REQUIRED)
 target_link_libraries(Embedder PUBLIC CLI11::CLI11)

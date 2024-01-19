@@ -6,9 +6,9 @@
 template <typename T = int>
 struct Resource
 {
-    T min;
-    T max;
-    T value;
+    T min   = 0;
+    T max   = 10;
+    T value = 10;
 
     Resource(T min, T max, T value) : min{min}, max{max}, value{value}
     {
@@ -18,6 +18,7 @@ struct Resource
 
     Resource(T min, T max) : Resource(min, max, max) { }
     Resource(T max)        : Resource(0, max, max)   { }
+    Resource() = default;
 
     inline void setMaxAndValue(T v) noexcept { setMax(v); set(v); }
     inline void setMin(T v) noexcept { min = v; set(value); }

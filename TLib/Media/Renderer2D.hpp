@@ -13,10 +13,9 @@
 #include <TLib/Containers/UnorderedMap.hpp>
 #include <TLib/Media/RenderTarget.hpp>
 #include <TLib/Embed/Embed.hpp>
+#include <TLib/Media/Platform/Input.hpp>
 #include <glm/gtx/rotate_vector.hpp>
 #include <span>
-
-#include <TLib/Containers/Variant.hpp>
 
 struct Renderer2DOrigin
 {
@@ -91,6 +90,16 @@ public:
         v.size   = size;
         v.center = size / 2.f;
         return v;
+    }
+
+    static Vector2f getMouseWorldPos()
+    {
+        return localToWorldPos(Vector2f(Input::mousePos));
+    }
+
+    static Vector2f localToWorldPos(const Vector2f& pos)
+    {
+        return localToWorldPoint(pos, Renderer2D::getView(), Renderer::getFramebufferSize());
     }
 
     static void clearColor(const ColorRGBAf& color = { 0.1f, 0.1f, 0.1f, 1.f })
@@ -598,7 +607,7 @@ private:
 
         SDL_AddEventWatch(&SDLEventFilterCB, NULL);
 
-        size_t reserveSize = 1024 * 5;
+        size_t reserveSize = size_t(1024) * 5;
         drawCmds            .reserve(reserveSize);
         posAndCoords        .reserve(reserveSize);
         indices             .reserve(reserveSize);
@@ -813,8 +822,8 @@ private:
             else
             { ch = &font.getChar(strchar); }
 
-            float xpos = currentPos.x + ch->bearing.x * scale;
-            float ypos = currentPos.y - ch->bearing.y + font.newLineHeight() * scale;
+            float xpos = currentPos.x + (ch->bearing.x * scale);
+            float ypos = currentPos.y - (ch->bearing.y + font.newLineHeight()) * scale;
             //float ypos = currentPos.y - (ch->bearing.y - ch->bearing.y) * scale;
             float w    = ch->rect.width  * scale;
             float h    = ch->rect.height * scale;

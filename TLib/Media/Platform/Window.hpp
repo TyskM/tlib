@@ -77,7 +77,7 @@ struct Window : NonAssignable
 {
     // Read only
     SDL_Window*   window = nullptr;
-    SDL_SysWMinfo wm;
+    SDL_SysWMinfo wm{};
     SDL_GLContext glContext = nullptr;
 
     Window() = default;
@@ -116,6 +116,8 @@ struct Window : NonAssignable
             glContext = SDL_GL_CreateContext(window);
             makeCurrent();
         }
+
+        SDL_AddEventWatch(eventHandler, this);
 
         tlog::info("Window created");
     }
@@ -253,6 +255,40 @@ struct Window : NonAssignable
 
     [[nodiscard]] String getTitle()
     { return SDL_GetWindowTitle(window); }
+
+    void setFpsMode(bool value)
+    {
+        if (value)
+        {
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+            showCursor(false);
+        }
+        else
+        {
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+            showCursor(true);
+        }
+    }
+
+    bool getFpsMode() const
+    { return SDL_GetRelativeMouseMode(); }
+
+    void toggleFpsMode()
+    { setFpsMode(!getFpsMode()); }
+
+    static int eventHandler(void* userdata, SDL_Event* event)
+    {
+        Window* win = static_cast<Window*>(userdata);
+        SDL_Event& e = *event;
+       
+        if (win->getFpsMode() && e.type == SDL_MOUSEMOTION)
+        {
+            auto size = win->getSize();
+            SDL_WarpMouseInWindow(*win, size.x/2, size.y/2);
+        }
+
+        return 0;
+    }
 
     operator SDL_Window*() { return  window; }
     operator SDL_Window&() { return *window; }

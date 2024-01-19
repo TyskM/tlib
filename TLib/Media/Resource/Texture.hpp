@@ -105,7 +105,8 @@ public:
 
     Texture(Texture&& other) noexcept
     {
-        glHandle = other.glHandle;
+        reset();
+        glHandle        = other.glHandle;
         other.glHandle  = 0;
         other.boundSlot = -1;
 
@@ -114,11 +115,13 @@ public:
         boundSlot      = other.boundSlot;
         internalFormat = other.internalFormat;
         _path          = other._path;
+        ASSERT(valid());
     }
 
     Texture& operator=(Texture&& other) noexcept
     {
-        glHandle = other.glHandle;
+        reset();
+        glHandle        = other.glHandle;
         other.glHandle  = 0;
         other.boundSlot = -1;
 
@@ -127,6 +130,7 @@ public:
         boundSlot      = other.boundSlot;
         internalFormat = other.internalFormat;
         _path          = other._path;
+        ASSERT(valid());
     }
 
     ~Texture() { reset(); }
@@ -148,6 +152,19 @@ public:
     {
         reset();
         GL_CHECK(glGenTextures(1, &glHandle));
+    }
+
+    [[nodiscard]]
+    bool created() const
+    { return glHandle != 0 && SDL_GL_GetCurrentContext() != NULL; }
+
+    bool valid() const
+    {
+        return
+            width     >  0 &&
+            height    >  0 &&
+            glHandle  >  0 &&
+            internalFormat != TexInternalFormats::Unknown;
     }
 
     bool loadFromFile(const Path& path)
@@ -262,10 +279,6 @@ public:
         GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
         glState.boundTextures[slot] = nullptr;
     }
-
-    [[nodiscard]]
-    bool created() const
-    { return glHandle != 0 && SDL_GL_GetCurrentContext() != NULL; }
 
     [[nodiscard]]
     GLuint handle() const

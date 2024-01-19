@@ -114,6 +114,11 @@ public:
         return size;
     }
 
+    SubTexture getCharTex(size_t c)
+    {
+        return SubTexture(getAtlas(), Rectf(getChar(c).rect));
+    }
+
     bool loadFromFile(
         const Path&    path,
         unsigned int   size       = 24,

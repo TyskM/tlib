@@ -10,7 +10,7 @@ namespace tlog
 {
 using namespace spdlog;
 
-static std::shared_ptr<logger> createConsoleLogger(const char* name, String pattern = "[%H:%M:%S] [%^%l%$] [%n] [thread %t] %v") noexcept
+static std::shared_ptr<logger> createConsoleLogger(const char* name, const String& pattern = "[%H:%M:%S] [%^%l%$] [%n] [thread %t] %v") noexcept
 {
     std::shared_ptr<logger> console = spdlog::stdout_color_mt(name);
     console->set_pattern(pattern);

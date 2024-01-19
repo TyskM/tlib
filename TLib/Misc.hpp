@@ -96,8 +96,8 @@ static inline Rectf getBestImageRect(Vector2f targetSize, Vector2f imgSize)
     auto imgWidth = imgSize.x;
     auto imgHeight = imgSize.y;
 
-    auto imgRatio = imgWidth / imgHeight;
-    auto screenRatio = screenWidth / screenHeight;
+    //auto imgRatio = imgWidth / imgHeight;
+    //auto screenRatio = screenWidth / screenHeight;
 
     auto bestRatio = std::min(screenWidth / imgWidth, screenHeight / imgHeight);
 

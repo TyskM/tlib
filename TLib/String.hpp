@@ -146,13 +146,11 @@ namespace strhelp
         return retStr;
     }
 
-    template <typename StrT>
-    inline StrT floatToStr(float v, size_t precision)
+    inline String floatToStr(float v, size_t precision)
     {
-        std::basic_stringstream<StrT::value_type, std::char_traits<StrT::value_type>, MiAllocator> ss;
+        std::stringstream ss;
         ss << std::fixed << std::setprecision(precision) << v;
-        auto str = ss.str();
-        return StrT(str.c_str());
+        return ss.str();
     }
 
     String boolToStr(bool value)

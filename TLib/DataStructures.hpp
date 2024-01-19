@@ -5,6 +5,7 @@
 #include <limits>
 #include <TLib/String.hpp>
 #include <TLib/Math.hpp>
+#include <TLib/Macros.hpp>
 
 // There's always a min/max macro somewhere. Make it stop!!!
 #undef min
@@ -106,17 +107,24 @@ struct Vector2
 
     [[nodiscard]]
     bool isNan() const
-    { return isnan(x) || isnan(y); }
+    { return std::isnan(x) || std::isnan(y); }
 
     String toString() const
     { return this->operator String(); }
 
-    Vector2<T> floored()    const { return Vector2<T>( static_cast<T>(floor(x)),            static_cast<T>(floor(y))           ); }
-    Vector2<T> ceiled()     const { return Vector2<T>( static_cast<T>(ceil(x)),             static_cast<T>(ceil(y))            ); }
-    Vector2<T> rounded()    const { return Vector2<T>( static_cast<T>(round(x)),            static_cast<T>(round(y))           ); }
-    Vector2<T> abs()        const { return Vector2<T>( static_cast<T>(std::abs(x)),         static_cast<T>(std::abs(y))        ); }
-    Vector2<T> sqrt()       const { return Vector2<T>( static_cast<T>(std::sqrt(x)),        static_cast<T>(std::sqrt(y))       ); }
-    Vector2<T> pow(T value) const { return Vector2<T>( static_cast<T>(std::pow(x, value)),  static_cast<T>(std::pow(y, value)) ); }
+    Vector2<T> floored()    const { return Vector2<T>( static_cast<T>(std::floor(x)),      static_cast<T>(std::floor(y))      ); }
+    Vector2<T> ceiled()     const { return Vector2<T>( static_cast<T>(std::ceil(x)),       static_cast<T>(std::ceil(y))       ); }
+    Vector2<T> rounded()    const { return Vector2<T>( static_cast<T>(std::round(x)),      static_cast<T>(std::round(y))      ); }
+    Vector2<T> abs()        const { return Vector2<T>( static_cast<T>(std::abs(x)),        static_cast<T>(std::abs(y))        ); }
+    Vector2<T> sqrt()       const { return Vector2<T>( static_cast<T>(std::sqrt(x)),       static_cast<T>(std::sqrt(y))       ); }
+    Vector2<T> pow(T value) const { return Vector2<T>( static_cast<T>(std::pow(x, value)), static_cast<T>(std::pow(y, value)) ); }
+    
+    Vector2<T> lerp(Vector2<T> target, T delta) const
+    {
+        return Vector2<T>(
+        static_cast<T>(std::lerp(x, target.x, delta)),
+        static_cast<T>(std::lerp(y, target.y, delta)) );
+    }
 
     operator   String()                             const { return String("(" + std::to_string(x) + ", " + std::to_string(y) + ")"); }
     bool       operator==(const Vector2<T>& other)  const { return x == other.x && y == other.y; }
@@ -254,6 +262,11 @@ struct ColorRGBAf
 
     explicit constexpr ColorRGBAf(int rv, int gv, int bv, int av = 255) :
         r{ uint8ToFloat(rv) }, g{ uint8ToFloat(gv) }, b{ uint8ToFloat(bv) }, a{ uint8ToFloat(av) } { }
+
+    ColorRGBAf& setR(float r) { this->r = r; return *this; }
+    ColorRGBAf& setG(float g) { this->g = g; return *this; }
+    ColorRGBAf& setB(float b) { this->b = b; return *this; }
+    ColorRGBAf& setA(float a) { this->a = a; return *this; }
 
     float r = 0;
     float g = 0;
@@ -538,6 +551,9 @@ struct Rect
 
     Vector2<T> getBottomLeft() const
     { return { x, getBottom() }; }
+
+    Vector2<T> center() const
+    { return getPos() + (getSize() / T(2)); }
 
     bool contains(Vector2<T> value) const
     { return contains(value.x, value.y); }

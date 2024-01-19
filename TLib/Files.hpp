@@ -18,7 +18,7 @@ String readFile(const Path& filePath)
 {
     // http://insanecoding.blogspot.de/2011/11/how-to-read-in-file-in-c.html
     std::ifstream in(filePath, std::ios::in | std::ios::binary);
-    if (!in) String(); // return empty string on failure
+    if (!in) { return String(); } // return empty string on failure
     return String(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 

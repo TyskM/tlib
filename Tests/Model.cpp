@@ -20,32 +20,26 @@ enum class ViewMode
 
 struct Camera3D
 {
-protected:
-    float znear  = 0.02f;
-    float zfar   = 300.f;
-    float fov    = 90.f;
-    glm::vec3 pos    ={ 0.0f, 0.0f, 0.0f };
-    glm::vec3 target ={ 0.0f, 0.0f, 0.0f };
-    glm::vec3 up     ={ 0.0f, 1.0f, 0.0f };
-    ViewMode viewmode = ViewMode::Perspective;
+    float     znear    = 0.02f;
+    float     zfar     = 3000.f;
+    float     fov      = 90.f;
+    glm::vec3 pos      = { 0.0f, 0.0f, 0.0f };
+    glm::vec3 target   = { 0.0f, 0.0f, 0.0f };
+    glm::vec3 up       = { 0.0f, 1.0f, 0.0f };
+    ViewMode  viewmode = ViewMode::Perspective;
 
-public:
     inline void setPos(const Vector3f& posv) { this->pos ={ posv.x, posv.y, posv.z }; }
     [[nodiscard]] inline Vector3f getPos() const { return Vector3f(pos); }
 
     inline void setTarget(const Vector3f& targetv) { target ={ targetv.x, targetv.y, targetv.z }; }
     [[nodiscard]] inline Vector3f getTarget() const { return Vector3f(target); }
 
-    inline void setUp(const Vector3f& upv) { up ={ upv.x, upv.y, upv.z }; }
+    inline void setUp(const Vector3f& upv) { up = { upv.x, upv.y, upv.z }; }
     [[nodiscard]] inline Vector3f getUp() const { return Vector3f(up); }
 
     [[nodiscard]]
     glm::mat4 getViewMatrix() const
     {
-        //glm::vec3 cameraDirection = glm::normalize(pos - target);
-        //glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-        //glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
-        //return glm::lookAt(pos, target, cameraUp);
         return glm::lookAt(pos, target, up);
     }
 
@@ -64,6 +58,7 @@ public:
     }
 };
 
+#pragma region Shaders
 const char* vert_3d = R"""(
         #version 330 core
         layout (location = 0) in vec3 position;
@@ -134,6 +129,7 @@ const char* frag_3d = R"""(
             fragColor = vec4(lightResult, 1.0) * texColor;
         }
         )""";
+#pragma endregion
 
 struct Vertex
 {
@@ -144,9 +140,21 @@ struct Vertex
 
 // TODO:
 // Optimize VAO usage. One per model? // Done, thanks aiProcess_OptimizeGraph
+/*
+
+Use single global VAO, VBO, and EBO to avoid the overhead of switching them.
+
+global VertexArray;  // Layout
+global VertexBuffer; // Vertices
+global ElementBuffer // Indices
+
+size_t vboIndex, vboSize;
+size_t eboIndex, eboSize;
+
+*/
 // Add lighting
 // Support materials
-struct Model : NonCopyable
+struct Model : NonAssignable
 {
 public:
     using TextureType = aiTextureType;
@@ -154,7 +162,7 @@ public:
 private:
     struct MeshTexture
     {
-        TextureType type;
+        TextureType type = aiTextureType_NONE;
         Texture* texture = nullptr;
     };
 
@@ -165,12 +173,13 @@ private:
         Vector<MeshTexture> textures;
     };
 
-    static inline Vector<Texture> texCache;
+    static inline Vector<UPtr<Texture>> texCache;
     Vector<ModelMesh> meshes;
 
     void loadMaterialTextures(Vector<MeshTexture>& textures, aiMaterial* mat, aiTextureType type, const fs::path& path)
     {
-        for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
+        size_t texCount = mat->GetTextureCount(type);
+        for (unsigned int i = 0; i < texCount; i++)
         {
             aiString str;
             mat->GetTexture(type,i,&str);
@@ -180,24 +189,26 @@ private:
             bool texIsCached = false;
             for (auto& cachedTex : texCache)
             {
-                tlog::info("{} / {}",cachedTex.path().string(), texPath.string());
-                if (cachedTex.isFromSamePath(texPath))
+                if (cachedTex->isFromSamePath(texPath))
                 {
                     tlog::info("Dupe path");
                     texIsCached = true;
-                    newTex.texture = &cachedTex;
+                    newTex.texture = cachedTex.get();
                     break;
                 }
             }
 
+            // Load new texture
             if (!texIsCached)
             {
-                auto& tex = texCache.emplace_back();
-
-                tex.loadFromFile(texPath.string());
-                newTex.texture = &tex;
+                tlog::info("Loading new texture: {}", texPath.string());
+                auto& tex = texCache.emplace_back(makeUnique<Texture>());
+                tex->loadFromFile(texPath.string());
+                tex->setUVMode(UVMode::Repeat);
+                newTex.texture = tex.get();
             }
 
+            ASSERT(newTex.texture->valid());
             newTex.type = type;
         }
     }
@@ -255,9 +266,14 @@ private:
 
     void processNode(aiNode* node, const aiScene* scene, const fs::path& path)
     {
+        static size_t processed = 0;
+        tlog::info("Processing node: {}", processed);
+        ++processed;
+
         // process all the node's meshes (if any)
         for (unsigned int i = 0; i < node->mNumMeshes; i++)
         {
+            tlog::info("Processing mesh: {}", i);
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
             processMesh(mesh,scene,path);
         }
@@ -279,7 +295,12 @@ public:
 
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(path.string(),
-            aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph | aiProcess_JoinIdenticalVertices);
+            aiProcess_Triangulate           |
+            aiProcess_GenNormals            |
+            aiProcess_OptimizeMeshes        |
+            aiProcess_OptimizeGraph         |
+            aiProcess_JoinIdenticalVertices | // TODO: Read somewhere this flag could cause problems, maybe look into it.
+            aiProcess_FlipUVs); // Renderer class already handles the OpenGL conversion.
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
@@ -290,6 +311,7 @@ public:
 
         reset();
         processNode(scene->mRootNode, scene, path.parent_path());
+
         return true;
     }
 
@@ -301,8 +323,8 @@ public:
 
 struct Transform
 {
-    Vector3f pos;
-    Vector3f scale = { 1, 1, 1 };
+    Vector3f  pos;
+    Vector3f  scale = { 1, 1, 1 };
     glm::quat rot{glm::vec3(0.f, 0.f, 0.f)};
 
     glm::mat4 getMatrix() const
@@ -325,7 +347,7 @@ class Renderer3D
 {
     struct DrawCmd
     {
-        Model& model;
+        Model&    model;
         Transform transform;
 
         DrawCmd(Model& m, const Transform& tf) :
@@ -380,6 +402,7 @@ public:
                             // Only use diffuse for now
                             // TODO: use the rest of the textures
                             // make a uniform block for all of them, and set them all at once.
+                            ASSERT(tex.texture && tex.texture->valid());
                             drawMeshImmediate(mesh.mesh, *tex.texture, cmd.transform);
                             break;
                         }
@@ -417,8 +440,6 @@ public:
         defaultTex.setData(&defaultTexData, defaultTexDataSize, defaultTexDataSize);
         defaultTex.setUVMode(UVMode::Repeat);
         defaultTex.setFilter(TextureFiltering::Linear);
-
-        setupRender();
     }
 
     static inline bool created()
@@ -446,17 +467,73 @@ public:
     }
 };
 
-struct ModelTest : GameTest
+enum class CameraMode
 {
-    Camera3D camera;
-    Model model;
-    Model lightModel;
-    Transform t;
-    float camDist = 5.f;
-    Vector2f camAngle;
+    Free,
+    Orbit
+};
 
-    const char* presetModelPaths[6] =
+Window     window;
+MyGui      imgui;
+FPSLimit   fpslimit;
+Timer      deltaTimer;
+Camera3D   camera;
+CameraMode cameraMode = CameraMode::Orbit;
+
+// Cam vars
+float sens = 0.1f;
+float camSpeed = 3.f;
+float yaw = 0.f;
+float pitch = 0.f;
+
+float    orbitDist = 5.f;
+Vector2f orbitAngle;
+
+void setCameraMode(CameraMode mode)
+{
+    switch (mode)
     {
+    case CameraMode::Free:
+        window.setFpsMode(true);
+        break;
+    case CameraMode::Orbit:
+        window.setFpsMode(false);
+        break;
+    default: break;
+    }
+    cameraMode = mode;
+}
+
+void resetCamera()
+{
+    camera     = Camera3D();
+    pitch      = 0;
+    yaw        = 0;
+    orbitDist  = 5;
+    orbitAngle = {};
+}
+
+int main()
+{
+    WindowCreateParams p;
+    p.size  = { 1280, 720 };
+    p.title = "Model";
+    window.create(p);
+    Renderer::create();
+    Renderer2D::create();
+
+    imgui.create(window);
+    deltaTimer.restart();
+    fpslimit.setFPSLimit(144);
+    fpslimit.setEnabled(true);
+    
+    Model      model;
+    //Model    lightModel;
+    Transform  modelTransform;
+
+    const char* presetModelPaths[7] =
+    {
+        "assets/sponza/sponza.obj",
         "assets/backpack/backpack.obj",
         "assets/primitives/cube.obj",
         "assets/primitives/cylinder.obj",
@@ -468,25 +545,42 @@ struct ModelTest : GameTest
     String guiModel;
     float guiLightColor[3] = { 0.5f, 0.5f, 0.5f };
 
-    void create() override
+    Renderer3D::create();
+    RELASSERTMSGBOX(model.loadFromFile(presetModelPaths[0]),
+        "Model not found",
+        fmt::format("Failed to find init model: {}", presetModelPaths[0]).c_str());
+
+    //lightModel.loadFromFile("assets/primitives/sphere.obj");
+
+    bool running = true;
+    while (running)
     {
-        GameTest::create();
-        window.setTitle("Model");
-        Renderer3D::create();
+        float delta = deltaTimer.restart().asSeconds();
+        SDL_Event e;
+        while (SDL_PollEvent(&e))
+        {
+            Input::input(e);
+            imgui.input(e);
 
-        RELASSERTMSGBOX(model.loadFromFile(presetModelPaths[0]),
-                        "Model not found",
-                        fmt::format("Failed to find init model: {}", presetModelPaths[0]).c_str());
+            if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+            {
+                auto view = Renderer2D::getView();
+                view.size = Vector2f(e.window.data1, e.window.data2);
+                Renderer2D::setView(view);
+            }
 
-        lightModel.loadFromFile("assets/primitives/sphere.obj");
-    }
+            if (e.type == SDL_QUIT) { running = false; }
+        }
+        auto& io = ImGui::GetIO();
+        if (!(io.WantCaptureKeyboard)) { Input::updateKeyboard(); }
+        if (!(io.WantCaptureMouse))    { Input::updateMouse(); }
 
-    void mainLoop(float delta) override
-    {
-        GameTest::mainLoop(delta);
+        ////
         imgui.newFrame();
+        ImGui::BeginDisabled(window.getFpsMode());
+        beginDiagWidgetExt();
 
-        Vector2f mwpos = Vector2f(Input::mousePos);
+        Vector2f mwpos = Renderer2D::getMouseWorldPos();
 
         glClear(GL_DEPTH_BUFFER_BIT);
         Renderer::clearColor();
@@ -494,92 +588,115 @@ struct ModelTest : GameTest
         static float time = 0.f;
         time += delta;
 
-        // Zoom
-        float scrollDelta =
-            Input::isMouseJustPressed(Input::MOUSE_WHEEL_UP) -
-            Input::isMouseJustPressed(Input::MOUSE_WHEEL_DOWN);
-        if (scrollDelta != 0.f)
+        auto result = imguiEnumCombo("Camera Mode", cameraMode);
+        if (result.first)
+        { setCameraMode(result.second); }
+        if (ImGui::Button("Reset Camera"))
+        { resetCamera(); }
+
+        switch (cameraMode)
         {
-            camDist = std::clamp(camDist - (scrollDelta * 0.5f), 1.f, 20.f);
+        case CameraMode::Free:
+        {
+            ImGui::Text("Press ALT to toggle cursor.");
+            ImGui::SliderFloat("Sensitivity", &sens, 0.01f, 2.f);
+            ImGui::SliderFloat("Camera Speed", &camSpeed, 0.01f, 200.f);
+            if (Input::isKeyJustPressed(SDL_SCANCODE_LALT))
+            { window.toggleFpsMode(); }
+
+            if (window.getFpsMode())
+            {
+                yaw += float(Input::mouseDelta.x) * sens;
+                pitch -= float(Input::mouseDelta.y) * sens;
+                pitch = std::clamp(pitch, -89.f, 89.f);
+            }
+
+            glm::vec3 direction{};
+            direction.x      = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+            direction.y      = sin(glm::radians(pitch));
+            direction.z      = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+            auto cameraFront = glm::normalize(direction);
+
+            Vector2f moveDir;
+            moveDir.x = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
+            moveDir.y = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
+            if (moveDir.x)
+            { camera.pos += glm::normalize(glm::cross(cameraFront, camera.up)) * camSpeed * moveDir.x * delta; }
+            if (moveDir.y)
+            { camera.pos += camSpeed * cameraFront * moveDir.y * delta; }
+
+            camera.target = camera.pos + glm::normalize(direction);
+
+            break;
+        }
+        case CameraMode::Orbit:
+        {
+            // Zoom
+            float scrollDelta = Input::isMouseJustPressed(Input::MOUSE_WHEEL_UP) - Input::isMouseJustPressed(Input::MOUSE_WHEEL_DOWN);
+            if (scrollDelta != 0.f)
+            { orbitDist = std::clamp(orbitDist - (scrollDelta * 0.5f), 1.f, 20.f); }
+
+            if (Input::isMousePressed(Input::MOUSE_MIDDLE))
+            {
+                auto mdelta = Input::mouseDelta;
+                orbitAngle.x += mdelta.x;
+                orbitAngle.y -= mdelta.y;
+                orbitAngle.y = std::clamp(orbitAngle.y, -89.f, 89.f);
+            }
+
+            // https://gamedev.stackexchange.com/questions/20758/how-can-i-orbit-a-camera-about-its-target-point
+            float camX = orbitDist * -sinf(orbitAngle.x * (M_PI / 180)) * cosf((orbitAngle.y) * (M_PI / 180));
+            float camY = orbitDist * -sinf((orbitAngle.y) * (M_PI / 180));
+            float camZ = orbitDist * cosf((orbitAngle.x) * (M_PI / 180)) * cosf((orbitAngle.y) * (M_PI / 180));
+
+            camera.setPos({ camX, camY, camZ });
+            
+            break;
+        }
+        default: break;
         }
 
-        if (Input::isMousePressed(Input::MOUSE_MIDDLE))
-        {
-            auto mdelta = Input::mouseDelta;
-            camAngle.x += mdelta.x;
-            camAngle.y -= mdelta.y;
-            camAngle.y = std::clamp(camAngle.y, -89.f, 89.f);
-        }
-
-        // https://gamedev.stackexchange.com/questions/20758/how-can-i-orbit-a-camera-about-its-target-point
-        float camX = camDist * -sinf (camAngle.x  * (M_PI/180)) * cosf((camAngle.y)*(M_PI/180));
-        float camY = camDist * -sinf((camAngle.y) * (M_PI/180));
-        float camZ = camDist *  cosf((camAngle.x) * (M_PI/180)) * cosf((camAngle.y)*(M_PI/180));
-
-        camera.setPos({camX, camY, camZ});
         Renderer3D::setCamera(camera);
 
-        float moveInputX =
-            Input::isKeyPressed(SDL_SCANCODE_D) -
-            Input::isKeyPressed(SDL_SCANCODE_A);
-        float moveInputY =
-            Input::isKeyPressed(SDL_SCANCODE_W) -
-            Input::isKeyPressed(SDL_SCANCODE_S);
-        float moveInputRoll =
-            Input::isKeyPressed(SDL_SCANCODE_E) -
-            Input::isKeyPressed(SDL_SCANCODE_Q);
+        //float moveInputX    = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
+        //float moveInputY    = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
+        //float moveInputRoll = Input::isKeyPressed(SDL_SCANCODE_E) - Input::isKeyPressed(SDL_SCANCODE_Q);
+        //modelTransform.rotate(moveInputX * delta, { 0.f, 1.f, 0.f });
+        //modelTransform.rotate(moveInputY * delta, { 1.f, 0.f, 0.f });
+        //modelTransform.rotate(moveInputRoll * delta, { 0.f, 0.f, 1.f });
 
-        t.rotate(moveInputX    * delta, {0.f, 1.f, 0.f});
-        t.rotate(moveInputY    * delta, {1.f, 0.f, 0.f});
-        t.rotate(moveInputRoll * delta, {0.f, 0.f, 1.f});
-
-        const float radius = 10.0f;
+        const float radius = 20.0f;
         float lightX = sin(time) * radius;
         float lightZ = cos(time) * radius;
-        Vector3f lightPos = {lightX, 0.f, lightZ};
-        Renderer3D::addLight(lightPos, {guiLightColor[0], guiLightColor[1], guiLightColor[2]});
-        
-        Transform lightModelTf;
-        lightModelTf.pos = lightPos;
-        Renderer3D::drawModel(lightModel, lightModelTf);
+        Vector3f lightPos = { lightX, 0.f, lightZ };
+        Renderer3D::addLight(lightPos, { guiLightColor[0], guiLightColor[1], guiLightColor[2] });
 
-        Renderer3D::drawModel(model, t);
-        Renderer3D::render();
+        //Transform lightModelTf;
+        //lightModelTf.pos = lightPos;
+        //Renderer3D::drawModel(lightModel, lightModelTf);
 
+        Renderer3D::drawModel(model, modelTransform);
         Renderer2D::drawCircle(mwpos, 12.f);
-        Renderer2D::render();
 
-        beginDiagWidgetExt();
-        
         // Model loading input
         if (ImGui::Combo("Models", &guiSelectedModel, presetModelPaths, std::size(presetModelPaths), -1))
-        {
-            model.loadFromFile(presetModelPaths[guiSelectedModel]);
-        }
-
+        { model.loadFromFile(presetModelPaths[guiSelectedModel]); }
         ImGui::InputText("Model Path", &guiModel);
         if (ImGui::Button("Load"))
-        {
-            model.loadFromFile(guiModel);
-        }
-
+        { model.loadFromFile(guiModel); }
         ImGui::ColorEdit3("Lighting", guiLightColor);
-
+        cameraMode = imguiEnumCombo("Camera Mode", cameraMode).second;
         ImGui::End();
+        ////
 
+        Renderer3D::render();
+        Renderer2D::render();
         drawDiagWidget(&fpslimit);
-
+        ImGui::EndDisabled();
         imgui.render();
-
         window.swap();
         fpslimit.wait();
     }
-};
 
-int main()
-{
-    ModelTest game;
-    game.create();
-    game.run();
     return 0;
 }

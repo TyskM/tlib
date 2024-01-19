@@ -24,7 +24,7 @@ namespace sysq
         FILETIME prevSysUser;
         FILETIME prevProcKernel;
         FILETIME prevProcUser;
-        short cpuUsage;
+        int16_t  cpuUsage;
         ULONGLONG lastRun;
         volatile LONG runCount;
         Timer timer;
@@ -63,29 +63,29 @@ namespace sysq
     struct GlobalMemoryInfo
     {
         bool success = false;
-        uint64_t totalPhysical;
-        uint64_t availPhysical;
-        uint64_t totalPageFile;
-        uint64_t availPageFile;
-        uint64_t totalVirtual;
-        uint64_t availVirtual;
-        uint64_t availExtendedVirtual;
+        uint64_t totalPhysical        {};
+        uint64_t availPhysical        {};
+        uint64_t totalPageFile        {};
+        uint64_t availPageFile        {};
+        uint64_t totalVirtual         {};
+        uint64_t availVirtual         {};
+        uint64_t availExtendedVirtual {};
     };
 
     // Values are in bytes
     struct PrivateMemoryInfo
     {
         bool success = false;
-        uint32_t pageFaultCount;
-        uint64_t peakWorkingSetSize;
-        uint64_t workingSetSize; // This is the physical memory used by your process (in bytes)
-        uint64_t quotaPeakPagedPoolUsage;
-        uint64_t quotaPagedPoolUsage;
-        uint64_t quotaPeakNonPagedPoolUsage;
-        uint64_t quotaNonPagedPoolUsage;
-        uint64_t pagefileUsage;
-        uint64_t peakPagefileUsage;
-        uint64_t privateUsage; // This is the virtual memory used by your process (in bytes)
+        uint32_t pageFaultCount             {};
+        uint64_t peakWorkingSetSize         {};
+        uint64_t workingSetSize             {}; // This is the physical memory used by your process (in bytes)
+        uint64_t quotaPeakPagedPoolUsage    {};
+        uint64_t quotaPagedPoolUsage        {};
+        uint64_t quotaPeakNonPagedPoolUsage {};
+        uint64_t quotaNonPagedPoolUsage     {};
+        uint64_t pagefileUsage              {};
+        uint64_t peakPagefileUsage          {};
+        uint64_t privateUsage               {}; // This is the virtual memory used by your process (in bytes)
     };
 
     const GlobalMemoryInfo getGlobalMemInfo()
@@ -98,14 +98,14 @@ namespace sysq
 
         if (GlobalMemoryStatusEx(&memInfo))
         {
-            gbi.totalPhysical = memInfo.ullTotalPhys;
-            gbi.availPhysical = memInfo.ullAvailPhys;
-            gbi.totalPageFile = memInfo.ullTotalPageFile;
-            gbi.availPageFile = memInfo.ullAvailPageFile;
-            gbi.totalVirtual = memInfo.ullTotalVirtual;
-            gbi.availVirtual = memInfo.ullAvailVirtual;
+            gbi.totalPhysical        = memInfo.ullTotalPhys;
+            gbi.availPhysical        = memInfo.ullAvailPhys;
+            gbi.totalPageFile        = memInfo.ullTotalPageFile;
+            gbi.availPageFile        = memInfo.ullAvailPageFile;
+            gbi.totalVirtual         = memInfo.ullTotalVirtual;
+            gbi.availVirtual         = memInfo.ullAvailVirtual;
             gbi.availExtendedVirtual = memInfo.ullAvailExtendedVirtual;
-            gbi.success = true;
+            gbi.success              = true;
             return gbi;
         }
     #endif
@@ -138,12 +138,12 @@ namespace sysq
         return lmi;
     }
 
-    short getThisProcessCPUUsage()
+    int16_t getThisProcessCPUUsage()
     {
         // http://www.philosophicalgeek.com/2009/01/03/determine-cpu-usage-of-current-process-c-and-c/
 
     #ifdef _WIN32
-        short cpuCopy = detail::cpuUsage;
+        int16_t cpuCopy = detail::cpuUsage;
 
         if (InterlockedIncrement(&detail::runCount) == 1)
             {
@@ -174,7 +174,7 @@ namespace sysq
 
                     if (totalSys > 0)
                     {
-                        detail::cpuUsage = (short)((100.0 * totalProc) / totalSys);
+                        detail::cpuUsage = (int16_t)((100.0 * totalProc) / totalSys);
                     }
             
                 }

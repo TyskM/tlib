@@ -42,12 +42,9 @@ public:
             *this = ActionControl();
         }
 
-
-        // TODO: fix this
-        bool strictModChecking = false;
-        int  modifier = KMOD_NONE; // See SDL_Keymod
-        ActionType type = ActionType::KEYBOARD;
-        int id = -1;
+        int        modifier = KMOD_NONE; // See SDL_Keymod
+        ActionType type     = ActionType::KEYBOARD;
+        int        id       = -1;
     };
 
     struct Action
@@ -148,12 +145,15 @@ public:
         prevmouse = mouse;
         prevMousePos = mousePos;
         auto tempMouse = SDL_GetMouseState(&mousePos.x, &mousePos.y);
+
         for (int i = 0; i <= MOUSE_X2; i++)
         {
             mouse[i] = (tempMouse & (1 << i) /* frick sdl button SDL_BUTTON(i)*/ );
         }
 
-        mouseDelta = mousePos - prevMousePos;
+        int x, y;
+        SDL_GetRelativeMouseState(&x, &y);
+        mouseDelta = { x, y };
         mouse[MOUSE_WHEEL_UP]   = wheelUpNextUpdate;
         mouse[MOUSE_WHEEL_DOWN] = wheelDownNextUpdate;
         wheelUpNextUpdate   = false;
@@ -383,10 +383,7 @@ private:
 
     static inline bool _verifyControl(const ActionControl& ctrl)
     {
-        if (ctrl.strictModChecking)
-            return ctrl.modifier == SDL_GetModState();
-        else
-            return ctrl.modifier == KMOD_NONE || ctrl.modifier == SDL_GetModState();
+        return ctrl.modifier == SDL_GetModState();
     }
 }; 
 using ActionType = Input::ActionType;

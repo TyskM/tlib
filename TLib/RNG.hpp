@@ -39,6 +39,7 @@ public:
 
     bool randBool() { return randRangeInt(0, 1) == 1; }
 
+    // Don't use lol
     // Returns a random object from a std::vector.
     // It will explode if the vector is empty
     template <typename Cont>

@@ -47,7 +47,6 @@ std::unordered_map<GLType, uint32_t> glTypeSizeMap =
 
 enum class GLDrawMode : GLenum
 {
-    Unknown                [[maybe_unused]] = -1                              ,
     Points                 [[maybe_unused]] = GL_POINTS                       ,
     LineStrip              [[maybe_unused]] = GL_LINE_STRIP                   ,
     LineLoop               [[maybe_unused]] = GL_LINE_LOOP                    ,
@@ -64,7 +63,6 @@ enum class GLDrawMode : GLenum
 
 enum class GLBlendMode : GLenum
 {
-    Unknown               [[maybe_unused]] = -1                              ,
     Zero                  [[maybe_unused]] = GL_ZERO                         ,
     One                   [[maybe_unused]] = GL_ONE                          ,
     SrcColor              [[maybe_unused]] = GL_SRC_COLOR                    ,

@@ -16,7 +16,7 @@
 #define ASSERT(x) \
 if( !(x) ) \
 { \
-    std::cerr << "Assertion failed in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ << std::endl; \
+    std::cerr << "Assertion failed in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ << '\n'; \
     abort(); \
 }
 #else
@@ -26,7 +26,7 @@ if( !(x) ) \
 #define RELASSERT(x) \
 if( !(x) ) \
 { \
-    std::cerr << "Assertion failed in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ << std::endl; \
+    std::cerr << "Assertion failed in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ << '\n'; \
     abort(); \
 }
 
@@ -35,7 +35,7 @@ if( !(x) ) \
 if( !(x) ) \
 { \
     std::cerr << "Assertion failed in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ \
-    << '\n' << str << std::endl; abort(); \
+    << '\n' << str << '\n'; abort(); \
 }
 #else
 #define ASSERTMSG(x) ((void)0);
@@ -47,7 +47,7 @@ if( !(x) ) \
 if( !(x) ) \
 { \
     std::cout << "Warning in " << __FILE__ << " in function " << __func__ << " on line " << __LINE__ \
-    << '\n' << str << std::endl; \
+    << '\n' << str << '\n'; \
 }
 #else
 #define ASSERTWARN(x, str) ((void)0);
