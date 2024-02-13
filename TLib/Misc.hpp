@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include "DataStructures.hpp"
+#include <TLib/DataStructures.hpp>
 
 template <typename T>
 struct Flat2DVector
@@ -129,4 +129,11 @@ static void printCSVs(Types... args)
     }
 
     std::cout << std::endl;
+}
+
+Vector2i posToGridPos(Vector2f pos, Vector2f gridSize)
+{
+    // Integer division truncates towards 0
+    // Floor manually so it doesn't break with negative values
+    return Vector2i((pos / gridSize).floored());
 }

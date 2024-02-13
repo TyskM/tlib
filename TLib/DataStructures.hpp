@@ -6,6 +6,7 @@
 #include <TLib/String.hpp>
 #include <TLib/Math.hpp>
 #include <TLib/Macros.hpp>
+#include <TLib/EASTL.hpp>
 
 // There's always a min/max macro somewhere. Make it stop!!!
 #undef min
@@ -134,20 +135,22 @@ struct Vector2
     Vector2<T> operator-(const Vector2<T>& other)   const { return Vector2<T>(x - other.x, y - other.y); }
     Vector2<T> operator*(const Vector2<T>& other)   const { return Vector2<T>(x * other.x, y * other.y); }
     Vector2<T> operator/(const Vector2<T>& other)   const { return Vector2<T>(x / other.x, y / other.y); }
-    Vector2<T> operator*(const int& num)            const { return Vector2<T>(x * num, y * num); }
-    Vector2<T> operator/(const int& num)            const { return Vector2<T>(x / num, y / num); }
-    Vector2<T> operator+(const float& num)          const { return Vector2<T>(x + num, y + num); }
-    Vector2<T> operator-(const float& num)          const { return Vector2<T>(x - num, y - num); }
-    Vector2<T> operator*(const float& num)          const { return Vector2<T>(x * num, y * num); }
-    Vector2<T> operator/(const float& num)          const { return Vector2<T>(x / num, y / num); }
+    Vector2<T> operator+(const int   num)           const { return Vector2<T>(x + num, y + num); }
+    Vector2<T> operator-(const int   num)           const { return Vector2<T>(x - num, y - num); }
+    Vector2<T> operator*(const int   num)           const { return Vector2<T>(x * num, y * num); }
+    Vector2<T> operator/(const int   num)           const { return Vector2<T>(x / num, y / num); }
+    Vector2<T> operator+(const float num)           const { return Vector2<T>(x + num, y + num); }
+    Vector2<T> operator-(const float num)           const { return Vector2<T>(x - num, y - num); }
+    Vector2<T> operator*(const float num)           const { return Vector2<T>(x * num, y * num); }
+    Vector2<T> operator/(const float num)           const { return Vector2<T>(x / num, y / num); }
     Vector2<T> operator+=(const Vector2<T>& other)        { return Vector2<T>(x += other.x, y += other.y); }
     Vector2<T> operator-=(const Vector2<T>& other)        { return Vector2<T>(x -= other.x, y -= other.y); }
     Vector2<T> operator*=(const Vector2<T>& other)        { return Vector2<T>(x *= other.x, y *= other.y); }
     Vector2<T> operator/=(const Vector2<T>& other)        { return Vector2<T>(x /= other.x, y /= other.y); }
-    Vector2<T> operator*=(const int& num)                 { return Vector2<T>(x *= num, y *= num); }
-    Vector2<T> operator/=(const int& num)                 { return Vector2<T>(x /= num, y /= num); }
-    Vector2<T> operator*=(const float& num)               { return Vector2<T>(x *= num, y *= num); }
-    Vector2<T> operator/=(const float& num)               { return Vector2<T>(x /= num, y /= num); }
+    Vector2<T> operator*=(const int num)                  { return Vector2<T>(x *= num, y *= num); }
+    Vector2<T> operator/=(const int num)                  { return Vector2<T>(x /= num, y /= num); }
+    Vector2<T> operator*=(const float num)                { return Vector2<T>(x *= num, y *= num); }
+    Vector2<T> operator/=(const float num)                { return Vector2<T>(x /= num, y /= num); }
 
 };
 using Vector2f  = Vector2<float>;
@@ -156,6 +159,20 @@ using Vector2i8 = Vector2<int8_t>;
 
 // Support hashing
 namespace std
+{
+    template <typename T>
+    struct hash<Vector2<T>>
+    {
+        size_t operator()(const Vector2<T>& k) const
+        {
+            const auto xhash = hash<T>()(k.x);
+            const auto yhash = hash<T>()(k.y);
+            return (size_t(53) + xhash) * size_t(53) + yhash;
+        }
+    };
+}
+
+namespace eastl
 {
     template <typename T>
     struct hash<Vector2<T>>
