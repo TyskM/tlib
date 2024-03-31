@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <magic_enum.hpp>
 
 #define OS_WINDOWS _WIN32
 #define OS_MAC     __APPLE__
@@ -55,24 +56,71 @@ if( !(x) ) \
 
 #pragma endregion
 
+template <typename T>
+static constexpr T bit(T value)
+{ return 1 << value; }
+
 /*
     Create operators for enums.
     Use like this:
-        enum class RendererType
+        enum class RendererType : uint8_t
         {
-            Sprite    = 1 << 0,
-            Text      = 1 << 1,
-            Primitive = 1 << 2
+            Sprite    = bit(0),
+            Text      = bit(1),
+            Primitive = bit(2)
         }; FLAG_ENUM(RendererType);
 */
-#define FLAG_ENUM(name)                                                                                                             \
-inline name  operator|  (name a, name b)                   { return static_cast<name>(static_cast<int>(a) | static_cast<int>(b)); } \
-inline name& operator|= (name & a, const name & b)         { return a = a | b; }                                                    \
-inline bool  operator&  (name a, name b)                   { return static_cast<int>(a) & static_cast<int>(b);  }                   \
-template <typename B> inline bool operator<  (name a, B b) { return static_cast<int>(a) <  static_cast<int>(b); }                   \
-template <typename B> inline bool operator<= (name a, B b) { return static_cast<int>(a) <= static_cast<int>(b); }                   \
-template <typename B> inline bool operator>  (name a, B b) { return static_cast<int>(a) >  static_cast<int>(b); }                   \
-template <typename B> inline bool operator>= (name a, B b) { return static_cast<int>(a) >= static_cast<int>(b); }
+#define FLAG_ENUM(name)                                                                        \
+inline name operator|(name a, name b)                                                          \
+{                                                                                              \
+    using UT = magic_enum::underlying_type<name>::type;                                        \
+    return static_cast<name>(static_cast<UT>(a) | static_cast<UT>(b));                         \
+}                                                                                              \
+                                                                                               \
+inline name operator|=(name& a, const name& b)                                                 \
+{ return a = a | b; }                                                                          \
+                                                                                               \
+inline name operator~(const name& a)                                                           \
+{                                                                                              \
+    using UT = magic_enum::underlying_type<name>::type;                                        \
+    return static_cast<name>(~static_cast<UT>(a));                                             \
+}                                                                                              \
+                                                                                               \
+template <typename B> inline bool operator&(name a, B b)                                       \
+{                                                                                              \
+    using UT = magic_enum::underlying_type<name>::type;                                        \
+    return static_cast<UT>(a) & static_cast<UT>(b);                                            \
+}                                                                                              \
+                                                                                               \
+template <typename B> inline name operator^(name a, B b)                                       \
+{                                                                                              \
+    using UT = magic_enum::underlying_type<name>::type;                                        \
+    return static_cast<name>(static_cast<UT>(a) ^ static_cast<UT>(b));                         \
+}                                                                                              \
+                                                                                               \
+template <typename B> inline bool operator<(name a, B b)                                       \
+{                                                                                              \
+    using UT = magic_enum::underlying_type<name>::type;                                        \
+    return static_cast<UT>(a) < static_cast<UT>(b);                                            \
+}                                                                                              \
+                                                                                               \
+template <typename B> inline bool operator<=(name a, B b)                                      \
+{                                                                                              \
+    using UT = magic_enum::underlying_type<name>::type;                                        \
+    return static_cast<UT>(a) <= static_cast<UT>(b);                                           \
+}                                                                                              \
+                                                                                               \
+template <typename B> inline bool operator>(name a, B b)                                       \
+{                                                                                              \
+    using UT = magic_enum::underlying_type<name>::type;                                        \
+    return static_cast<UT>(a) > static_cast<UT>(b);                                            \
+}                                                                                              \
+                                                                                               \
+template <typename B> inline bool operator>=(name a, B b)                                      \
+{                                                                                              \
+    using UT = magic_enum::underlying_type<name>::type;                                        \
+    return static_cast<UT>(a) >= static_cast<UT>(b);                                           \
+}
 
 #define STRING_NAME(X) #X
 #define STRING_VALUE(X) STRING_NAME(X)

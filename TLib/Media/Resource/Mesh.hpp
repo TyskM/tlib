@@ -74,22 +74,23 @@ public:
      */
     void setLayout(const Layout& layout)
     {
-        rendlog->info("Setting mesh layout: Bytes={}; Size={};", layout.sizeBytes(), layout.getValues().size());
-
         if (!vao.created()) { vao.create(); }
         if (!vbo.created()) { vbo.create(); }
+
+        rendlog->info("Setting mesh layout: Bytes={}; Size={};", layout.sizeBytes(), layout.getValues().size());
 
         vao.bind();
         vbo.bind();
 
-        int index = 0;
-        int offset = 0;
-        uint32_t stride = layout.sizeBytes();
+        GLuint   index  = 0;
+        uint32_t offset = 0;
+        GLsizei  stride = layout.sizeBytes();
 
-        for (auto& l : layout.getValues())
+        for (const auto& l : layout.getValues())
         {
-            GL_CHECK(glVertexAttribPointer(index, l.size(), static_cast<GLenum>(l.type()), GL_FALSE, stride, (GLvoid*)offset));
             GL_CHECK(glEnableVertexAttribArray(index));
+            GL_CHECK(glVertexAttribPointer(index, l.size(), static_cast<GLenum>(l.type()),
+                                           GL_FALSE, stride, (GLvoid*)(offset)));
             if (l.divisor())
             { GL_CHECK(glVertexAttribDivisor(index, l.divisor())); }
             ++index;
@@ -107,11 +108,8 @@ public:
     void setData(const ContainerType& data, AccessType accessType = AccessType::Static)
     {
         using T = ContainerType::value_type;
-        // Layout must be set before setting data
-        ASSERT(validLayout());
-
-        // Layout and data size mismatch
-        ASSERT(sizeof(T) == _layout.sizeBytes()); 
+        ASSERT(validLayout()); // Layout must be set before setting data
+        ASSERT(sizeof(T) == _layout.sizeBytes()); // Layout and data size mismatch
 
         if (accessType == AccessType::Static)
         { rendlog->info("Setting static mesh data: Bytes={}; Size={};", sizeof(T) * data.size(), data.size()); }
@@ -122,7 +120,6 @@ public:
         _vertexCount = data.size();
     }
 
-    // Indices are not required, but they are nice :)
     template <typename ContainerOfuint32_tType>
     void setIndices(const ContainerOfuint32_tType& indices, AccessType accessType = AccessType::Static)
     {

@@ -10,11 +10,57 @@
 #include <TLib/Macros.hpp>
 #include <TLib/Media/GL/GLState.hpp>
 #include <TLib/Media/GL/UniformBuffer.hpp>
+#include <TLib/Containers/Array.hpp>
+#include <TLib/Containers/UnorderedMap.hpp>
 
 class Shader : NonCopyable
 {
     GLuint glHandle = 0;
-    mutable std::unordered_map<String, GLint> _uniformCache;
+    mutable std::unordered_map<String, int> _uniformCache;
+
+    bool setup(const char* vertData, const char* fragData)
+    {
+        reset();
+        GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
+        GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+        glShaderSource(vertShader, 1, &vertData, NULL);
+        glShaderSource(fragShader, 1, &fragData, NULL);
+
+        glCompileShader(vertShader);
+        glCompileShader(fragShader);
+
+        if (!verifyShaderCompilation(vertShader) ||
+            !verifyShaderCompilation(fragShader))
+        { goto failed; }
+
+        glHandle = glCreateProgram();
+        glAttachShader(glHandle, vertShader);
+        glAttachShader(glHandle, fragShader);
+        glLinkProgram(glHandle);
+        if (!verifyProgamLinkage(glHandle)) { goto failed; };
+
+        glDeleteShader(vertShader);
+        glDeleteShader(fragShader);
+
+        return true;
+
+    failed:
+        glDeleteShader(vertShader);
+        glDeleteShader(fragShader);
+        GL_CHECK_NOABORT((void)0);
+        return false;
+    }
+
+    void showFailedToFindUniformError(const String& uniName) const
+    {
+        tlog::warn(R"(
+The uniform '{}' could not be found.
+It could be missing, misspelled,
+or the GLSL compiler could have optimized it away.
+(If it's unused in the shader code)
+)", uniName);
+    }
 
 public:
     Shader() { }
@@ -22,38 +68,31 @@ public:
     Shader(Shader&& other) noexcept { operator=(std::move(other)); }
     Shader& operator=(Shader&& other) noexcept
     {
-        glHandle = other.glHandle;
+        reset();
+        glHandle       = other.glHandle;
         other.glHandle = NULL;
-        _uniformCache = other._uniformCache;
+        // Do NOT copy the uniform map
         return *this;
     }
 
-    ~Shader()
+    ~Shader() { reset(); }
+
+    void reset()
     {
         if (created())
-        { glDeleteProgram(glHandle); }
+        {
+            glDeleteProgram(glHandle);
+            _uniformCache.clear();
+        }
     }
 
     void create(const char* vertData, const char* fragData)
     {
-        GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertShader, 1, &vertData, NULL);
-        glCompileShader(vertShader);
-        verifyShaderCompilation(vertShader);
-
-        GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragShader, 1, &fragData, NULL);
-        glCompileShader(fragShader);
-        verifyShaderCompilation(fragShader);
-
-        glHandle = glCreateProgram();
-        glAttachShader(glHandle, vertShader);
-        glAttachShader(glHandle, fragShader);
-        glLinkProgram(glHandle);
-        verifyProgamLinkage(glHandle);
-
-        glDeleteShader(vertShader);
-        glDeleteShader(fragShader);
+        Shader newShader;
+        if (newShader.setup(vertData, fragData))
+        { *this = std::move(newShader); }
+        // I don't want the new shaders to replace the current one
+        // unless it is CERTAIN that the new ones work.
     }
 
     void create(const String& vert, const String& frag)
@@ -65,7 +104,7 @@ public:
     void bind()
     {
         ASSERTMSG(created(), "Forgot to call shader::create()");
-        if (glState.boundShader == this) { return; }
+        //if (glState.boundShader == this) { return; }
         GL_CHECK(glUseProgram(glHandle));
         glState.boundShader = this;
     }
@@ -79,69 +118,116 @@ public:
     void setBool(const String& name, bool value)
     {
         bind();
-        GL_CHECK(glUniform1i(getUniformLocation(name.c_str()), static_cast<int>(value)));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform1i(loc, static_cast<int>(value)));
     }
 
     void setInt(const String& name, int value)
     {
         bind();
-        GL_CHECK(glUniform1i(getUniformLocation(name.c_str()), value));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform1i(loc, value));
     }
 
     GLint getInt(const String& name)
     {
         bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return {}; }
         GLint ret;
-        GL_CHECK(glGetUniformiv(glHandle, getUniformLocation(name.c_str()), &ret));
+        GL_CHECK(glGetUniformiv(glHandle, loc, &ret));
         return ret;
+    }
+
+    GLfloat getFloat(const String& name)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return {}; }
+        GLfloat ret;
+        GL_CHECK(glGetUniformfv(glHandle, loc, &ret));
+        return ret;
+    }
+
+    glm::vec2 getVec2f(const String& name)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return {}; }
+        Array<GLfloat, 2> ret{};
+        GL_CHECK(glGetnUniformfv(glHandle, loc, sizeof(GLfloat) * 2, ret.data()));
+        return { ret[0], ret[1] };
+    }
+
+    glm::vec3 getVec3f(const String& name)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return {}; }
+        Array<GLfloat, 3> ret{ 0,0,0 };
+        GL_CHECK(glGetnUniformfv(glHandle, loc, sizeof(GLfloat) * 3, ret.data()));
+        return {ret[0], ret[1], ret[2]};
+    }
+
+    glm::vec4 getVec4f(const String& name)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return {}; }
+        Array<GLfloat, 4> ret{ 0,0,0,0 };
+        GL_CHECK(glGetnUniformfv(glHandle, loc, sizeof(GLfloat) * 4, ret.data()));
+        return { ret[0], ret[1], ret[2], ret[3] };
     }
 
     void setFloat(const String& name, float value)
     {
         bind();
-        GL_CHECK(glUniform1f(getUniformLocation(name.c_str()), value));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform1f(loc, value));
     }
     
     void setVec2f(const String& name, float x, float y)
     {
         bind();
-        GL_CHECK(glUniform2f(getUniformLocation(name.c_str()), x, y));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform2f(loc, x, y));
     }
 
     void setVec2f(const String& name, glm::vec2 value)
     {
         bind();
-        GL_CHECK(glUniform2f(getUniformLocation(name.c_str()), value.x, value.y));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform2f(loc, value.x, value.y));
     }
 
     void setVec3f(const String& name, float x, float y, float z)
     {
         bind();
-        GL_CHECK(glUniform3f(getUniformLocation(name.c_str()), x, y, z));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform3f(loc, x, y, z));
     }
 
     void setVec3f(const String& name, glm::vec3 value)
     {
         bind();
-        GL_CHECK(glUniform3f(getUniformLocation(name.c_str()), value.x, value.y, value.z));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform3f(loc, value.x, value.y, value.z));
     }
 
     void setVec4f(const String& name, float x, float y, float z, float w)
     {
         bind();
-        GL_CHECK(glUniform4f(getUniformLocation(name.c_str()), x, y, z, w));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform4f(loc, x, y, z, w));
     }
 
     void setVec4f(const String& name, glm::vec4 value)
     {
         bind();
-        GL_CHECK(glUniform4f(getUniformLocation(name.c_str()), value.x, value.y, value.z, value.w));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform4f(loc, value.x, value.y, value.z, value.w));
     }
 
     void setMat4f(const String& name, glm::mat4 value)
     {
         bind();
-        GL_CHECK(glUniformMatrix4fv(getUniformLocation(name.c_str()), 1, false, glm::value_ptr(value)));
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniformMatrix4fv(loc, 1, false, glm::value_ptr(value)));
     }
 
     void setUniformBlock(const String& name, UniformBuffer& ubo, int index)
@@ -155,41 +241,44 @@ public:
     void setMat4fArray(const String& name, const ContainerType& value, size_t count)
     {
         bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
         ASSERT(value.size() > 0);
-        GL_CHECK(glUniformMatrix4fv(getUniformLocation(name.c_str()), count, false, glm::value_ptr(value[0])));
+        GL_CHECK(glUniformMatrix4fv(loc, count, false, glm::value_ptr(value[0])));
     }
 
     template <typename ContainerType>
     void setVec2fArray(const String& name, const ContainerType& value, size_t count)
     {
         bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
         ASSERT(value.size() > 0);
-        GL_CHECK(glUniform2fv(getUniformLocation(name.c_str()), count, glm::value_ptr(value[0])));
+        GL_CHECK(glUniform2fv(loc, count, glm::value_ptr(value[0])));
     }
 
     template <typename ContainerType>
     void setVec4fArray(const String& name, const ContainerType& value, size_t count)
     {
         bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
         ASSERT(value.size() > 0);
-        GL_CHECK(glUniform4fv(getUniformLocation(name.c_str()), count, glm::value_ptr(value[0])));
+        GL_CHECK(glUniform4fv(loc, count, glm::value_ptr(value[0])));
     }
-
-    bool created()
-    { return glHandle != 0; }
 
     GLint getUniformLocation(const String& name) const
     {
-        auto it = _uniformCache.find(name);
+        const auto& it = _uniformCache.find(name);
         if (it != _uniformCache.end())
         { return it->second; }
 
         GLint loc = glGetUniformLocation(glHandle, name.c_str());
-        _uniformCache[name] = loc;
+        if (loc < 0) { showFailedToFindUniformError(name); }
+
+        checkOpenGLError("glGetUniformLocation", __FILE__, __LINE__);
+        _uniformCache.insert_or_assign(name, loc);
         return loc;
     }
 
-    static inline void verifyShaderCompilation(GLuint shaderHandle)
+    static inline bool verifyShaderCompilation(GLuint shaderHandle)
     {
         int success;
         char infoLog[512];
@@ -198,10 +287,12 @@ public:
         {
             glGetShaderInfoLog(shaderHandle, 512, NULL, infoLog);
             tlog::critical("Failed to compile shader. Info:\n{}", infoLog);
+            return false;
         };
+        return true;
     }
 
-    static inline void verifyProgamLinkage(GLuint programHandle)
+    static inline bool verifyProgamLinkage(GLuint programHandle)
     {
         int success;
         char infoLog[512];
@@ -210,6 +301,8 @@ public:
         {
             glGetProgramInfoLog(programHandle, 512, NULL, infoLog);
             tlog::critical("Failed to link shader program. Info:\n{}", infoLog);
+            return false;
         }
+        return true;
     }
 };

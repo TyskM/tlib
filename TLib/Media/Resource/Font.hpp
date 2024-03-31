@@ -3,14 +3,11 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+#include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/Resource/Texture.hpp>
 #include <TLib/DataStructures.hpp>
 #include <TLib/Containers/Vector.hpp>
-#include <TLib/thirdparty/rectpack2d/empty_spaces.h>
-#include <TLib/thirdparty/rectpack2d/empty_space_allocators.h>
-#include <TLib/thirdparty/rectpack2d/rect_structs.h>
-#include <TLib/thirdparty/rectpack2d/best_bin_finder.h>
-#include <TLib/thirdparty/rectpack2d/finders_interface.h>
+#include <TLib/thirdparty/RectPack2D.hpp>
 using namespace rectpack2D;
 
 struct FontChar
@@ -119,12 +116,18 @@ public:
         return SubTexture(getAtlas(), Rectf(getChar(c).rect));
     }
 
+    /*
+    If you're using a low resolution font, like a pixel art font, consider setting:
+    renderMode    = FontRenderMode::Normal     and/or
+    texFilterMode = TextureFiltering::Nearest
+    */
     bool loadFromFile(
-        const Path&    path,
-        unsigned int   size       = 24,
-        size_t         rangeMin   = 0,
-        size_t         rangeMax   = 128,
-        FontRenderMode renderMode = FontRenderMode::SDF)
+        const Path&      path,
+        unsigned int     size          = 24,
+        size_t           rangeMin      = 0,
+        size_t           rangeMax      = 128,
+        FontRenderMode   renderMode    = FontRenderMode::SDF,
+        TextureFiltering texFilterMode = TextureFiltering::Linear)
     {
         ///// Load font and cache basic details
         FontDetail::initFreetype();
@@ -212,6 +215,7 @@ public:
             make_finder_input(maxTexSize, discard_step, report_successful, report_unsuccessful, flipping_option::DISABLED));
 
         // Surely this wont happen... surely?
+        // TODO: Use a 3D texture to fit more characters in this case
         if (result_size.w > maxTexSize || result_size.h > maxTexSize)
         {
             tlog::critical("The font '{}' is too large for a texture atlas! try reducing the size or range.", path.string());
@@ -220,7 +224,8 @@ public:
 
         //// Create texture using the size we found
         textureAtlas.create();
-        textureAtlas.setData(NULL, result_size.w, result_size.h, TexPixelFormats::RED, TexInternalFormats::RED);
+        textureAtlas.setData(NULL, result_size.w, result_size.h, TexPixelFormats::RED, TexInternalFormats::RED, false);
+        textureAtlas.setFilter(texFilterMode);
         textureAtlas.setUnpackAlignment(1);
 
         //// Loop through saved sdf bitmaps,

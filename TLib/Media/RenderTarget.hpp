@@ -77,13 +77,11 @@ public:
     void bind()
     {
         fbo.bind();
-        RenderTarget::boundRenderTarget = this;
     }
 
     static void unbind()
     {
         FrameBuffer::unbind();
-        RenderTarget::boundRenderTarget = nullptr;
     }
 
     static RenderTarget* getBoundRenderTarget()

@@ -2,10 +2,14 @@
 
 #include <TLib/String.hpp>
 #include <TLib/Containers/Vector.hpp>
+#include <TLib/Logging.hpp>
+#include <tinyfiledialogs/tinyfiledialogs.h>
 
 #include <fstream>
 #include <stdexcept>
 #include <filesystem>
+
+#include <TLib/Windows.hpp>
 
 namespace fs = std::filesystem;
 using Path = fs::path;
@@ -13,8 +17,52 @@ using Path = fs::path;
 struct FileReadError  : public std::runtime_error { using std::runtime_error::runtime_error; };
 struct FileWriteError : public std::runtime_error { using std::runtime_error::runtime_error; };
 
+static Path openSingleFileDialog(
+    const String&         title             = "Open File",
+    const Path&           defaultPath       = Path(), // Will use the .exe directory if empty
+    const Vector<String>& filters           = {"*"},  // {"*.jpg","*.png"}
+    const String&         filterDescription = "")     // "image files"
+{
+    Vector<const char*> cfilters;
+    cfilters.reserve(filters.size());
+    for (auto& s : filters)
+    { cfilters.push_back(s.c_str()); }
+
+    char* openedFilePath = tinyfd_openFileDialog(
+        title.c_str(),
+        defaultPath.string().c_str(),
+        cfilters.size(),
+        cfilters.data(),
+        filterDescription.empty() ? NULL : filterDescription.c_str(), 0);
+
+    if (!openedFilePath)
+    { return Path(); }
+    return openedFilePath;
+}
+
+// This opens the file explorer and selects the file/folder provided
+static bool browseToFile(const Path& path)
+{
+#ifdef OS_WINDOWS
+    String pathStr = path.string();
+    String params  = fmt::format("/select, \"{}\"", pathStr);
+
+    auto hret = ShellExecuteA(NULL, "open", "explorer.exe", params.c_str(), NULL, SW_SHOWDEFAULT);
+    int32_t ret = static_cast<int32_t>(reinterpret_cast<uintptr_t>(hret));
+    if (ret <= 32)
+    {
+        tlog::error("\nShellExecuteA failed with code: {}\nReason: {}\nCommand: {}", ret, getLastWin32ErrorAsString(), params);
+        return false;
+    }
+    return true;
+#else
+    tlog::error("browseToFile is only supported on windows. (for now)");
+#endif
+}
+
 // Reads a file into a string
-String readFile(const Path& filePath)
+// Returns empty string on failure
+static String readFile(const Path& filePath)
 {
     // http://insanecoding.blogspot.de/2011/11/how-to-read-in-file-in-c.html
     std::ifstream in(filePath, std::ios::in | std::ios::binary);
@@ -22,7 +70,7 @@ String readFile(const Path& filePath)
     return String(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
-Vector<char> readFileBytes(const Path& filePath)
+static Vector<char> readFileBytes(const Path& filePath)
 {
     std::ifstream in(filePath, std::ios_base::binary);
     if (!in) throw FileReadError("Failed to read file: " + filePath.string());
@@ -39,7 +87,7 @@ Vector<char> readFileBytes(const Path& filePath)
     return buffer;
 }
 
-bool writeToFile(const Path& filePath, const String& value)
+static bool writeToFile(const Path& filePath, const String& value)
 {
     auto parentPath = filePath.parent_path();
     if (!parentPath.empty())
@@ -55,8 +103,13 @@ bool writeToFile(const Path& filePath, const String& value)
     return true;
 }
 
+static bool createDirectories(const Path& dirPath)
+{
+    return fs::create_directories(dirPath);
+}
+
 // Puts each line of a file into a vector of strings
-std::vector<String> fileToStringVector(const Path& path)
+static std::vector<String> fileToStringVector(const Path& path)
 {
     std::ifstream file(path);
     if (!file) throw FileReadError("Failed to read file: " + path.string());
@@ -70,7 +123,7 @@ std::vector<String> fileToStringVector(const Path& path)
     return outputVector;
 }
 
-std::vector<String> dirToStringVector(const Path& path, bool includeSubDirs = false)
+static std::vector<String> dirToStringVector(const Path& path, bool includeSubDirs = false)
 {
     std::vector<String> vec;
 

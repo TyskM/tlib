@@ -131,7 +131,7 @@ static void printCSVs(Types... args)
     std::cout << std::endl;
 }
 
-Vector2i posToGridPos(Vector2f pos, Vector2f gridSize)
+static Vector2i posToGridPos(Vector2f pos, Vector2f gridSize)
 {
     // Integer division truncates towards 0
     // Floor manually so it doesn't break with negative values

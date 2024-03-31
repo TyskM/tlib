@@ -10,19 +10,36 @@
 #include <TLib/Logging.hpp>
 #include <TLib/thirdparty/multiarray/array.h>
 
-struct GridMap2DGrid
+struct AStar2DGrid
 {
     bool  passable = true;
-    float cost = 1.f;
+    float moveCost = 1.f;
 
-    GridMap2DGrid(bool passable, float cost) : passable{ passable }, cost{ cost } { }
-    GridMap2DGrid() = default;
+    AStar2DGrid(bool passable, float cost) : passable{ passable }, moveCost{ cost } { }
+    AStar2DGrid() = default;
 };
 
-struct GridMap2D
+struct AStar2DRaycastResult
 {
+    bool     hit = false;
+    Vector2i pos;
+
+    AStar2DRaycastResult(bool hit, const Vector2i& pos) : hit{ hit }, pos{ pos } { }
+    AStar2DRaycastResult() = default;
+};
+
+// TODO: Rename to AStarGridMap2D
+template <typename GridType = AStar2DGrid>
+struct AStar2D
+{
+    static_assert(std::is_base_of<AStar2DGrid, GridType>::value, "GridType must derive from AStar2DGrid");
+    static_assert(std::is_default_constructible<GridType>(),     "GridType must be default constructible");
+
 protected:
-    using Grid      = GridMap2DGrid;
+
+    // TODO: Line of sight support
+
+    using Grid      = GridType;
     using Array2D   = nda::shape<nda::dim<>, nda::dim<>>;
     using GridArray = nda::array<Grid, Array2D>;
 
@@ -37,9 +54,6 @@ protected:
 
     GridArray grids;
     Vector2i  size;
-
-    bool passable(const Vector2i& pos) const
-    { return getGridAt(pos).passable; }
 
     Vector<Vector2i> neighbors(const Vector2i& pos) const
     {
@@ -58,13 +72,24 @@ protected:
     float cost(const Vector2i& fromPos, const Grid& fromGrid, const Vector2i& toPos, const Grid& toGrid) const
     {
         bool diagonal = (fromPos.x != toPos.x && fromPos.y != toPos.y);
-        return toGrid.cost * (diagonal ? diagonalCost : 1.f);
+        return toGrid.moveCost * (diagonal ? diagonalCost : 1.f);
     }
 
-    float heuristic(const Vector2i& node, const Vector2i& goal)
+    float heuristic(const Vector2i& node, const Vector2i& goal) const
     {
         return max(fabs((float)goal.x - node.x), fabs((float)goal.y - node.y));
     }
+
+    float diagDist(const Vector2f& a, const Vector2f& b) const
+    {
+        float dx = b.x - a.x, dy = b.y - a.y;
+        return std::max(std::abs(dx), std::abs(dy));
+    };
+
+    Vector2f v2flerp(const Vector2f& a, const Vector2f& b, float t) const
+    {
+        return a * (1.f - t) + (b * t);
+    };
 
     template <typename T>
     struct GridPriorityQueueCompare
@@ -97,8 +122,11 @@ protected:
 
 public:
 
-    float diagonalCost = 1.001f; // Read/Write; I recommend 1.001 or sqrt(2)
+    float diagonalCost = 1.001f; // Read/Write; I recommend 1.001f or sqrt(2.f)
     bool  includeStart = false; // Read/Write; Should the start variable be included in computePath return.
+
+    bool passable(const Vector2i& pos) const { return getGridAt(pos).passable; }
+    bool passable(int x, int y)        const { return passable({x, y}); }
 
     bool inBounds(const Vector2i& pos) const
     {
@@ -114,6 +142,20 @@ public:
         grids.reshape(Array2D(width(), height()));
     }
 
+    void clear()
+    {
+        for (size_t x = 0; x < grids.width();  x++) {
+        for (size_t y = 0; y < grids.height(); y++)
+        { grids(x, y) = GridType(); }}
+    }
+
+    void clear(const GridType& grid)
+    {
+        for (size_t x = 0; x < grids.width();  x++) {
+        for (size_t y = 0; y < grids.height(); y++)
+        { grids(x, y) = grid; }}
+    }
+
           Grid& getGridAt(const Vector2i& pos)       { ASSERT(inBounds(pos)); return grids(pos.x, pos.y); }
           Grid& getGridAt(int x, int y)              { return getGridAt({ x, y }); }
     const Grid& getGridAt(const Vector2i& pos) const { ASSERT(inBounds(pos)); return grids(pos.x, pos.y); }
@@ -123,15 +165,16 @@ public:
     int      height()  const { return size.y; }
     Vector2i getSize() const { return size;   }
 
-    GridPriorityQueue<Vector2i, float> frontier; // TODO: make class scope
-    UnorderedMap<Vector2i, Vector2i>   internalCameFrom;  // TODO: make class scope
-    UnorderedMap<Vector2i, float>      internalCostSoFar; // TODO: make class scope
+    mutable GridPriorityQueue<Vector2i, float> frontier;
+    mutable UnorderedMap<Vector2i, Vector2i>   internalCameFrom;
+    mutable UnorderedMap<Vector2i, float>      internalCostSoFar;
 
     Vector<Vector2i> computePath(
         const Vector2i& start,
         const Vector2i& goal,
         UnorderedMap<Vector2i, Vector2i>* cameFromPtr  = nullptr, // For debug
         UnorderedMap<Vector2i, float>*    costSoFarPtr = nullptr) // For debug
+        const
     {
         if (!inBounds(start)) { return Vector<Vector2i>(); }
         if (!inBounds(goal))  { return Vector<Vector2i>(); }
@@ -146,16 +189,18 @@ public:
         // So make it temporarily passable and pop it before returning.
         // TODO: Make this a setting
         // TODO: Make this work for further distances
-        Grid& goalGrid = getGridAt(goal);
-        bool goalIsPassable = goalGrid.passable;
-        goalGrid.passable = true;
+        const Grid& goalGridConst = getGridAt(goal);
+        // HACK: Changes are reverted at the end of the function, dunno if there's a better way.
+        Grid& goalGrid       = const_cast<Grid&>(goalGridConst);
+        bool goalIsPassable  = goalGrid.passable;
+        goalGrid.passable    = true;
 
         frontier.clear();
         frontier.put(start, 0.f);
 
         cameFrom.clear();
         costSoFar.clear();
-        cameFrom[start] = start;
+        cameFrom [start] = start;
         costSoFar[start] = 0.f;
 
         while (!frontier.empty())
@@ -202,4 +247,47 @@ public:
 
         return path;
     }
+
+    Vector<Vector2i> line(const Vector2i& start, const Vector2i& end) const
+    {
+        Vector<Vector2i> points;
+        Vector2f startf(start);
+        Vector2f endf(end);
+
+        float N = diagDist(startf, endf);
+        for (int step = 0; step <= N; step++)
+        {
+            float t = (N == 0) ? 0.0 : (float)step / N;
+            points.push_back(Vector2i(v2flerp(startf, endf, t).rounded()));
+        }
+        return points;
+    }
+
+    AStar2DRaycastResult raycast(const Vector2i& start, const Vector2i& end, Vector<Vector2i>* grids = nullptr) const
+    {
+        Vector2f startf(start);
+        Vector2f endf(end);
+
+        if (grids)
+        {
+            grids->clear();
+            grids->reserve( start.distanceTo(end) + size_t(1) );
+        }
+
+        float N = diagDist(startf, endf);
+        for (int step = 0; step <= N; step++)
+        {
+            float t = (N == 0) ? 0.0 : (float)step / N;
+            Vector2i nextPoint = Vector2i(v2flerp(startf, endf, t).rounded());
+
+            if (grids) { grids->push_back(nextPoint); }
+
+            if (!inBounds(nextPoint) || !getGridAt(nextPoint).passable)
+            { return AStar2DRaycastResult(true, nextPoint); }
+        }
+        return AStar2DRaycastResult(false, end);
+    }
+
+    // TODO: Line of sight
+    // https://www.roguebasin.com/index.php/Permissive_Field_of_View
 };

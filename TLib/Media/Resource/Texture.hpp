@@ -26,12 +26,19 @@ enum class TextureFiltering
 enum class TexInternalFormats : int
 {
     Unknown         [[maybe_unused]] = -1,
+
+    // Base Formats
     DEPTH_COMPONENT [[maybe_unused]] = GL_DEPTH_COMPONENT,
     DEPTH_STENCIL   [[maybe_unused]] = GL_DEPTH_STENCIL,
     RED             [[maybe_unused]] = GL_RED,
     RG              [[maybe_unused]] = GL_RG,
     RGB             [[maybe_unused]] = GL_RGB,
-    RGBA            [[maybe_unused]] = GL_RGBA
+    RGBA            [[maybe_unused]] = GL_RGBA,
+
+    // Sized Formats
+    RGBA32f = GL_RGBA32F,
+    RGBA16f = GL_RGBA16F,
+    RGBA8   = GL_RGBA8
 };
 
 enum class TexPixelFormats : int
@@ -223,8 +230,8 @@ public:
 
     void setData(
         const void*              data,
-        const int                width,
-        const int                height,
+        const uint32_t           width,
+        const uint32_t           height,
         const TexPixelFormats    format         = defaultFormat,
         const TexInternalFormats internalFormat = defaultInternalFormat,
         const bool               generateMipmap = true)
@@ -245,11 +252,20 @@ public:
     }
 
     void setSubData(
+        const TextureData&    data,
+        const int32_t         xoffset, // where to put your data on the x
+        const int32_t         yoffset, // where to put your data on the y
+        const TexPixelFormats format = defaultFormat)  
+    {
+        setSubData(data.ptr(), data.width(), data.height(), xoffset, yoffset, format);
+    }
+
+    void setSubData(
         const void*           data,    // Your provided data
-        const int             width,   // of your provided data
-        const int             height,  // of your provided data
-        const int             xoffset, // where to put your data on the x
-        const int             yoffset, // where to put your data on the y
+        const uint32_t        width,   // of your provided data
+        const uint32_t        height,  // of your provided data
+        const int32_t         xoffset, // where to put your data on the x
+        const int32_t         yoffset, // where to put your data on the y
         const TexPixelFormats format = defaultFormat) // format of your provided data
     {
         int target = GL_TEXTURE_2D;

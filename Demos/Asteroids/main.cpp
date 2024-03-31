@@ -32,15 +32,15 @@ struct Config
     //// Controls
 
     // Don't let users change this
-    Action actMenu     = { "Menu",     { ActionType::KEYBOARD, SDL_SCANCODE_ESCAPE } };
+    Input::Action actMenu     = { "Menu",     { Input::ActionType::KEYBOARD, SDL_SCANCODE_ESCAPE } };
 
-    Action actForward  = { "Forward",  {  ActionType::KEYBOARD, SDL_SCANCODE_W      } };
-    Action actBackward = { "Backward", {  ActionType::KEYBOARD, SDL_SCANCODE_S      } };
-    Action actLeft     = { "Left",     {  ActionType::KEYBOARD, SDL_SCANCODE_A      } };
-    Action actRight    = { "Right",    {  ActionType::KEYBOARD, SDL_SCANCODE_D      } };
-    Action actPrimary  = { "Shoot",    {{ ActionType::MOUSE,    Input::MOUSE_LEFT   },
-                                       {  ActionType::KEYBOARD, SDL_SCANCODE_SPACE  }}};
-    Action actRestart  = { "Restart",  {  ActionType::KEYBOARD, SDL_SCANCODE_R      } };
+    Input::Action actForward  = { "Forward",  {  Input::ActionType::KEYBOARD, SDL_SCANCODE_W      } };
+    Input::Action actBackward = { "Backward", {  Input::ActionType::KEYBOARD, SDL_SCANCODE_S      } };
+    Input::Action actLeft     = { "Left",     {  Input::ActionType::KEYBOARD, SDL_SCANCODE_A      } };
+    Input::Action actRight    = { "Right",    {  Input::ActionType::KEYBOARD, SDL_SCANCODE_D      } };
+    Input::Action actPrimary  = { "Shoot",    {{ Input::ActionType::MOUSE,    Input::MOUSE_LEFT   },
+                                               { Input::ActionType::KEYBOARD, SDL_SCANCODE_SPACE  }}};
+    Input::Action actRestart  = { "Restart",  {  Input::ActionType::KEYBOARD, SDL_SCANCODE_R      } };
 } config;
 
 struct Projectile
@@ -299,7 +299,7 @@ private:
 
     bool _open = false;
     Vector<State> stateStack = {State::Main};
-    Vector<Action*> actions;
+    Vector<Input::Action*> actions;
     
     Input::ActionControl* keyToAssign = nullptr;
     Set<Input::ActionControl*> keysToRemove;

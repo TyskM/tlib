@@ -11,6 +11,15 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <TLib/Embed/Embed.hpp>
+
+struct MeshSlice
+{
+    size_t vboIndex = 0;
+    size_t vboSize  = 0;
+    size_t eboIndex = 0;
+    size_t eboSize  = 0;
+};
 
 enum class ViewMode
 {
@@ -22,7 +31,7 @@ struct Camera3D
 {
     float     znear    = 0.02f;
     float     zfar     = 3000.f;
-    float     fov      = 90.f;
+    float     fov      = 110.f;
     glm::vec3 pos      = { 0.0f, 0.0f, 0.0f };
     glm::vec3 target   = { 0.0f, 0.0f, 0.0f };
     glm::vec3 up       = { 0.0f, 1.0f, 0.0f };
@@ -57,79 +66,6 @@ struct Camera3D
         }
     }
 };
-
-#pragma region Shaders
-const char* vert_3d = R"""(
-        #version 330 core
-        layout (location = 0) in vec3 position;
-        layout (location = 1) in vec3 normal;
-        layout (location = 2) in vec2 texCoords;
-
-        out vec3 vertNormal;
-        out vec2 vertTexCoords;
-        out vec3 vertFragPos;
-        out vec3 vertLightPos;
-
-        uniform mat4 model;
-        uniform mat4 view;
-        uniform mat4 projection;
-        uniform vec3 lightPos;
-
-        void main()
-        {
-            gl_Position   = projection * view * model * vec4(position, 1.0);
-
-            // https://learnopengl.com/Lighting/Basic-Lighting
-            vertNormal    = mat3(transpose(inverse(view * model))) * normal;
-
-            vertTexCoords = texCoords;
-            vertFragPos   = vec3(view * model * vec4(position, 1.0));
-            vertLightPos  = vec3(view * vec4(lightPos, 1.0));
-        }
-        )""";
-
-const char* frag_3d = R"""(
-        #version 330 core
-        out vec4 fragColor;
-
-        in vec3 vertNormal;
-        in vec2 vertTexCoords;
-        in vec3 vertFragPos;
-        in vec3 vertLightPos;
-
-        uniform vec3 lightColor = vec3(0.2, 0.9, 0.2);
-        uniform float ambientStrength = 0.1;
-
-        uniform sampler2D texture_diffuse;
-        uniform sampler2D texture_specular;
-
-        void main()
-        {
-            // Ambient Lighting
-            vec3 lightAmbient = ambientStrength * lightColor;
-
-            // Diffuse lighting
-            vec3 norm = normalize(vertNormal);
-            vec3 lightDir = normalize(vertLightPos - vertFragPos);
-            float diff = max(dot(norm, lightDir), 0.0);
-            vec3 lightDiffuse = diff * lightColor;
-
-            // Specular
-            float specularStrength = 0.7;
-            vec3 viewDir = normalize(-vertFragPos);
-            vec3 reflectDir = reflect(-lightDir, vertNormal);  
-            float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-            vec3 specular = specularStrength * spec * lightColor; 
-
-            // Texture
-            vec4 texColor = texture(texture_diffuse, vec2(vertTexCoords.x, vertTexCoords.y));
-
-            // Result
-            vec3 lightResult = lightAmbient + lightDiffuse + specular;
-            fragColor = vec4(lightResult, 1.0) * texColor;
-        }
-        )""";
-#pragma endregion
 
 struct Vertex
 {
@@ -252,16 +188,18 @@ private:
             for (unsigned int j = 0; j < face.mNumIndices; j++)
             { indices.push_back(face.mIndices[j]); }
         }
-
+        GL_CHECK(void);
         modelMesh.mesh.setIndices(indices);
-
+        GL_CHECK(void);
         // process material
         if (aimesh->mMaterialIndex >= 0)
         {
+            tlog::info("Loading materials");
             aiMaterial* material = scene->mMaterials[aimesh->mMaterialIndex];
             loadMaterialTextures(modelMesh.textures, material, aiTextureType_DIFFUSE, path);
             //loadMaterialTextures(modelMesh.textures, material, aiTextureType_SPECULAR, path);
         }
+
     }
 
     void processNode(aiNode* node, const aiScene* scene, const fs::path& path)
@@ -277,11 +215,14 @@ private:
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
             processMesh(mesh,scene,path);
         }
+        GL_CHECK(void);
+
         // then do the same for each of its children
         for (unsigned int i = 0; i < node->mNumChildren; i++)
         {
             processNode(node->mChildren[i],scene,path);
         }
+        GL_CHECK(void);
     }
 
 public:
@@ -354,35 +295,78 @@ class Renderer3D
             model{m}, transform{tf} { }
     };
 
+public:
     static inline Vector<DrawCmd> cmds;
 
     static inline Shader  shader3d;
+
+    static inline Texture emptyTex;
+    static inline GLubyte emptyTexData[1][1][4] = {{{255,255,255,255}}};
+
     static inline Texture defaultTex;
-
+    static constexpr int  defaultTexDataSize = 32;
     static inline GLubyte defaultTexColor[4] = {255, 255, 255, 255};
-
-    static constexpr int defaultTexDataSize = 32;
     static inline GLubyte defaultTexData[defaultTexDataSize][defaultTexDataSize][4];
 
-    static inline void setupRender()
+    static inline bool useMSAA      = false; // Read / Write. Creates ugly artifacts, find post processing solution.
+    static inline bool useDithering = false; // Read / Write. Is a no op on most implementations.
+
+private:
+
+    static inline FrameBuffer shadowFbo;
+    static inline Texture     shadowTex;
+    static inline uint32_t    shadowSize = 1024;
+    static inline Shader      shadowShader;
+
+    static void drawLightDepthMap()
     {
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glEnable(GL_CULL_FACE);
-        glFrontFace(GL_CCW);
+        float near_plane = 1.0f, far_plane = 7.5f;
+        glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+        glm::mat4 lightView =
+            glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+                        glm::vec3( 0.0f, 0.0f,  0.0f),
+                        glm::vec3( 0.0f, 1.0f,  0.0f));
+        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
     }
 
-    static inline void drawMeshImmediate(Mesh& mesh, Texture& tex, const Transform& transform)
+    static void setupRender()
+    {
+        GL_CHECK(glEnable(GL_DEPTH_TEST));
+        GL_CHECK(glEnable(GL_BLEND));
+        GL_CHECK(glEnable(GL_CULL_FACE));
+        GL_CHECK(glFrontFace(GL_CCW));
+        GL_CHECK(glEnable(GL_DITHER));
+
+        if (useDithering) { GL_CHECK( glEnable(GL_DITHER)); }
+        else              { GL_CHECK(glDisable(GL_DITHER)); }
+
+        if (useMSAA) { GL_CHECK( glEnable(GL_MULTISAMPLE)); }
+        else         { GL_CHECK(glDisable(GL_MULTISAMPLE)); }
+
+        shader3d.setInt  ("material.diffuse",    0);
+        shader3d.setInt  ("material.specular",   1);
+        shader3d.setFloat("material.shininess", 32);
+    }
+
+    static void drawMeshImmediate(Mesh& mesh, Texture& tex, const Transform& transform)
     {
         tex.bind();
+        emptyTex.bind(1);
         shader3d.setMat4f("model", transform.getMatrix());
         Renderer::draw(shader3d, mesh);
     }
 
 public:
-    static inline void render()
+    static void render()
     {
         setupRender();
+
+        Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)));
+        shadowFbo.bind();
+            glClear(GL_DEPTH_BUFFER_BIT);
+            // Shadows here
+        shadowFbo.unbind();
+        Renderer2D::setView(Renderer2D::getView());
 
         for (auto& cmd : cmds)
         {
@@ -414,10 +398,25 @@ public:
         cmds.clear();
     }
 
-    static inline void create()
+    static void create()
     {
-        shader3d.create(vert_3d, frag_3d);
         defaultTex.create();
+
+        shader3d.create(myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString(),
+                        myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
+
+        emptyTex.create();
+        emptyTex.setData(emptyTexData, 1, 1);
+
+        // Setup shadows
+        shadowTex.create();
+        shadowTex.setData(NULL, shadowSize, shadowSize, TexPixelFormats::DEPTH_COMPONENT, TexInternalFormats::DEPTH_COMPONENT);
+        shadowTex.setFilter(TextureFiltering::Nearest);
+        shadowTex.setUVMode(UVMode::Repeat);
+        shadowFbo.create();
+        shadowFbo.setTexture(shadowTex, FrameBufferAttachmentType::Depth);
+        shadowShader.create(myEmbeds.at("TLib/Embed/Shaders/light.vert").asString(),
+                            myEmbeds.at("TLib/Embed/Shaders/empty.frag").asString());
 
         // Make the default texture look more interesting
         RNG rng;
@@ -442,25 +441,26 @@ public:
         defaultTex.setFilter(TextureFiltering::Linear);
     }
 
-    static inline bool created()
+    static bool created()
     {
         return shader3d.created();
     }
 
-    static inline void setCamera(const Camera3D& camera)
+    static void setCamera(const Camera3D& camera)
     {
         auto view = camera.getViewMatrix();
         auto proj = camera.getPerspectiveMatrix();
         shader3d.setMat4f("projection", proj);
         shader3d.setMat4f("view", view);
+        shader3d.setVec3f("viewPos", camera.pos);
     }
 
-    static inline void drawModel(Model& model, const Transform& transform)
+    static void drawModel(Model& model, const Transform& transform)
     {
         DrawCmd& cmd = cmds.emplace_back(model, transform);
     }
 
-    static inline void addLight(const Vector3f& pos, const ColorRGBf& color)
+    static void addLight(const Vector3f& pos, const ColorRGBf& color)
     {
         shader3d.setVec3f("lightPos", pos.x, pos.y, pos.z);
         shader3d.setVec3f("lightColor", color.r, color.g, color.b);
@@ -480,11 +480,14 @@ Timer      deltaTimer;
 Camera3D   camera;
 CameraMode cameraMode = CameraMode::Orbit;
 
+String vertShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString();
+String fragShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString();
+
 // Cam vars
-float sens = 0.1f;
-float camSpeed = 3.f;
-float yaw = 0.f;
-float pitch = 0.f;
+float sens     = 0.1f;
+float camSpeed = 12.f;
+float yaw      = 0.f;
+float pitch    = 0.f;
 
 float    orbitDist = 5.f;
 Vector2f orbitAngle;
@@ -520,7 +523,10 @@ int main()
     p.title = "Model";
     window.create(p);
     Renderer::create();
+
     Renderer2D::create();
+    using R3D = Renderer3D;
+    R3D::create();
 
     imgui.create(window);
     deltaTimer.restart();
@@ -528,14 +534,13 @@ int main()
     fpslimit.setEnabled(true);
     
     Model      model;
-    //Model    lightModel;
     Transform  modelTransform;
 
     const char* presetModelPaths[7] =
     {
+        "assets/primitives/cube.obj",
         "assets/sponza/sponza.obj",
         "assets/backpack/backpack.obj",
-        "assets/primitives/cube.obj",
         "assets/primitives/cylinder.obj",
         "assets/primitives/monkey.obj",
         "assets/primitives/sphere.obj",
@@ -545,12 +550,10 @@ int main()
     String guiModel;
     float guiLightColor[3] = { 0.5f, 0.5f, 0.5f };
 
-    Renderer3D::create();
+    
     RELASSERTMSGBOX(model.loadFromFile(presetModelPaths[0]),
         "Model not found",
         fmt::format("Failed to find init model: {}", presetModelPaths[0]).c_str());
-
-    //lightModel.loadFromFile("assets/primitives/sphere.obj");
 
     bool running = true;
     while (running)
@@ -588,11 +591,13 @@ int main()
         static float time = 0.f;
         time += delta;
 
+        ImGui::SeparatorText("Camera");
         auto result = imguiEnumCombo("Camera Mode", cameraMode);
         if (result.first)
         { setCameraMode(result.second); }
         if (ImGui::Button("Reset Camera"))
         { resetCamera(); }
+        ImGui::SliderFloat("FOV", &camera.fov, 70.f, 170.f);
 
         switch (cameraMode)
         {
@@ -600,15 +605,15 @@ int main()
         {
             ImGui::Text("Press ALT to toggle cursor.");
             ImGui::SliderFloat("Sensitivity", &sens, 0.01f, 2.f);
-            ImGui::SliderFloat("Camera Speed", &camSpeed, 0.01f, 200.f);
+            ImGui::SliderFloat("Camera Speed", &camSpeed, 0.01f, 400.f);
             if (Input::isKeyJustPressed(SDL_SCANCODE_LALT))
             { window.toggleFpsMode(); }
 
             if (window.getFpsMode())
             {
-                yaw += float(Input::mouseDelta.x) * sens;
+                yaw   += float(Input::mouseDelta.x) * sens;
                 pitch -= float(Input::mouseDelta.y) * sens;
-                pitch = std::clamp(pitch, -89.f, 89.f);
+                pitch  = std::clamp(pitch, -89.f, 89.f);
             }
 
             glm::vec3 direction{};
@@ -656,40 +661,58 @@ int main()
         default: break;
         }
 
-        Renderer3D::setCamera(camera);
-
-        //float moveInputX    = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
-        //float moveInputY    = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
-        //float moveInputRoll = Input::isKeyPressed(SDL_SCANCODE_E) - Input::isKeyPressed(SDL_SCANCODE_Q);
-        //modelTransform.rotate(moveInputX * delta, { 0.f, 1.f, 0.f });
-        //modelTransform.rotate(moveInputY * delta, { 1.f, 0.f, 0.f });
-        //modelTransform.rotate(moveInputRoll * delta, { 0.f, 0.f, 1.f });
+        R3D::setCamera(camera);
 
         const float radius = 20.0f;
         float lightX = sin(time) * radius;
         float lightZ = cos(time) * radius;
         Vector3f lightPos = { lightX, 0.f, lightZ };
-        Renderer3D::addLight(lightPos, { guiLightColor[0], guiLightColor[1], guiLightColor[2] });
+        R3D::addLight(lightPos, { guiLightColor[0], guiLightColor[1], guiLightColor[2] });
 
-        //Transform lightModelTf;
-        //lightModelTf.pos = lightPos;
-        //Renderer3D::drawModel(lightModel, lightModelTf);
-
-        Renderer3D::drawModel(model, modelTransform);
-        Renderer2D::drawCircle(mwpos, 12.f);
+        R3D::drawModel(model, modelTransform);
+        //Renderer2D::drawCircle(mwpos, 12.f);
 
         // Model loading input
+        ImGui::SeparatorText("Model");
         if (ImGui::Combo("Models", &guiSelectedModel, presetModelPaths, std::size(presetModelPaths), -1))
         { model.loadFromFile(presetModelPaths[guiSelectedModel]); }
-        ImGui::InputText("Model Path", &guiModel);
-        if (ImGui::Button("Load"))
-        { model.loadFromFile(guiModel); }
+        if (ImGui::Button("Load Custom Model"))
+        {
+            Path p = openSingleFileDialog();
+            if (!p.empty()) { model.loadFromFile(p); }
+        }
+        
+        ImGui::SeparatorText("Shaders");
+
         ImGui::ColorEdit3("Lighting", guiLightColor);
-        cameraMode = imguiEnumCombo("Camera Mode", cameraMode).second;
+
+        ImGui::Checkbox("MSAA", &R3D::useMSAA);
+        ImGui::Checkbox("Dithering", &R3D::useDithering);
+
+        static float ambientStrength = R3D::shader3d.getFloat("ambientStrength");
+        if (ImGui::SliderFloat("Ambient Lighting", &ambientStrength, 0.f, 1.f))
+        { R3D::shader3d.setFloat("ambientStrength", ambientStrength); }
+
+        static float specularStrength = R3D::shader3d.getFloat("specularStrength");
+        if (ImGui::SliderFloat("Specular Strength", &specularStrength, 0.f, 1.f))
+        { R3D::shader3d.setFloat("specularStrength", specularStrength); }
+
+        static glm::vec3 sunDir = R3D::shader3d.getVec3f("sunDir");
+        if (ImGui::DragFloat3("Sun Dir", &sunDir.x, 0.025f, -1.f, 1.f))
+        { R3D::shader3d.setVec3f("sunDir", sunDir); }
+
+        if (ImGui::Button("Compile Shaders"))
+        { R3D::shader3d.create(vertShaderStr, fragShaderStr); }
+        if (ImGui::CollapsingHeader("Vert Shader"))
+        { ImGui::InputTextMultiline("#VertShaderEdit", &vertShaderStr, {ImGui::GetContentRegionAvail().x, 600}); }
+        if (ImGui::CollapsingHeader("Frag Shader"))
+        { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }); }
+
+        ImGui::SeparatorText("Diag");
         ImGui::End();
         ////
 
-        Renderer3D::render();
+        R3D::render();
         Renderer2D::render();
         drawDiagWidget(&fpslimit);
         ImGui::EndDisabled();

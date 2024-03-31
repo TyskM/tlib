@@ -260,18 +260,16 @@ struct ColorRGBAf
 {
     constexpr ColorRGBAf() = default;
 
-    ColorRGBAf(const String& hex)
+    ColorRGBAf(String hex)
     {
-        ASSERT(false); // TODO: Make this function work
+        if (hex.at(0) == '#') { hex.erase(0, 1); }
+        ASSERT( hex.size() == (6) ); // Invalid Hex code
 
-        int index = 0;
-
-        if (hex.at(0) == '#') { ++index; }
-        ASSERT( hex.size() >= (6-index) ); // Invalid Hex code
-
-        r = stoi(hex.substr(index  , 2), nullptr, 16);
-        g = stoi(hex.substr(index+2, 2), nullptr, 16);
-        b = stoi(hex.substr(index+4, 2), nullptr, 16);
+        int ir, ig, ib;
+        sscanf(hex.c_str(), "%02x%02x%02x", &ir, &ig, &ib);
+        r = ir/255.f;
+        g = ig/255.f;
+        b = ib/255.f;
     }
 
     constexpr ColorRGBAf(float rv, float gv, float bv, float av = 1.f) :
@@ -284,6 +282,8 @@ struct ColorRGBAf
     ColorRGBAf& setG(float g) { this->g = g; return *this; }
     ColorRGBAf& setB(float b) { this->b = b; return *this; }
     ColorRGBAf& setA(float a) { this->a = a; return *this; }
+
+    String toString() const { return fmt::format("({}, {}, {}, {})", r, g, b, a); }
 
     float r = 0;
     float g = 0;
@@ -298,6 +298,7 @@ struct ColorRGBAf
     static constexpr inline ColorRGBAf blue()        { return ColorRGBAf{ 0,   0,   255  }; }
     static constexpr inline ColorRGBAf white()       { return ColorRGBAf{ 255, 255, 255  }; }
     static constexpr inline ColorRGBAf black()       { return ColorRGBAf{ 0,   0,   0    }; }
+    static constexpr inline ColorRGBAf transparent() { return ColorRGBAf{ 0,   0,   0, 0 }; }
     static constexpr inline ColorRGBAf purple()      { return ColorRGBAf{ 127, 0,   255  }; }
     static constexpr inline ColorRGBAf yellow()      { return ColorRGBAf{ 255, 255, 0    }; }
     static constexpr inline ColorRGBAf orange()      { return ColorRGBAf{ 255, 128, 0    }; }

@@ -29,6 +29,15 @@ struct VideoMemoryInfo
     int32_t currentAvailable = 0;
 };
 
+struct DrawIndirectCmd
+{
+    uint32_t count;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
+    uint32_t baseVertex;
+    uint32_t baseInstance;
+};
+
 struct Renderer
 {
 protected:
@@ -78,7 +87,6 @@ public:
         GL_CHECK(glDebugMessageCallback( defaultGLCallback, 0 ));
         GL_CHECK(glEnable(GL_BLEND));
         GL_CHECK(glEnable(GL_MULTISAMPLE));
-        //GL_CHECK(glClipControl(GL_UPPER_LEFT, GL_NEGATIVE_ONE_TO_ONE));
 
         isCreated = true;
         rendlog->info("Renderer created");
@@ -101,7 +109,22 @@ public:
 
         ++drawCalls;
 
-        mesh.unbind();
+        mesh.unbind(); // TODO: skip unbinds in release build
+    }
+
+    static void drawIndirect(
+        Shader&                        shader,
+        Mesh&                          mesh,
+        const Vector<DrawIndirectCmd>& cmds,
+        const RenderState&             state = RenderState())
+    {
+        if (!prepare(shader, mesh, state)) { return; }
+        ASSERT(mesh.validIndices());
+        const GLenum glmode = static_cast<GLenum>(state.drawMode);
+
+        GL_CHECK(glMultiDrawElementsIndirect(glmode, GL_UNSIGNED_INT, cmds.data(), cmds.size(), sizeof(cmds[0])));
+
+        ++drawCalls;
     }
 
     static void drawInstanced(Shader& shader, Mesh& mesh, uint32_t count, const RenderState& state = RenderState())

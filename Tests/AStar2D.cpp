@@ -9,21 +9,47 @@
 #include <TLib/Media/ImGuiWidgets.hpp>
 #include <TLib/Misc.hpp>
 
-#include <TLib/Containers/GridMap2D.hpp>
+#include <TLib/Containers/AStar2D.hpp>
 
-Font font;
+/*
+    An example of a custom grid type for use with the GridMap2D template.
+    This is so you dont have to store all your per grid data in a separate array.
+    Your type must inherit GridMap2DGrid.
 
-bool drawNodeTree = true;
-bool drawNodeCost = true;
+    struct MyAwesomeGridStruct : public AStar2DGrid
+    {
+        // Usually you would store an id for a grid def here.
+        // Or you can store all your data in each grid, follow your dreams.
+        float awesomeness = FLT_MAX;
+        int id;
+    }
+
+    AStar2D<MyAwesomeGridStruct> myAwesomeGridMap;
+
+*/
+struct Grid : public AStar2DGrid
+{
+    char icon = '.';
+};
+
+Font uiFont;
+Font iconFont;
+
+bool drawNodeTree  = false;
+bool drawNodeCost  = false;
+bool drawRayCast   = false;
+bool drawGridIcons = true;
 
 constexpr float gridSize     = 32.f;
 constexpr float halfGridSize = gridSize / 2.f;
 
-GridMap2D        map;
-Vector2i         start;
-Vector2i         goal;
-Vector<Vector2i> path;
-Vector<Vector2f> worldSpacePath;
+AStar2D<Grid>        map;
+Vector2i             start;
+Vector2i             goal;
+Vector<Vector2i>     path;
+Vector<Vector2f>     worldSpacePath;
+AStar2DRaycastResult raycast;
+Vector<Vector2i>     raycastPath;
 
 UnorderedMap<Vector2i, Vector2i> cameFrom;
 UnorderedMap<Vector2i, float>    costSoFar;
@@ -52,9 +78,27 @@ void drawMap()
     { for (int y = 0; y < map.height(); y++)
     {
         Rectf rect(Vector2f(x, y) * gridSize, gridSize);
-        if (!map.getGridAt(x, y).passable)
-        { Renderer2D::drawRect(rect, 0.f, true, ColorRGBAf::white()); }
+        auto& grid = map.getGridAt(x, y);
+        if (!grid.passable)
+        {
+            Renderer2D::drawRect(rect, 0.f, true, ColorRGBAf::white());
+        }
     }}
+
+    if (drawGridIcons)
+    {
+        for   (int x = 0; x < map.width();  x++)
+        { for (int y = 0; y < map.height(); y++)
+        {
+            Vector2f pos = Vector2f(x, y) * gridSize + gridSize/2.f;
+            Rectf rect(Vector2f(x, y) * gridSize, gridSize);
+            auto& grid = map.getGridAt(x, y);
+            if (!grid.passable)
+            { Renderer2D::drawChar(grid.icon, iconFont, pos, 0.f, ColorRGBAf::black()); }
+            else
+            { Renderer2D::drawChar(grid.icon, iconFont, pos, 0.f, ColorRGBAf::white()); }
+        }}
+    }
 
     if (drawNodeTree)
     {
@@ -82,11 +126,23 @@ void drawMap()
     drawCircleAtGrid(start, halfGridSize, true, ColorRGBAf::green());
     drawCircleAtGrid(goal, halfGridSize, true, ColorRGBAf::red());
 
+    if (drawRayCast)
+    {
+        ColorRGBAf rayColor = ColorRGBAf::darkGreen();
+        if (raycast.hit) { rayColor = ColorRGBAf::darkRed(); }
+        Renderer2D::drawLine(gridToWorldSpace(start), gridToWorldSpace(raycast.pos), rayColor);
+        for (auto& grid : raycastPath)
+        {
+            Rectf rect(Vector2f(grid) * gridSize, gridSize);
+            Renderer2D::drawRect(rect, 0.f, true, rayColor.setA(0.3f));
+        }
+    }
+
     if (drawNodeCost)
     {
         for (auto& [k, v] : costSoFar)
         {
-            Renderer2D::drawText(floatToStr(v, 1), font, gridToWorldSpace(k) + Vector2f{-14.f, 9.f}, ColorRGBAf::azure(), 0.5f);
+            Renderer2D::drawText(floatToStr(v, 1), iconFont, gridToWorldSpace(k) + Vector2f{-14.f, 9.f}, ColorRGBAf::azure(), 0.5f);
         }
     }
 }
@@ -99,9 +155,9 @@ void refreshPath()
     worldSpacePath.clear();
     worldSpacePath.reserve(path.size());
     for (auto& p : path)
-    {
-        worldSpacePath.push_back(Vector2f(p) * gridSize + halfGridSize);
-    }
+    { worldSpacePath.push_back(Vector2f(p) * gridSize + halfGridSize); }
+
+    raycast = map.raycast(start, goal, &raycastPath);
 }
 
 void setStart(const Vector2i& pos)
@@ -115,6 +171,8 @@ void setPassable(const Vector2i& pos, bool value)
     auto& g = map.getGridAt(pos);
     if (g.passable == value) { return; }
     g.passable = value;
+    if (value) { g.icon = '.'; }
+    else       { g.icon = '#'; }
     refreshPath();
 }
 
@@ -142,6 +200,43 @@ void gridMapInput()
     }
 }
 
+void update()
+{
+    auto view = Renderer2D::getView();
+    debugCamera(view);
+    Renderer2D::setView(view);
+
+    gridMapInput();
+
+    beginDiagWidgetExt();
+    static int mapSizeInput[2] ={ map.getSize().x, map.getSize().y };
+    if (ImGui::InputInt2("Map Size", mapSizeInput,
+        ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
+    {
+        map.setSize(Vector2i(mapSizeInput[0], mapSizeInput[1]));
+    }
+    ImGui::Checkbox("Draw Node Tree", &drawNodeTree);
+    ImGui::Checkbox("Draw Node Cost (Perf Heavy)", &drawNodeCost);
+    ImGui::Checkbox("Draw Raycast", &drawRayCast);
+    ImGui::Checkbox("Draw Grid Icons", &drawGridIcons);
+    if (ImGui::SliderFloat("Diagonal Cost", &map.diagonalCost, 0.0f, 3.f)) { refreshPath(); }
+    ImGui::End();
+}
+
+void init()
+{
+    iconFont.loadFromFile("assets/roboto.ttf", 24, 0, 128, FontRenderMode::SDF,    TextureFiltering::Linear);
+    uiFont  .loadFromFile("assets/proggy.ttf", 24, 0, 128, FontRenderMode::Normal, TextureFiltering::Linear);
+    map.includeStart = true;
+    map.setSize(20, 10);
+    setGoal(map.getSize() - 1);
+
+    Vector2f mapSizePx = Vector2f(map.getSize()) * gridSize;
+    auto view = Renderer2D::getView();
+    view.center = mapSizePx / 2.f;
+    Renderer2D::setView(view);
+}
+
 int main()
 {
     Window     window;
@@ -159,10 +254,7 @@ int main()
     fpslimit.setFPSLimit(144);
     fpslimit.setEnabled(true);
 
-    font.loadFromFile("assets/roboto.ttf", 24);
-    map.includeStart = true;
-    map.setSize(20, 10);
-    setGoal(map.getSize() - 1);
+    init();
 
     bool running = true;
     while (running)
@@ -189,28 +281,23 @@ int main()
 
         imgui.newFrame();
 
-        auto view = Renderer2D::getView();
-        debugCamera(view);
-        Renderer2D::setView(view);
-
-        gridMapInput();
-
-        beginDiagWidgetExt();
-        static int mapSizeInput[2] = { map.getSize().x, map.getSize().y };
-        if (ImGui::InputInt2("Map Size", mapSizeInput,
-            ImGuiInputTextFlags_CharsDecimal | ImGuiInputTextFlags_CharsNoBlank))
-        {
-            map.setSize(Vector2i(mapSizeInput[0], mapSizeInput[1]));
-        }
-        ImGui::Checkbox("Draw Node Tree", &drawNodeTree);
-        ImGui::Checkbox("Draw Node Cost (Perf Heavy)", &drawNodeCost);
-        if (ImGui::SliderFloat("Diagonal Cost", &map.diagonalCost, 0.0f, 3.f))
-        { refreshPath(); }
-        ImGui::End();
+        update();
 
         Renderer::clearColor();
         drawMap();
         Renderer2D::render();
+
+        String controlsText = R"(
+Controls:
+           Middle Mouse : Pan Camera
+           Scroll Wheel : Zoom In/Out
+            Left Click  : Add Obstacle
+            Right Click : Remove Obstacle
+    Shift + Left Click  : Set Start Position
+    Shift + Right Click : Set End Position
+)";
+        Renderer2D::drawText(controlsText, uiFont, Vector2f(20, 20));
+        Renderer2D::render(false, true);
 
         drawDiagWidget(&fpslimit);
         imgui.render();
