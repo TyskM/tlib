@@ -7,6 +7,7 @@
 #include <TLib/Math.hpp>
 #include <TLib/Macros.hpp>
 #include <TLib/EASTL.hpp>
+#include <TLib/Logging.hpp>
 
 // There's always a min/max macro somewhere. Make it stop!!!
 #undef min
