@@ -7,12 +7,13 @@
 #include <TLib/String.hpp>
 #include <TLib/Containers/Vector.hpp>
 #include <TLib/Containers/UnorderedMap.hpp>
+#include <TLib/Containers/Array.hpp>
 
 /* Usage example
 
-Input::Action actPrimary   = { "Primary",    { ActionType::MOUSE, Input::MOUSE_LEFT } };
-Input::Action actMoveNorth = { "Move North", { ActionType::KEYBOARD, SDL_SCANCODE_W } };
-Input::Action actMoveUp    = { "Move Up",    { ActionType::KEYBOARD, SDL_SCANCODE_W, SDL_Keymod::KMOD_LSHIFT } };
+Input::Action actPrimary   = { "Primary",    { Input::ActionType::MOUSE, Input::MOUSE_LEFT } };
+Input::Action actMoveNorth = { "Move North", { Input::ActionType::KEYBOARD, SDL_SCANCODE_W } };
+Input::Action actMoveUp    = { "Move Up",    { Input::ActionType::KEYBOARD, SDL_SCANCODE_W, SDL_Keymod::KMOD_LSHIFT } };
 
 void update()
 {
@@ -88,11 +89,11 @@ public:
     static inline const int MB_COUNT           =  7;
 
 private:
-    static inline std::vector<Uint8> kb;
-    static inline std::vector<Uint8> prevkb;
+    static inline Vector<Uint8> kb;
+    static inline Vector<Uint8> prevkb;
 
-    static inline std::array<Uint8, MB_COUNT> mouse;
-    static inline std::array<Uint8, MB_COUNT> prevmouse;
+    static inline Array<Uint8, MB_COUNT> mouse;
+    static inline Array<Uint8, MB_COUNT> prevmouse;
 
     // Don't update mouse wheel state until update() is called
     static inline bool wheelUpNextUpdate   = false;
@@ -137,7 +138,7 @@ public:
 
         int keyCount;
         auto rawkb = SDL_GetKeyboardState(&keyCount);
-        kb = std::vector<Uint8>(rawkb, rawkb + keyCount);
+        kb = Vector<Uint8>(rawkb, rawkb + keyCount);
     }
 
     static inline void updateMouse()
@@ -260,7 +261,7 @@ public:
 
     //// String junk
 
-    static inline const std::unordered_map<int, String> mouseButtonNameMap =
+    static inline const UnorderedMap<int, String> mouseButtonNameMap =
     {
         { MOUSE_LEFT      , "Mouse Left"       },
         { MOUSE_MIDDLE    , "Mouse Middle"     },
@@ -383,8 +384,9 @@ private:
 
     static inline bool _verifyControl(const ActionControl& ctrl)
     {
-        return ctrl.modifier == SDL_GetModState();
+        const auto modkeys = KMOD_CTRL | KMOD_SHIFT | KMOD_ALT | KMOD_GUI;
+        const bool MOD_NONE = !(SDL_GetModState() & modkeys);
+
+        return ctrl.modifier == (SDL_GetModState() & modkeys);
     }
 }; 
-using ActionType = Input::ActionType;
-using Action = Input::Action;

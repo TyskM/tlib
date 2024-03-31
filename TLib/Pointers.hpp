@@ -22,7 +22,7 @@ using UPtr = std::unique_ptr<T>;
 
 using std::make_unique;
 template <typename T, typename... Args>
-auto makeUnique(Args&... args)
+auto makeUnique(Args&&... args)
 { return make_unique<T>(args...); }
 
 //// Safe Ptr

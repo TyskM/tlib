@@ -2,4 +2,4 @@
 
 #include <TLib/Logging.hpp>
 
-std::shared_ptr<tlog::logger> rendlog = tlog::createConsoleLogger("Renderer");
+static std::shared_ptr<tlog::logger> rendlog = tlog::createConsoleLogger("Renderer");

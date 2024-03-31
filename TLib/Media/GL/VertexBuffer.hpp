@@ -11,13 +11,13 @@ struct VertexBuffer : IBuffer
     {
         using T = ContainerType::value_type;
         bind();
-        glBufferData(GL_ARRAY_BUFFER, sizeof(T) * data.size(), data.data(), static_cast<GLenum>(accessType));
+        GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sizeof(T) * data.size(), data.data(), static_cast<GLenum>(accessType)));
     }
 
     void bind()
     {
         ASSERT(created());
-        if (glState.boundVertexBuffer == this) { return; }
+        //if (glState.boundVertexBuffer == this) { return; }
         GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, glHandle));
         glState.boundVertexBuffer = this;
     }

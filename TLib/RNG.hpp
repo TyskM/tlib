@@ -8,17 +8,32 @@
 // Relies on std::random_device and std::mt19937
 class RNG
 {
-public:
     std::mt19937 generator;
+    unsigned int currentSeed = 0;
+
+public:
 
     RNG(unsigned int seedvalue) { seed(seedvalue); }
     RNG() { seed(); }
 
     // Seeds the generator with the specified seed.
-    void seed(unsigned int value) { generator.seed(value); }
+    void seed(unsigned int value)
+    {
+        generator.seed(value);
+        currentSeed = value;
+    }
 
     // Seeds the generator with a random seed.
-    void seed() { std::random_device rd; generator.seed(rd()); }
+    void seed()
+    {
+        std::random_device rd;
+        currentSeed = rd();
+        generator.seed(currentSeed);
+    }
+
+    // Returns 0 if no seed is set
+    unsigned int getSeed() const
+    { return currentSeed; }
 
     // Returns a random int between min and max, including min and max.
     template <typename T = int>

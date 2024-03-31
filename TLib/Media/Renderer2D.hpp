@@ -11,6 +11,8 @@
 #include <TLib/EASTL.hpp>
 #include <TLib/Containers/Vector.hpp>
 #include <TLib/Containers/UnorderedMap.hpp>
+#include <TLib/Containers/Array.hpp>
+#include <TLib/Containers/Pair.hpp>
 #include <TLib/Media/RenderTarget.hpp>
 #include <TLib/Embed/Embed.hpp>
 #include <TLib/Media/Platform/Input.hpp>
@@ -461,6 +463,29 @@ public:
         prim_batch(points, color, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop, layer);
     }
 
+    static void drawTriangle(const Vector2f&   pos,  // Center of triangle
+                             const Vector2f&   size, // Width and height
+                             float             rot = 0.f,
+                             bool              filled = false,
+                             const ColorRGBAf& color = ColorRGBAf::white())
+    {
+        const Vector2f halfSize = size / 2.f;
+        Array<Vector2f, 3> points;
+        points[0].y -= halfSize.y; // top
+        points[1].x += halfSize.x; // bottom right
+        points[1].y += halfSize.y;
+        points[2].x -= halfSize.x; // bottom left
+        points[2].y += halfSize.y;
+        if (rot != 0.f)
+        {
+            for (auto& p : points) { p.rotate(rot); }
+        }
+        points[0] += pos;
+        points[1] += pos;
+        points[2] += pos;
+        Renderer2D::drawLines(points, color, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop);
+    }
+
     static void drawText(const String&     text,
                          Font&             font,
                          const Vector2f&   pos,
@@ -469,6 +494,38 @@ public:
                          const int         layer = DefaultTextLayer)
     {
         text_batch(text, font, pos, layer, color, scale);
+    }
+
+    static void drawChar(wchar_t                 ch,
+                         Font&                   font,
+                         const Rectf&            dstrect,
+                         const float             rotation = 0.f,
+                         const ColorRGBAf&       color    = ColorRGBAf::white(),
+                         const int               layer    = DefaultTextLayer,
+                         const Renderer2DOrigin& origin   = OriginCenter,
+                         const bool              flipuvx  = false,
+                         const bool              flipuvy  = false,
+                         Shader&                 shader   = textShader)
+    {
+        sprite_batch(font.getAtlas(), font.getCharTex(ch).rect, dstrect,
+            rotation, color, layer, origin, flipuvx, flipuvy, shader);
+    }
+
+    static void drawChar(wchar_t             ch,
+                     Font&                   font,
+                     const Vector2f&         pos,
+                     const float             rotation = 0.f,
+                     const ColorRGBAf&       color    = ColorRGBAf::white(),
+                     const int               layer    = DefaultTextLayer,
+                     const Renderer2DOrigin& origin   = OriginCenter,
+                     const bool              flipuvx  = false,
+                     const bool              flipuvy  = false,
+                     Shader&                 shader   = textShader)
+    {
+        Rectf rect    = font.getCharTex(ch).rect;
+        Rectf dstRect = Rectf(pos - (rect.getSize()/2.f), rect.getSize());
+        sprite_batch(font.getAtlas(), rect, dstRect,
+            rotation, color, layer, origin, flipuvx, flipuvy, shader);
     }
 
     static inline void setSDFTextWidth(const float width)
@@ -493,6 +550,18 @@ public:
     {
         return Vector2f(rect.x + rect.width  / 2,
                         rect.y + rect.height / 2);
+    }
+
+    static Pair<Vector2f, Vector2f> getTextureUVs(const Texture& tex, const Rectf& srcRect)
+    {
+        const Vector2f texSize(tex.getSize());
+        // Add 0.5 for half pixel correction. This prevents texture bleeding.
+        // https://learn.microsoft.com/en-us/windows/win32/direct3d9/directly-mapping-texels-to-pixels?redirectedfrom=MSDN
+        float uvWidth  = (srcRect.x + srcRect.width  - 1.f) / texSize.x;
+        float uvHeight = (srcRect.y + srcRect.height - 1.f) / texSize.y;
+        float uvX      = (srcRect.x + 0.5f) / texSize.x;
+        float uvY      = (srcRect.y + 0.5f) / texSize.y;
+        return { Vector2f(uvX, uvY), Vector2f(uvWidth, uvHeight) };
     }
 
 #pragma endregion
@@ -646,6 +715,10 @@ private:
         Shader*    lastShader   = drawCmds[0].shader;
         GLDrawMode lastDrawMode = drawCmds[0].drawMode;
 
+        // Multisample causes texture bleeding.
+        // They still happen, but are less frequent with multisample disabled
+        // To fix it completely, center your texels
+        glDisable(GL_MULTISAMPLE); 
         glEnable(GL_PRIMITIVE_RESTART);
         glPrimitiveRestartIndex(restartIndex);
 
@@ -721,21 +794,21 @@ private:
         float xpluswidth  = dstrect.x + dstrect.width;
         float yplusheight = dstrect.y + dstrect.height;
 
-        const Vector2f texSize(texture.getSize());
-        float normalWidth  = (srcrect.x + srcrect.width)  / texSize.x;
-        float normalHeight = (srcrect.y + srcrect.height) / texSize.y;
-        float normalX      =  srcrect.x / texSize.x;
-        float normalY      =  srcrect.y / texSize.y;
+        Pair<Vector2f, Vector2f> uv = getTextureUVs(texture, srcrect);
+        auto& uv_x      = uv.first.x;
+        auto& uv_y      = uv.first.y;
+        auto& uv_width  = uv.second.x;
+        auto& uv_height = uv.second.y;
 
         if (flipuvx)
-        { std::swap(normalX, normalWidth); }
+        { std::swap(uv_x, uv_width); }
         if (flipuvy)
-        { std::swap(normalY, normalHeight); }
+        { std::swap(uv_y, uv_height); }
 
-        posAndCoords.emplace_back( dstrect.x , dstrect.y  , normalX,      normalY      );  // topleft
-        posAndCoords.emplace_back( xpluswidth, dstrect.y  , normalWidth,  normalY      );  // topright
-        posAndCoords.emplace_back( dstrect.x , yplusheight, normalX,      normalHeight );  // bottom left
-        posAndCoords.emplace_back( xpluswidth, yplusheight, normalWidth,  normalHeight );  // bottom right
+        posAndCoords.emplace_back( dstrect.x , dstrect.y  , uv_x,      uv_y      ); // topleft
+        posAndCoords.emplace_back( xpluswidth, dstrect.y  , uv_width,  uv_y      ); // topright
+        posAndCoords.emplace_back( dstrect.x , yplusheight, uv_x,      uv_height ); // bottom left
+        posAndCoords.emplace_back( xpluswidth, yplusheight, uv_width,  uv_height ); // bottom right
          
         if (rotation != 0)
         {

@@ -34,7 +34,7 @@ if( !(expr) )                                                                   
 
 using InputEvent = SDL_Event;
 
-enum class WindowFlags : int
+enum class WindowFlags
 {
     Fullscreen         = SDL_WINDOW_FULLSCREEN,              /* fullscreen window */
     OpenGL             = SDL_WINDOW_OPENGL,                  /* window usable with GL context */
@@ -94,8 +94,8 @@ struct Window : NonAssignable
         {
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-            //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-            //SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1); // Makes AA available to openGL
+            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4); // AA Sample count TODO: make these easier to read & change
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
             SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, params.stencilSize);
         }

@@ -1,7 +1,7 @@
 
 #[[
     vcpkg dependencies:
-    core: spdlog magic-enum palsigslot freetype mimalloc cereal boost-algorithm boost-container SDL2 sdl2-gfx gl3w glm imgui imgui[docking-experimental] imgui[sdl2-binding] imgui[opengl3-binding] assimp cmakerc
+    core: spdlog magic-enum palsigslot freetype mimalloc cereal boost-algorithm boost-container SDL2 sdl2-gfx gl3w glm imgui imgui[docking-experimental] imgui[sdl2-binding] imgui[opengl3-binding] assimp
     tests: sfml
 ]]
 
@@ -97,6 +97,9 @@ target_link_libraries(TLib PUBLIC Boost::boost Boost::container)
 find_dependency(box2d CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC box2d::box2d)
 
+find_package(tinyfiledialogs CONFIG REQUIRED)
+target_link_libraries(TLib PUBLIC tinyfiledialogs::tinyfiledialogs)
+
 ### Graphics stuff
 
 find_dependency(SDL2 CONFIG REQUIRED)
@@ -155,6 +158,10 @@ add_custom_target(RunEmbedder WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR} COMMAN
 "TLib/Embed/Shaders/sdf_text.frag"
 "TLib/Embed/Shaders/2d.frag"
 "TLib/Embed/Shaders/2d.vert"
+"TLib/Embed/Shaders/3d.vert"
+"TLib/Embed/Shaders/3d.frag"
+"TLib/Embed/Shaders/light.vert"
+"TLib/Embed/Shaders/empty.frag"
 -o "TLib/Embed/Embed.hpp" --ow)
 add_dependencies(RunEmbedder CopyEmbedder)
 add_dependencies(TLib RunEmbedder)

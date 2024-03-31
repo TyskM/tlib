@@ -30,7 +30,7 @@ struct VertexArray : NonCopyable
     void bind()
     {
         ASSERT(created());
-        if (glState.boundVertexArray == this) { return; }
+        //if (glState.boundVertexArray == this) { return; }
         GL_CHECK(glBindVertexArray(glHandle));
         glState.boundVertexArray = this;
     }

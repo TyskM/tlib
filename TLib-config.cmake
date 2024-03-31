@@ -15,7 +15,7 @@ find_dependency(box2d CONFIG REQUIRED)
 find_dependency(cereal CONFIG REQUIRED)
 find_dependency(assimp CONFIG REQUIRED)
 find_dependency(freetype CONFIG REQUIRED)
-find_dependency(CMakeRC CONFIG REQUIRED)
+find_dependency(tinyfiledialogs CONFIG REQUIRED)
 
 #set(pmp_DIR "${TLib_DIR}/TLib/thirdparty/pmp/build")
 #find_dependency(pmp CONFIG REQUIRED)

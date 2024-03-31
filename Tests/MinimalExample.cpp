@@ -16,7 +16,7 @@ int main()
     Timer      deltaTimer;
 
     window.create();
-    window.setTitle("Minimal Example");
+    window.setTitle("Minimal Example (Lux is so cool edition (TM))");
     Renderer::create();
     Renderer2D::create();
 

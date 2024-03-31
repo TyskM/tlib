@@ -4,11 +4,41 @@
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/Platform/SysQuery.hpp>
 #include <TLib/Media/Platform/FPSLimit.hpp>
+#include <TLib/Media/Platform/Input.hpp>
 #include <TLib/Media/View.hpp>
 #include <TLib/Containers/Pair.hpp>
 #include <string>
 #include <format>
 #include <magic_enum.hpp>
+
+namespace ImGui
+{
+    void Image(Texture&    tex,
+         const Vector2f&   size,
+         const Rectf&      srcRect,
+         const ColorRGBAf& tintColor   = ColorRGBAf::white(),
+         const ColorRGBAf& borderColor = ColorRGBAf::transparent())
+    {
+        auto handle = (ImTextureID)tex.handle();
+        auto uv = Renderer2D::getTextureUVs(tex, srcRect);
+        ImGui::Image(handle, { size.x, size.y },
+            { uv.first.x, uv.first.y }, { uv.second.x, uv.second.y },
+            { tintColor.r, tintColor.g, tintColor.b, tintColor.a },
+            { borderColor.r, borderColor.g, borderColor.b, borderColor.a });
+    }
+
+    void Image(Texture&    tex,
+         const Vector2f&   size,
+         const ColorRGBAf& tintColor   = ColorRGBAf::white(),
+         const ColorRGBAf& borderColor = ColorRGBAf::transparent())
+    {
+
+        auto handle = (ImTextureID)tex.handle();
+        ImGui::Image(handle, { size.x, size.y }, {0,0}, {1,1},
+            { tintColor.r, tintColor.g, tintColor.b, tintColor.a },
+            { borderColor.r, borderColor.g, borderColor.b, borderColor.a });
+    }
+}
 
 void debugCamera(View& view)
 {
@@ -98,9 +128,9 @@ void drawDiagWidget(FPSLimit* fpslimit = nullptr, bool* p_open = NULL, ImGuiWind
         { fpslimit->setFPSLimit(temp); }
     }
 
-    //ImGui::Checkbox("Frustum Culling", &renderer->frustumCullingEnabled);
-    ImGui::Text(fmt::format("Draw Calls: {}", Renderer::getDrawCount()).c_str());
+    size_t drawCalls = Renderer::getDrawCount();
     Renderer::resetDrawCount();
+
 
     //VSyncMode vsyncMode = renderer->getVSync();
     //auto cont = magic_enum::enum_values<VSyncMode>();
@@ -117,6 +147,7 @@ void drawDiagWidget(FPSLimit* fpslimit = nullptr, bool* p_open = NULL, ImGuiWind
     //    ImGui::EndCombo();
     //}
 
+    ImGui::Text(fmt::format("Draw Calls         : {}", drawCalls).c_str());
     ImGui::Text(            "Delta              : %f"   , delta);
     ImGui::Text(fmt::format("FPS                : {}"   , fps).c_str());
     ImGui::Text(fmt::format("CPU Usage          : {}%"  , sysq::getThisProcessCPUUsage()).c_str());

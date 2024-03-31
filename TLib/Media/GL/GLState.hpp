@@ -25,4 +25,4 @@ struct GLState
     void reset() { *this = GLState(); }
 };
 
-GLState glState;
+static GLState glState;

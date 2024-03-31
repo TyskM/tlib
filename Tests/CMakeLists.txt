@@ -18,6 +18,7 @@ set(TLib_Tests
         NinePatchTest
         Camera2D
         FBOTest
+        AStar2D
 )
 
 enable_testing()
