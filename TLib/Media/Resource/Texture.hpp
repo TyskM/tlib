@@ -15,11 +15,27 @@
 #include "IResource.hpp"
 #include "TextureData.hpp"
 
+enum class TextureMinFilter : GLenum
+{
+    Nearest              = GL_NEAREST,
+    Linear               = GL_LINEAR,
+    NearestMipmapNearest = GL_NEAREST_MIPMAP_NEAREST,
+    LinearMipmapNearest  = GL_LINEAR_MIPMAP_NEAREST,
+    NearestMipmapLinear  = GL_NEAREST_MIPMAP_LINEAR,
+    LinearMipmapLinear   = GL_LINEAR_MIPMAP_LINEAR
+};
+
+enum class TextureMagFilter : GLenum
+{
+    Nearest = GL_NEAREST,
+    Linear  = GL_LINEAR
+};
+
+// TODO: Deprecated
 enum class TextureFiltering
 {
-    Unknown [[maybe_unused]] = -1,
-    Nearest [[maybe_unused]] = GL_NEAREST,
-    Linear  [[maybe_unused]] = GL_LINEAR
+    Nearest = GL_NEAREST,
+    Linear  = GL_LINEAR
 };
 
 // TODO: add the rest of the formats
@@ -347,11 +363,19 @@ public:
     void setUVMode(UVMode uv)
     { setUVMode(uv, uv); }
 
+    [[deprecated]]
     void setFilter(TextureFiltering min, TextureFiltering max)
     {
         bind();
         GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<int>(min)) );
         GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<int>(max)) );
+    }
+
+    void setFilter(TextureMinFilter min, TextureMagFilter mag)
+    {
+        bind();
+        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<GLenum>(min)));
+        GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<GLenum>(mag)));
     }
 
     void setFilter(TextureFiltering mode)
@@ -363,6 +387,12 @@ public:
     {
         bind();
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, mask);
+    }
+
+    void generateMipmaps()
+    {
+        bind();
+        GL_CHECK(glGenerateMipmap(GL_TEXTURE_2D));
     }
 
     void loadFallbackTexture()
