@@ -125,6 +125,9 @@ public:
     float diagonalCost = 1.001f; // Read/Write; I recommend 1.001f or sqrt(2.f)
     bool  includeStart = false; // Read/Write; Should the start variable be included in computePath return.
 
+    AStar2D(const Vector2i& size) { setSize(size); }
+    AStar2D(int x, int y)         { setSize(x, y); }
+
     bool passable(const Vector2i& pos) const { return getGridAt(pos).passable; }
     bool passable(int x, int y)        const { return passable({x, y}); }
 
@@ -160,6 +163,11 @@ public:
           Grid& getGridAt(int x, int y)              { return getGridAt({ x, y }); }
     const Grid& getGridAt(const Vector2i& pos) const { ASSERT(inBounds(pos)); return grids(pos.x, pos.y); }
     const Grid& getGridAt(int x, int y)        const { return getGridAt({ x, y }); }
+
+          Grid& at(const Vector2i& pos)       { ASSERT(inBounds(pos)); return grids(pos.x, pos.y); }
+          Grid& at(int x, int y)              { return at({ x, y }); }
+    const Grid& at(const Vector2i& pos) const { ASSERT(inBounds(pos)); return grids(pos.x, pos.y); }
+    const Grid& at(int x, int y)        const { return at({ x, y }); }
 
     int      width()   const { return size.x; }
     int      height()  const { return size.y; }
