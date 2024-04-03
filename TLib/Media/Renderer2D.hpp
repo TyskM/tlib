@@ -400,33 +400,31 @@ public:
         drawRect(rect.x, rect.y, rect.width, rect.height, rot, filled, color, layer);
     }
 
-    static void drawGrid(const Vector2f&   start,
+    static void drawGrid(const Vector2f&   offset,
                          const Vector2i&   gridCount,
-                         Vector2f          gridSize,
+                         const Vector2f&   gridSize,
                          const ColorRGBAf& color     = ColorRGBAf::white(),
                          const int         layer     = DefaultPrimitiveLayer)
     {
-        const float targetX = gridCount.x * gridSize.x + start.x;
-        const float targetY = gridCount.y * gridSize.y + start.y;
+        const float targetX = gridCount.x * gridSize.x;
+        const float targetY = gridCount.y * gridSize.y;
 
         for (int x = 0; x <= gridCount.x; x++)
         {
-            const float startx = x + start.x;
+            const float worldX = x * gridSize.x;
             drawLine(
-                Vector2f{ startx * gridSize.x, 0 },
-                Vector2f{ startx * gridSize.x, targetY },
-                color, layer
-            );
+                Vector2f{ worldX, 0       } + offset,
+                Vector2f{ worldX, targetY } + offset,
+                color, layer);
         }
 
         for (int y = 0; y <= gridCount.y; y++)
         {
-            const float starty = y + start.y;
+            const float worldY = y * gridSize.y;
             drawLine(
-                Vector2f{ 0, starty * gridSize.y },
-                Vector2f{ targetX, starty * gridSize.y },
-                color, layer
-            );
+                Vector2f{ 0,       worldY } + offset,
+                Vector2f{ targetX, worldY } + offset,
+                color, layer);
         }
     }
 
@@ -555,12 +553,10 @@ public:
     static Pair<Vector2f, Vector2f> getTextureUVs(const Texture& tex, const Rectf& srcRect)
     {
         const Vector2f texSize(tex.getSize());
-        // Add 0.5 for half pixel correction. This prevents texture bleeding.
-        // https://learn.microsoft.com/en-us/windows/win32/direct3d9/directly-mapping-texels-to-pixels?redirectedfrom=MSDN
-        float uvWidth  = (srcRect.x + srcRect.width  - 1.f) / texSize.x;
-        float uvHeight = (srcRect.y + srcRect.height - 1.f) / texSize.y;
-        float uvX      = (srcRect.x + 0.5f) / texSize.x;
-        float uvY      = (srcRect.y + 0.5f) / texSize.y;
+        float uvWidth  = (srcRect.x + srcRect.width  - 0.01f) / texSize.x;
+        float uvHeight = (srcRect.y + srcRect.height - 0.01f) / texSize.y;
+        float uvX      = (srcRect.x + 0.02f) / texSize.x;
+        float uvY      = (srcRect.y + 0.02f) / texSize.y;
         return { Vector2f(uvX, uvY), Vector2f(uvWidth, uvHeight) };
     }
 
