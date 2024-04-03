@@ -360,6 +360,7 @@ public:
         GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<int>(v)) );
     }
 
+    [[deprecated]]
     void setUVMode(UVMode uv)
     { setUVMode(uv, uv); }
 
