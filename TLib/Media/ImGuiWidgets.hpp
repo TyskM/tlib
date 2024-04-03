@@ -44,7 +44,7 @@ void debugCamera(View& view)
 {
     static bool  dragging = false;
     static float minZoom  = 0.1f;
-    static float maxZoom  = 5.f;
+    static float maxZoom  = 40.f;
     static float zoomIncr = 0.15f;
 
     // Dragging
