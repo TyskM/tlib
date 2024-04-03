@@ -17,9 +17,10 @@ using Path = fs::path;
 struct FileReadError  : public std::runtime_error { using std::runtime_error::runtime_error; };
 struct FileWriteError : public std::runtime_error { using std::runtime_error::runtime_error; };
 
+// If the user cancels, path.empty() will be true
 static Path openSingleFileDialog(
     const String&         title             = "Open File",
-    const Path&           defaultPath       = Path(), // Will use the .exe directory if empty
+          Path            defaultPath       = Path(), // Will use the .exe directory if empty
     const Vector<String>& filters           = {"*"},  // {"*.jpg","*.png"}
     const String&         filterDescription = "")     // "image files"
 {
@@ -27,6 +28,9 @@ static Path openSingleFileDialog(
     cfilters.reserve(filters.size());
     for (auto& s : filters)
     { cfilters.push_back(s.c_str()); }
+
+    if (defaultPath.empty())
+    { defaultPath = fs::current_path(); }
 
     char* openedFilePath = tinyfd_openFileDialog(
         title.c_str(),
