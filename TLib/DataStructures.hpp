@@ -273,6 +273,8 @@ struct ColorRGBAf
         b = ib/255.f;
     }
 
+    ColorRGBAf(const char* hex) : ColorRGBAf(String(hex)) { }
+
     constexpr ColorRGBAf(float rv, float gv, float bv, float av = 1.f) :
         r{ rv }, g{ gv }, b{ bv }, a{ av } { }
 
