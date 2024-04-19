@@ -85,4 +85,19 @@ namespace math
 
         return fmod(value, rangeZero);
     }
+
+    static float degDiff(float a, float b)
+    {
+        const auto diff = fmod(b - a, 360.f);
+        return 180.f - abs(abs(diff) - 180.f);
+    }
+
+    static float radDiff(float a, float b)
+    {
+        const auto  pi   = glm::pi<float>();
+        const auto  full = pi * 2.f;
+        const auto& half = pi;
+        const auto diff = fmod(b - a, full);
+        return half - abs(abs(diff) - half);
+    }
 }

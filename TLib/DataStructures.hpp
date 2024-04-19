@@ -104,6 +104,11 @@ struct Vector2
     T distanceToSquared(const Vector2<T>& other) const
     { return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y); }
 
+    // Distance to the city of Manhattan https://en.wikipedia.org/wiki/Manhattan
+    // https://simple.wikipedia.org/wiki/Manhattan_distance
+    T distanceToManhattan(const Vector2<T>& other) const
+    { return static_cast<T>(std::abs(x - other.x)) + static_cast<T>(std::abs(y - other.y)); }
+
     Vector2<T> relMultiply(const Vector2<T> other, T amount)
     { return (*this - other) * amount + other; }
 
@@ -120,7 +125,15 @@ struct Vector2
     Vector2<T> abs()        const { return Vector2<T>( static_cast<T>(std::abs(x)),        static_cast<T>(std::abs(y))        ); }
     Vector2<T> sqrt()       const { return Vector2<T>( static_cast<T>(std::sqrt(x)),       static_cast<T>(std::sqrt(y))       ); }
     Vector2<T> pow(T value) const { return Vector2<T>( static_cast<T>(std::pow(x, value)), static_cast<T>(std::pow(y, value)) ); }
-    
+
+    Vector2<T> mod(T value) const
+    {
+        if constexpr (std::is_floating_point<T>())
+        { return Vector2<T>(fmod(x, value), fmod(y, value)); }
+        else
+        { return Vector2<T>(x % value, y % value); }
+    }
+
     Vector2<T> lerp(Vector2<T> target, T delta) const
     {
         return Vector2<T>(
@@ -557,6 +570,12 @@ struct Rect
 
     Vector2<T> getSize() const
     { return Vector2<T>(width, height); }
+
+    void setPos(const Vector2<T>& v)
+    { x = v.x; y = v.y; }
+
+    void setSize(const Vector2<T>& v)
+    { width = v.x; height = v.y; }
 
     T getRight() const
     { return x + width; }

@@ -18,6 +18,33 @@ struct FileReadError  : public std::runtime_error { using std::runtime_error::ru
 struct FileWriteError : public std::runtime_error { using std::runtime_error::runtime_error; };
 
 // If the user cancels, path.empty() will be true
+static Path saveFileDialog(
+    const String&         title             = "Save File",
+          Path            defaultPath       = Path(),
+    const Vector<String>& filters           = {"*"},
+    const String&         filterDescription = "")
+{
+    Vector<const char*> cfilters;
+    cfilters.reserve(filters.size());
+    for (auto& s : filters)
+    { cfilters.push_back(s.c_str()); }
+
+    if (defaultPath.empty())
+    { defaultPath = fs::current_path() / "file"; }
+
+    char* saveFilePath = tinyfd_saveFileDialog(
+        title.c_str(),
+        defaultPath.string().c_str(),
+        cfilters.size(),
+        cfilters.data(),
+        filterDescription.empty() ? NULL : filterDescription.c_str());
+
+    if (!saveFilePath)
+    { return Path(); }
+    return saveFilePath;
+}
+
+// If the user cancels, path.empty() will be true
 static Path openSingleFileDialog(
     const String&         title             = "Open File",
           Path            defaultPath       = Path(), // Will use the .exe directory if empty

@@ -40,12 +40,9 @@ namespace ImGui
     }
 }
 
-void debugCamera(View& view)
+void debugCamera(View& view, const float minZoom = 0.1f, const float maxZoom = 40.f, const float zoomIncr = 0.15f)
 {
-    static bool  dragging = false;
-    static float minZoom  = 0.1f;
-    static float maxZoom  = 40.f;
-    static float zoomIncr = 0.15f;
+    static bool dragging = false;
 
     // Dragging
     if (Input::isMousePressed(Input::MOUSE_MIDDLE))
@@ -91,10 +88,11 @@ Pair<bool, EnumType> imguiEnumCombo(const char* name, EnumType value)
     return ret;
 }
 
+String diagWindowName = "Diagnostics";
 // End with ImGui::End()
 void beginDiagWidgetExt(bool* p_open = NULL, ImGuiWindowFlags flags = 0)
 {
-    ImGui::Begin("Diagnostics", p_open);
+    ImGui::Begin(diagWindowName.c_str(), p_open);
 }
 
 void drawDiagWidget(FPSLimit* fpslimit = nullptr, bool* p_open = NULL, ImGuiWindowFlags flags = 0)

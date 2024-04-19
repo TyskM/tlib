@@ -12,13 +12,21 @@ using namespace spdlog;
 
 static std::shared_ptr<logger> createConsoleLogger(const char* name, const String& pattern = "[%H:%M:%S] [%^%l%$] [%n] [thread %t] %v") noexcept
 {
+    auto maybeExistingLogger = spdlog::get(name);
+    if (maybeExistingLogger)
+    { return maybeExistingLogger; }
+
     std::shared_ptr<logger> console = spdlog::stdout_color_mt(name);
     console->set_pattern(pattern);
     return console;
 }
 
-static int init() { spdlog::set_default_logger(createConsoleLogger("Main")); return 0; }
-static int d = init();
+static bool init()
+{
+    spdlog::set_default_logger(createConsoleLogger("Main"));
+    return true;
+}
+static bool d = init();
 // lmao this works
 }
 

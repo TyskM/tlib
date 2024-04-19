@@ -138,7 +138,6 @@ public:
         boundSlot      = other.boundSlot;
         internalFormat = other.internalFormat;
         _path          = other._path;
-        ASSERT(valid());
     }
 
     Texture& operator=(Texture&& other) noexcept
@@ -153,7 +152,7 @@ public:
         boundSlot      = other.boundSlot;
         internalFormat = other.internalFormat;
         _path          = other._path;
-        ASSERT(valid());
+        return *this;
     }
 
     ~Texture() { reset(); }

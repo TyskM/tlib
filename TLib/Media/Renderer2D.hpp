@@ -347,7 +347,7 @@ public:
     // loop: will draw a line between first and last point
     static void drawLines(const std::span<const Vector2f>& points,
                           const ColorRGBAf&                color    = ColorRGBAf::white(),
-                          GLDrawMode                       drawMode = GLDrawMode::Lines,
+                          GLDrawMode                       drawMode = GLDrawMode::LineStrip,
                           const int                        layer    = DefaultPrimitiveLayer)
     {
         prim_batch(points, color, drawMode, layer);

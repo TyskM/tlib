@@ -90,7 +90,7 @@ struct Window : NonAssignable
 
         SDL_Init(SDL_INIT_EVERYTHING);
 
-        if (params.flags & WindowFlags::OpenGL)
+        if (bool(params.flags & WindowFlags::OpenGL))
         {
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
             SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
@@ -111,7 +111,7 @@ struct Window : NonAssignable
         SDL_VERSION(&wm.version);
         SDL_GetWindowWMInfo(window, &wm);
 
-        if (params.flags & WindowFlags::OpenGL)
+        if (bool(params.flags & WindowFlags::OpenGL))
         {
             glContext = SDL_GL_CreateContext(window);
             makeCurrent();
@@ -201,7 +201,7 @@ struct Window : NonAssignable
     { return hasFlag(WindowFlags::Minimized); }
 
     [[nodiscard]] bool hasFlag(const WindowFlags flag) const
-    { return flag & static_cast<WindowFlags>(SDL_GetWindowFlags(window)); }
+    { return bool(flag & static_cast<WindowFlags>(SDL_GetWindowFlags(window))); }
 
     [[nodiscard]] WindowFlags getFlags()
     { return static_cast<WindowFlags>(SDL_GetWindowFlags(window)); }
