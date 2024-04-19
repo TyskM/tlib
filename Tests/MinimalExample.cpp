@@ -8,15 +8,33 @@
 #include <TLib/Media/View.hpp>
 #include <TLib/Media/ImGuiWidgets.hpp>
 
+Window   window;
+FPSLimit fpslimit;
+
+void init()
+{
+
+}
+
+void update(float delta)
+{
+
+}
+
+void draw(float delta)
+{
+
+}
+
 int main()
 {
-    Window     window;
-    MyGui      imgui;
-    FPSLimit   fpslimit;
-    Timer      deltaTimer;
+    MyGui imgui;
+    Timer deltaTimer;
 
-    window.create();
-    window.setTitle("Minimal Example (Lux is so cool edition (TM))");
+    WindowCreateParams params;
+    params.title = "Window";
+    params.size  = {1280, 720};
+    window.create(params);
     Renderer::create();
     Renderer2D::create();
 
@@ -24,6 +42,8 @@ int main()
     deltaTimer  .restart();
     fpslimit    .setFPSLimit(144);
     fpslimit    .setEnabled(true);
+
+    init();
 
     bool running = true;
     while (running)
@@ -48,13 +68,12 @@ int main()
         if (!(io.WantCaptureKeyboard)) { Input::updateKeyboard(); }
         if (!(io.WantCaptureMouse)) { Input::updateMouse(); }
 
+        imgui.newFrame();
+        update(delta);
         Renderer::clearColor();
-
-        // Update/Draw Here
-
+        draw(delta);
         Renderer2D::render();
 
-        imgui.newFrame();
         drawDiagWidget(&fpslimit);
         imgui.render();
 

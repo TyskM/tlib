@@ -43,7 +43,7 @@ bool drawGridIcons = true;
 constexpr float gridSize     = 32.f;
 constexpr float halfGridSize = gridSize / 2.f;
 
-AStar2D<Grid>        map;
+AStar2D<Grid>        map{20, 10};
 Vector2i             start;
 Vector2i             goal;
 Vector<Vector2i>     path;
@@ -228,7 +228,6 @@ void init()
     iconFont.loadFromFile("assets/roboto.ttf", 24, 0, 128, FontRenderMode::SDF,    TextureFiltering::Linear);
     uiFont  .loadFromFile("assets/proggy.ttf", 24, 0, 128, FontRenderMode::Normal, TextureFiltering::Linear);
     map.includeStart = true;
-    map.setSize(20, 10);
     setGoal(map.getSize() - 1);
 
     Vector2f mapSizePx = Vector2f(map.getSize()) * gridSize;

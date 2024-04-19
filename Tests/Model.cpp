@@ -12,6 +12,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <TLib/Embed/Embed.hpp>
+#include <TLib/Containers/Stack.hpp>
 
 struct MeshSlice
 {
@@ -149,82 +150,6 @@ private:
         }
     }
 
-    void processMesh(aiMesh* aimesh, const aiScene* scene, const fs::path& path)
-    {
-        Vector<Vertex> vertices;
-        vertices.reserve(aimesh->mNumVertices);
-
-        Vector<uint32_t> indices;
-
-        ModelMesh& modelMesh = meshes.emplace_back();
-        modelMesh.mesh.setLayout({Layout::Vec3f(), Layout::Vec3f(), Layout::Vec2f()});
-
-        // process vertex positions, normals and texture coordinates
-        for (unsigned int i = 0; i < aimesh->mNumVertices; i++)
-        {
-            Vertex vertex;
-
-            vertex.position = glm::vec3(aimesh->mVertices[i].x,
-                aimesh->mVertices[i].y,
-                aimesh->mVertices[i].z);
-
-            vertex.normal = glm::vec3(aimesh->mNormals[i].x,
-                aimesh->mNormals[i].y,
-                aimesh->mNormals[i].z);
-
-            if (aimesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
-            { vertex.texCoords = { aimesh->mTextureCoords[0][i].x, aimesh->mTextureCoords[0][i].y}; } else
-            { vertex.texCoords = glm::vec2(0.0f,0.0f); }
-
-            vertices.push_back(vertex);
-        }
-
-        modelMesh.mesh.setData(vertices);
-
-        // process indices
-        for (unsigned int i = 0; i < aimesh->mNumFaces; i++)
-        {
-            aiFace face = aimesh->mFaces[i];
-            for (unsigned int j = 0; j < face.mNumIndices; j++)
-            { indices.push_back(face.mIndices[j]); }
-        }
-        GL_CHECK(void);
-        modelMesh.mesh.setIndices(indices);
-        GL_CHECK(void);
-        // process material
-        if (aimesh->mMaterialIndex >= 0)
-        {
-            tlog::info("Loading materials");
-            aiMaterial* material = scene->mMaterials[aimesh->mMaterialIndex];
-            loadMaterialTextures(modelMesh.textures, material, aiTextureType_DIFFUSE, path);
-            //loadMaterialTextures(modelMesh.textures, material, aiTextureType_SPECULAR, path);
-        }
-
-    }
-
-    void processNode(aiNode* node, const aiScene* scene, const fs::path& path)
-    {
-        static size_t processed = 0;
-        tlog::info("Processing node: {}", processed);
-        ++processed;
-
-        // process all the node's meshes (if any)
-        for (unsigned int i = 0; i < node->mNumMeshes; i++)
-        {
-            tlog::info("Processing mesh: {}", i);
-            aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-            processMesh(mesh,scene,path);
-        }
-        GL_CHECK(void);
-
-        // then do the same for each of its children
-        for (unsigned int i = 0; i < node->mNumChildren; i++)
-        {
-            processNode(node->mChildren[i],scene,path);
-        }
-        GL_CHECK(void);
-    }
-
 public:
     Vector<ModelMesh>& getMeshes()
     { return meshes; }
@@ -251,7 +176,75 @@ public:
         }
 
         reset();
-        processNode(scene->mRootNode, scene, path.parent_path());
+
+        Path fileFolder = Path(path).remove_filename();
+
+        static Stack<aiNode*>   stack;
+        static Vector<Vertex>   vertices;
+        static Vector<uint32_t> indices;
+        stack.get_container().clear();
+        stack.push(scene->mRootNode);
+        while (!stack.empty())
+        {
+            aiNode* node = stack.top();
+            stack.pop();
+
+            // process all the node's meshes (if any)
+            for (unsigned int i = 0; i < node->mNumMeshes; i++)
+            {
+                aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+
+                ModelMesh& modelMesh = meshes.emplace_back();
+                modelMesh.mesh.setLayout({ Layout::Vec3f(), Layout::Vec3f(), Layout::Vec2f() });
+
+                // process vertex positions, normals and texture coordinates
+                vertices.clear();
+                vertices.reserve(mesh->mNumVertices);
+                for (unsigned int i = 0; i < mesh->mNumVertices; i++)
+                {
+                    Vertex vertex;
+
+                    auto& pos = mesh->mVertices[i];
+                    vertex.position = glm::vec3(pos.x, pos.y, pos.z);
+
+                    auto& normal = mesh->mNormals[i];
+                    vertex.normal = glm::vec3(normal.x, normal.y, normal.z);
+
+                    if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+                    { vertex.texCoords ={ mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y }; }
+                    else
+                    { vertex.texCoords = glm::vec2(0.0f, 0.0f); }
+
+                    vertices.push_back(vertex);
+                }
+
+                modelMesh.mesh.setData(vertices);
+
+                // process indices
+                indices.clear();
+                for (unsigned int i = 0; i < mesh->mNumFaces; i++)
+                {
+                    aiFace face = mesh->mFaces[i];
+                    for (unsigned int j = 0; j < face.mNumIndices; j++)
+                    { indices.push_back(face.mIndices[j]); }
+                }
+
+                modelMesh.mesh.setIndices(indices);
+                // process material
+                if (mesh->mMaterialIndex >= 0)
+                {
+                    aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+                    loadMaterialTextures(modelMesh.textures, material, aiTextureType_DIFFUSE, fileFolder);
+                    //loadMaterialTextures(modelMesh.textures, material, aiTextureType_SPECULAR, path);
+                }
+            }
+
+            // Queue children for above process
+            for (unsigned int i = 0; i < node->mNumChildren; i++)
+            {
+                stack.push(node->mChildren[i]);
+            }
+        }
 
         return true;
     }
