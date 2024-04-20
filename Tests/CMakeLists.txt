@@ -19,6 +19,7 @@ set(TLib_Tests
         Camera2D
         FBOTest
         AStar2D
+        Construct
 )
 
 enable_testing()

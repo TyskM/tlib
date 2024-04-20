@@ -100,6 +100,10 @@ target_link_libraries(TLib PUBLIC box2d::box2d)
 find_package(tinyfiledialogs CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC tinyfiledialogs::tinyfiledialogs)
 
+# Remember to #define PX_PHYSX_STATIC_LIB
+find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
+target_link_libraries(TLib PUBLIC unofficial::omniverse-physx-sdk::sdk)
+
 ### Graphics stuff
 
 find_dependency(SDL2 CONFIG REQUIRED)

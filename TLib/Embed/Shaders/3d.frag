@@ -7,7 +7,7 @@ in vec3 vertFragPos;
 in vec3 vertLightPos;
 
 uniform vec3  viewPos;
-uniform vec3  lightColor       = vec3(0.2, 0.9, 0.2);
+uniform vec3  lightColor       = vec3(0.2, 0.2, 0.2);
 uniform float ambientStrength  = 0.1;
 uniform float specularStrength = 0.7;
 uniform vec3  sunDir           = vec3(-0.2, -1.0, -0.3);

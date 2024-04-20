@@ -16,6 +16,8 @@ find_dependency(cereal CONFIG REQUIRED)
 find_dependency(assimp CONFIG REQUIRED)
 find_dependency(freetype CONFIG REQUIRED)
 find_dependency(tinyfiledialogs CONFIG REQUIRED)
+find_dependency(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
+
 
 #set(pmp_DIR "${TLib_DIR}/TLib/thirdparty/pmp/build")
 #find_dependency(pmp CONFIG REQUIRED)

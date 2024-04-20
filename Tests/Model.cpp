@@ -277,6 +277,25 @@ struct Transform
     }
 };
 
+struct MeshData
+{
+    using TextureType = aiTextureType;
+
+    struct MeshTexture
+    {
+        TextureType type    = aiTextureType_NONE;
+        Texture*    texture = nullptr;
+    };
+
+    struct SubMesh
+    {
+
+    };
+
+    static Vector<Vertex>   vertices;
+    static Vector<uint32_t> indices;
+};
+
 class Renderer3D
 {
     struct DrawCmd

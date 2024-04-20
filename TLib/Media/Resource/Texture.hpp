@@ -77,6 +77,12 @@ enum class TexPixelFormats : int
     DEPTH_STENCIL   [[maybe_unused]] = GL_DEPTH_STENCIL
 };
 
+enum class TexPixelType
+{
+    UnsignedByte = GL_UNSIGNED_BYTE,
+    uint8888Rev  = GL_UNSIGNED_INT_8_8_8_8_REV
+};
+
 enum class UVMode
 {
     Unknown             [[maybe_unused]] = -1,
@@ -237,8 +243,7 @@ public:
 
     void setData(const TextureData&       data,
                  const TexPixelFormats    format         = defaultFormat,
-                 const TexInternalFormats internalFormat = defaultInternalFormat,
-                 const bool               generateMipmap = true)
+                 const TexInternalFormats internalFormat = defaultInternalFormat)
     {
         setData(data.ptr(), data.width(), data.height(), defaultFormat, defaultInternalFormat);
     }
@@ -249,7 +254,7 @@ public:
         const uint32_t           height,
         const TexPixelFormats    format         = defaultFormat,
         const TexInternalFormats internalFormat = defaultInternalFormat,
-        const bool               generateMipmap = true)
+        const TexPixelType       type           = TexPixelType::UnsignedByte)
     {
         if (!created()) { create(); }
 
@@ -261,9 +266,7 @@ public:
         setFilter(defaultTexFiltering);
         setUVMode(defaultUVMode);
 
-        GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalFormat, width, height, 0, (GLenum)format, GL_UNSIGNED_BYTE, data));
-        if (generateMipmap)
-        { GL_CHECK(glGenerateMipmap(GL_TEXTURE_2D)); }
+        GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalFormat, width, height, 0, (GLenum)format, (GLenum)type, data));
     }
 
     void setSubData(

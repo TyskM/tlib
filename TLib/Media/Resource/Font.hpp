@@ -224,7 +224,7 @@ public:
 
         //// Create texture using the size we found
         textureAtlas.create();
-        textureAtlas.setData(NULL, result_size.w, result_size.h, TexPixelFormats::RED, TexInternalFormats::RED, false);
+        textureAtlas.setData(NULL, result_size.w, result_size.h, TexPixelFormats::RED, TexInternalFormats::RED);
         textureAtlas.setFilter(texFilterMode);
         textureAtlas.setUnpackAlignment(1);
 

@@ -52,14 +52,14 @@ add_library(TLib::TLib STATIC IMPORTED)
 set_target_properties(TLib::TLib PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_20"
   INTERFACE_INCLUDE_DIRECTORIES "D:/Resources/Dev/CPP/TLib"
-  INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;cereal::cereal;Boost::boost;Boost::container;box2d::box2d;tinyfiledialogs::tinyfiledialogs;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp;freetype"
+  INTERFACE_LINK_LIBRARIES "EASTL;spdlog::spdlog;spdlog::spdlog_header_only;magic_enum::magic_enum;Pal::Sigslot;mimalloc-static;cereal::cereal;Boost::boost;Boost::container;box2d::box2d;tinyfiledialogs::tinyfiledialogs;unofficial::omniverse-physx-sdk::sdk;\$<TARGET_NAME_IF_EXISTS:SDL2::SDL2main>;\$<IF:\$<TARGET_EXISTS:SDL2::SDL2>,SDL2::SDL2,SDL2::SDL2-static>;SDL2::SDL2_gfx;unofficial::gl3w::gl3w;glm::glm;imgui::imgui;assimp::assimp;freetype"
 )
 
-# Import target "TLib::TLib" for configuration "RelWithDebInfo"
-set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS RELWITHDEBINFO)
+# Import target "TLib::TLib" for configuration "Debug"
+set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
 set_target_properties(TLib::TLib PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_RELWITHDEBINFO "CXX"
-  IMPORTED_LOCATION_RELWITHDEBINFO "D:/Resources/Dev/CPP/TLib/out/build/x64-windows-reldbg-static/TLib.lib"
+  IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
+  IMPORTED_LOCATION_DEBUG "D:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/TLib.lib"
   )
 
 # This file does not depend on other imported targets which have
