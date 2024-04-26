@@ -4,6 +4,8 @@
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/View.hpp>
 #include <TLib/RNG.hpp>
+#include <TLib/Containers/Variant.hpp>
+#include <TLib/Containers/Span.hpp>
 #include "Common.hpp"
 
 #include <glm/gtx/quaternion.hpp>
@@ -18,6 +20,7 @@
 #include <physx/PxPhysicsAPI.h>
 #include <physx/foundation/PxErrorCallback.h>
 #include <physx/foundation/PxFoundation.h>
+#include <physx/extensions/PxDefaultSimulationFilterShader.h>
 
 #pragma region Physics
 
@@ -61,17 +64,13 @@ static void shutdownPhysics()
         foundation->release();
 }
 
-PxPhysics* createPhysics()
+PxPhysics* createPhysics(PxTolerancesScale& scale)
 {
     bool recordMemoryAllocations = true;
 
-    auto mPvd = PxCreatePvd(*foundation);
-    PxPvdTransport* transport = PxDefaultPvdSocketTransportCreate("localhost", 5425, 10);
-    mPvd->connect(*transport, PxPvdInstrumentationFlag::eALL);
-
     auto mPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation,
-        PxTolerancesScale(), recordMemoryAllocations, mPvd);
-    ASSERT(!mPhysics);
+        scale, recordMemoryAllocations, NULL);
+    ASSERT(mPhysics);
     return mPhysics;
 }
 
@@ -414,14 +413,29 @@ struct Transform
 
 class Renderer3D
 {
-    struct DrawCmd
+    struct ModelDrawCmd
     {
-        Model&    model;
+        Model*    model;
         Transform transform;
-
-        DrawCmd(Model& m, const Transform& tf) :
-            model{ m }, transform{ tf } { }
     };
+
+    struct PrimitiveDrawCmd
+    {
+        GLDrawMode drawMode;
+        Shader*    shader  = &defaultPrimitiveShader;
+        uint32_t   posIndex, posSize; // Index and size for posAndCoords
+        uint32_t   indIndex, indSize; // Index and size for indices
+        ColorRGBAf color;
+    };
+
+    using DrawCmd = Variant<PrimitiveDrawCmd, ModelDrawCmd>;
+
+    static inline Vector<Vector3f> primitivePositions;
+    static inline Vector<uint32_t> primitiveIndices;
+    static inline Mesh             primitiveMesh;
+    static inline Shader           defaultPrimitiveShader;
+
+    static constexpr GLuint restartIndex = std::numeric_limits<GLuint>::max();
 
 public:
     static inline Vector<DrawCmd> cmds;
@@ -484,9 +498,19 @@ private:
         Renderer::draw(shader3d, mesh);
     }
 
+    static void flushPrimitives(Shader& shader, GLDrawMode drawMode, Span<uint32_t> indices)
+    {
+        primitiveMesh.bind();
+        RenderState rs;
+        rs.drawMode = drawMode;
+        Renderer::drawIndices(shader, indices, rs);
+    }
+
 public:
     static void render()
     {
+        if (cmds.empty()) { return; }
+
         setupRender();
 
         Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)));
@@ -496,27 +520,51 @@ public:
         shadowFbo.unbind();
         Renderer2D::setView(Renderer2D::getView());
 
-        for (auto& cmd : cmds)
+        glEnable(GL_PRIMITIVE_RESTART);
+        glPrimitiveRestartIndex(restartIndex);
+
+        primitiveMesh.setData   (primitivePositions, AccessType::Dynamic);
+        primitiveMesh.setIndices(primitiveIndices,   AccessType::Dynamic);
+
+        bool     stateChanged = true;
+        uint32_t primOffset = 0;
+
+        for (auto& varCmd : cmds)
         {
-            for (auto& mesh : cmd.model.getMeshes())
+            if (is<PrimitiveDrawCmd>(varCmd))
             {
-                // If there's no texture, use default texture
-                if (mesh.textures.empty())
+                PrimitiveDrawCmd& cmd = std::get<PrimitiveDrawCmd>(varCmd);
+
+                auto start = primitiveIndices.begin() + primOffset;
+                auto end   = start + cmd.indSize - 1;
+                flushPrimitives(*cmd.shader, cmd.drawMode, Span<uint32_t>(start, end));
+                primOffset = cmd.indIndex + cmd.indSize;
+            }
+
+            else if (is<ModelDrawCmd>(varCmd))
+            {
+                ModelDrawCmd& cmd = std::get<ModelDrawCmd>(varCmd);
+
+                for (auto& mesh : cmd.model->getMeshes())
                 {
-                    drawMeshImmediate(*mesh.data, defaultTex, cmd.transform);
-                }
-                else
-                {
-                    for (auto& tex : mesh.textures)
+                    // If there's no texture, use default texture
+                    if (mesh.textures.empty())
                     {
-                        if (tex.type == TextureType::Diffuse)
+                        drawMeshImmediate(*mesh.data, defaultTex, cmd.transform);
+                    }
+                    else
+                    {
+                        for (auto& tex : mesh.textures)
                         {
-                            // Only use diffuse for now
-                            // TODO: use the rest of the textures
-                            // make a uniform block for all of them, and set them all at once.
-                            ASSERT(tex.texture->valid());
-                            drawMeshImmediate(*mesh.data, *tex.texture, cmd.transform);
-                            break;
+                            if (tex.type == TextureType::Diffuse)
+                            {
+                                // Only use diffuse for now
+                                // TODO: use the rest of the textures
+                                // make a uniform block for all of them, and set them all at once.
+                                ASSERT(tex.texture->valid());
+                                drawMeshImmediate(*mesh.data, *tex.texture, cmd.transform);
+                                break;
+                            }
                         }
                     }
                 }
@@ -524,14 +572,23 @@ public:
         }
 
         cmds.clear();
+        primitivePositions.clear();
+        primitiveIndices.clear();
     }
 
     static void create()
     {
+        primitiveMesh.setLayout({ Layout::Vec3f() });
+        defaultPrimitiveShader.create(
+            myEmbeds.at("TLib/Embed/Shaders/3d_primitive.vert").asString(),
+            myEmbeds.at("TLib/Embed/Shaders/3d_primitive.frag").asString());
+        primitivePositions.reserve(1024 * 4);
+        primitiveIndices  .reserve(1024 * 4);
+
         defaultTex.create();
 
         shader3d.create(myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString(),
-            myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
+                        myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
 
         emptyTex.create();
         emptyTex.setData(emptyTexData, 1, 1);
@@ -585,7 +642,38 @@ public:
 
     static void drawModel(Model& model, const Transform& transform)
     {
-        DrawCmd& cmd = cmds.emplace_back(model, transform);
+        ModelDrawCmd& cmd = std::get<ModelDrawCmd>(cmds.emplace_back());
+        cmd.model     = &model;
+        cmd.transform = transform;
+    }
+
+    static void drawLines(
+        const Span<const Vector3f>& points,
+        const ColorRGBAf&           color  = ColorRGBAf::white(),
+        const GLDrawMode            mode   = GLDrawMode::LineStrip,
+              Shader&               shader = defaultPrimitiveShader)
+    {
+        ASSERT(points.size() > 0);
+
+        auto& var = cmds.emplace_back();
+        auto& cmd = std::get<PrimitiveDrawCmd>(var);
+
+        cmd.shader   = &shader;
+        cmd.drawMode = mode;
+        cmd.color    = color;
+
+        cmd.indIndex = primitiveIndices.size();
+        cmd.posIndex = primitivePositions.size();
+        
+        cmd.indSize  = points.size();
+        cmd.posSize  = points.size();
+
+        for (int i = 0; i < points.size(); i++)
+        {
+            const Vector3f& p = points[i];
+            primitivePositions.emplace_back(p.x, p.y, p.z);
+            primitiveIndices.push_back(i);
+        }
     }
 
     static void addLight(const Vector3f& pos, const ColorRGBf& color)
@@ -642,16 +730,53 @@ String guiModel;
 float guiLightColor[3] ={ 0.5f, 0.5f, 0.5f };
 float totalTime = 0.f;
 
-PxPhysics* physics = nullptr;
+PxPhysics*      physics     = nullptr;
+PxScene*        scene       = nullptr;
+PxRigidDynamic* playerShape = nullptr;
+
+Vector<Vector<Vector3f>> levelMeshVerts;
 
 void init()
 {
     initPhysics();
-    physics = createPhysics();
+
+    PxTolerancesScale scale{};
+    physics = createPhysics(scale);
+
+    if (!PxInitExtensions(*physics, NULL))
+    { tlog::error("PxInitExtensions failed"); ASSERT(false); }
+
+    PxCookingParams params(scale);
+    PxSceneDesc desc(scale);
+    desc.filterShader = PxDefaultSimulationFilterShader;
+    desc.gravity = { 0.f, -20.f, 0.f };
+    desc.bounceThresholdVelocity = 20.f;
+    desc.cpuDispatcher = PxDefaultCpuDispatcherCreate(1);
+    ASSERT(desc.isValid());
+
+    scene = physics->createScene(desc);
+    ASSERT(scene);
+
+    // Init debug render
+    scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
+    scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f);
+    scene->setVisualizationParameter(PxVisualizationParameter::eACTOR_AXES, 2.0f);
+
+    PxShapeFlags shapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE;
+    PxMaterial* mat = physics->createMaterial(1, 1, 1);
 
     // Load level mesh
     MeshData levelMesh;
     levelMesh.loadFromFile("assets/gm_construct/gm_construct.glb");
+
+    for (auto& submesh : levelMesh.subMeshes)
+    {
+        auto& v = levelMeshVerts.emplace_back();
+        for (auto& vert : submesh.vertices)
+        {
+            v.push_back({ vert.position.x, vert.position.y, vert.position.z });
+        }
+    }
 
     for (auto& submesh : levelMesh.subMeshes)
     {
@@ -663,64 +788,92 @@ void init()
         meshDesc.triangles.stride       = 3*sizeof(PxU32);
         meshDesc.triangles.data         = submesh.indices.data();
 
-        PxTolerancesScale scale;
-        PxCookingParams params(scale);
-
         PxDefaultMemoryOutputStream writeBuffer;
-        PxTriangleMeshCookingResult::Enum result;
         bool status = PxCookTriangleMesh(params, meshDesc, writeBuffer, NULL);
         ASSERT(status);
 
         PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
 
         physics->createTriangleMesh(readBuffer);
+        
+        PxRigidStatic* rigidStatic = physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(PxVec3(0.f, 1.f, 0.f), 0.f)));
+        {
+            PxPlaneGeometry s;
+            PxShape* shape = physics->createShape(s, *mat, true, shapeFlags);
+            rigidStatic->attachShape(*shape);
+            shape->release(); // this way shape gets automatically released with actor
+        }
+
+        scene->addActor(*rigidStatic);
     }
 
     // Upload to GPU
     auto& m = models.emplace_back();
     m.modelPtr = new Model();
     m.modelPtr->loadFromMemory(levelMesh);
+
+    // Player geometry
+    playerShape = physics->createRigidDynamic(PxTransform(PxVec3(0.f, -10.f, 0.f)));
+    {
+        PxShape* shape = physics->createShape(PxBoxGeometry(2.f, 2.f, 2.f), *mat, true, shapeFlags);
+        playerShape->attachShape(*shape);
+        shape->release(); // this way shape gets automatically released with actor
+    }
+
+    scene->addActor(*playerShape);
+}
+
+void fixedUpdate(float delta)
+{
+    scene->simulate(delta);
+    scene->fetchResults(true);
 }
 
 void update(float delta)
 {
-    // Camera
+    // Fixed update
+    const  float fixedTimeStep  = 1.f/60.f;
+    static float time           = 0;
+    static float lastUpdateTime = 0;
+    static float timeBuffer     = 0;
+    time += delta;
+    timeBuffer += time - lastUpdateTime;
+    lastUpdateTime = time;
+    while (timeBuffer >= fixedTimeStep)
     {
-        ImGui::SeparatorText("Camera");
-        if (ImGui::Button("Reset Camera"))
-        { resetCamera(); }
-        ImGui::SliderFloat("FOV", &camera.fov, 70.f, 170.f);
-
-        ImGui::Text("Press ALT to toggle cursor.");
-        ImGui::SliderFloat("Sensitivity", &sens, 0.01f, 2.f);
-        ImGui::SliderFloat("Camera Speed", &camSpeed, 0.01f, 400.f);
-        if (Input::isKeyJustPressed(SDL_SCANCODE_LALT))
-        { window.toggleFpsMode(); }
-
-        if (window.getFpsMode())
-        {
-            yaw   += float(Input::mouseDelta.x) * sens;
-            pitch -= float(Input::mouseDelta.y) * sens;
-            pitch  = std::clamp(pitch, -89.f, 89.f);
-        }
-
-        glm::vec3 direction{};
-        direction.x      = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-        direction.y      = sin(glm::radians(pitch));
-        direction.z      = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-        auto cameraFront = glm::normalize(direction);
-
-        Vector2f moveDir;
-        moveDir.x = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
-        moveDir.y = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
-        if (moveDir.x)
-        { camera.pos += glm::normalize(glm::cross(cameraFront, camera.up)) * camSpeed * moveDir.x * delta; }
-        if (moveDir.y)
-        { camera.pos += camSpeed * cameraFront * moveDir.y * delta; }
-
-        camera.target = camera.pos + glm::normalize(direction);
-        R3D::setCamera(camera);
+        fixedUpdate(fixedTimeStep);
+        timeBuffer -= fixedTimeStep;
     }
+
+    #pragma region UI
+    beginDiagWidgetExt();
+
+    auto playerPos = playerShape->getGlobalPose();
+    static Vector3f guiTeleport;
+    ImGui::InputFloat3("##teleportinput", &guiTeleport.x);
+    if (ImGui::Button("Teleport"))
+    {
+        playerPos.p = { guiTeleport.x, guiTeleport.y, guiTeleport.z };
+        playerShape->clearForce();
+        playerShape->clearTorque();
+
+        playerShape->setGlobalPose(playerPos);
+    }
+    ImGui::Text(fmt::format("Current Pos: ({}, {}, {})", playerPos.p.x, playerPos.p.y, playerPos.p.z).c_str());
+
+    static Vector3f guiGravity;
+    ImGui::InputFloat3("##gravinput", &guiGravity.x);
+    if (ImGui::Button("Set Gravity"))
+    { scene->setGravity({ guiGravity.x, guiGravity.y, guiGravity.z }); }
+
+    ImGui::SeparatorText("Camera");
+    if (ImGui::Button("Reset Camera"))
+    { resetCamera(); }
+    ImGui::SliderFloat("FOV", &camera.fov, 70.f, 170.f);
+
+    ImGui::Text("Press ALT to toggle cursor.");
+    ImGui::SliderFloat("Sensitivity", &sens, 0.01f, 2.f);
+    ImGui::SliderFloat("Camera Speed", &camSpeed, 0.01f, 400.f);
 
     // Model loading input
     ImGui::SeparatorText("Model");
@@ -760,6 +913,41 @@ void update(float delta)
 
     ImGui::SeparatorText("Diag");
     ImGui::End();
+    #pragma endregion
+
+    // Camera
+    {
+        if (Input::isKeyJustPressed(SDL_SCANCODE_LALT))
+        { window.toggleFpsMode(); }
+
+        if (window.getFpsMode())
+        {
+            yaw   += float(Input::mouseDelta.x) * sens;
+            pitch -= float(Input::mouseDelta.y) * sens;
+            pitch  = std::clamp(pitch, -89.f, 89.f);
+        }
+
+        glm::vec3 direction{};
+        direction.x      = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        direction.y      = sin(glm::radians(pitch));
+        direction.z      = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        auto cameraFront = glm::normalize(direction);
+
+        Vector2f moveDir;
+        moveDir.x = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
+        moveDir.y = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
+
+        if (moveDir.x)
+        { camera.pos += glm::normalize(glm::cross(cameraFront, camera.up)) * camSpeed * moveDir.x * delta; }
+        if (moveDir.y)
+        { camera.pos += camSpeed * cameraFront * moveDir.y * delta; }
+
+        //auto playerTransform = playerShape->getGlobalPose();
+        //camera.pos = { playerTransform.p.x, playerTransform.p.y, playerTransform.p.z };
+
+        camera.target = camera.pos + glm::normalize(direction);
+        R3D::setCamera(camera);
+    }
 }
 
 void draw(float delta)
@@ -770,11 +958,30 @@ void draw(float delta)
     Vector3f lightPos  ={ lightX, 0.f, lightZ };
     R3D::addLight(lightPos, { guiLightColor[0], guiLightColor[1], guiLightColor[2] });
 
-    for (auto& modelInst : models)
+    //for (auto& modelInst : models)
+    //{
+    //    ASSERT(modelInst.modelPtr);
+    //    R3D::drawModel(*modelInst.modelPtr, modelInst.transform);
+    //}
+
+    for (auto& v : levelMeshVerts)
     {
-        ASSERT(modelInst.modelPtr);
-        R3D::drawModel(*modelInst.modelPtr, modelInst.transform);
+        R3D::drawLines(v);
     }
+
+    const PxRenderBuffer& rb = scene->getRenderBuffer();
+    for (PxU32 i=0; i < rb.getNbPoints(); i++)
+    {
+        const PxDebugPoint& point = rb.getPoints()[i];
+        // render the point
+    }
+
+    for (PxU32 i=0; i < rb.getNbLines(); i++)
+    {
+        const PxDebugLine& line = rb.getLines()[i];
+        // render the line
+    }
+    
 }
 
 int main()
@@ -821,7 +1028,6 @@ int main()
 
         imgui.newFrame();
         ImGui::BeginDisabled(window.getFpsMode());
-        beginDiagWidgetExt();
 
         Vector2f mwpos = Renderer2D::getMouseWorldPos();
 

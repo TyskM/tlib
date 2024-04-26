@@ -215,6 +215,7 @@ public:
 
         GL_CHECK(glGetnTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, bufferSize, buffer.data()));
         stbi_write_png(path.string().c_str(), size.x, size.y, comp, buffer.data(), size.x * comp);
+        return true;
     }
 
     void setData(const TextureData&       data,

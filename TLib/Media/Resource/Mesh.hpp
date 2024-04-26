@@ -109,7 +109,15 @@ public:
     {
         using T = ContainerType::value_type;
         ASSERT(validLayout()); // Layout must be set before setting data
-        ASSERT(sizeof(T) == _layout.sizeBytes()); // Layout and data size mismatch
+
+        #ifdef TLIB_DEBUG
+        if (sizeof(T) != _layout.sizeBytes())
+        {
+            tlog::critical("The size of the value Type: ({}) Size: ({}) does not match the size of the layout ({})",
+                typeid(T).name(), sizeof(T), _layout.sizeBytes());
+            ASSERT(false); // Layout and data size mismatch
+        }
+        #endif
 
         if (accessType == AccessType::Static)
         { rendlog->info("Setting static mesh data: Bytes={}; Size={};", sizeof(T) * data.size(), data.size()); }

@@ -7,6 +7,7 @@
 #include <TLib/Media/Resource/Mesh.hpp>
 #include <TLib/Media/Logging.hpp>
 #include <TLib/Macros.hpp>
+#include <TLib/Containers/Span.hpp>
 
 struct RenderState
 {
@@ -46,8 +47,6 @@ protected:
 
     static bool prepare(Shader& shader, Mesh& mesh, const RenderState& state)
     {
-        shader.bind();
-
         if (!mesh.bind())
         {
             rendlog->error("Tried to draw a mesh that's in an invalid state");
@@ -55,7 +54,13 @@ protected:
             if (!mesh.validVertices()) rendlog->error("\tReason: Invalid vertices. Did you forget to call Mesh::setData()?");
             return false;
         }
+        
+        return prepare(shader, state);
+    }
 
+    static bool prepare(Shader& shader, const RenderState& state)
+    {
+        shader.bind();
         GL_CHECK(glBlendFunc(static_cast<GLenum>(state.srcBlendFactor), static_cast<GLenum>(state.dstBlendFactor)));
         return true;
     }
@@ -139,6 +144,13 @@ public:
         ++drawCalls;
 
         mesh.unbind();
+    }
+
+    static void drawIndices(Shader& shader, Span<uint32_t> indices, const RenderState& state = RenderState())
+    {
+        if (!prepare(shader, state)) { return; }
+        const GLenum glmode = static_cast<GLenum>(state.drawMode);
+        GL_CHECK(glDrawElements(glmode, indices.size(), GL_UNSIGNED_INT, indices.begin()));
     }
 
     static void setViewport(const Recti& vp, Vector2f targetSize = {-1,-1})
