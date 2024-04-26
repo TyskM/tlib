@@ -17,13 +17,25 @@ template <typename T>
 using WeakPtr = std::weak_ptr<T>;
 
 //// Unique Ptr
-template <typename T>
-using UPtr = std::unique_ptr<T>;
-
 using std::make_unique;
 template <typename T, typename... Args>
 auto makeUnique(Args&&... args)
 { return make_unique<T>(args...); }
+
+template <typename T>
+using UPtr = std::unique_ptr<T>;
+
+//template <typename T>
+//struct UPtr : public std::unique_ptr<T>
+//{
+//    using std::unique_ptr<T>::unique_ptr;
+//
+//    void init()
+//    {
+//        auto temp = makeUnique<T>();
+//        this->swap(temp);
+//    }
+//};
 
 //// Safe Ptr
 using SafeObj = eastl::safe_object;

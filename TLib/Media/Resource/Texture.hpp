@@ -106,7 +106,7 @@ static inline int32_t getFormatSize(TexInternalFormats format)
 }
 
 // OpenGL Texture
-struct Texture : NonCopyable
+struct Texture : NonAssignable
 {
 public:
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
@@ -126,42 +126,18 @@ private:
     int    height          =  0;
     int    boundSlot       = -1;
     TexInternalFormats internalFormat = TexInternalFormats::Unknown;
-    fs::path _path;
+    Path   _path;
 
 public:
     constexpr Texture() = default;
     Texture(const Path& filePath) { loadFromFile(filePath); }
-
-    Texture(Texture&& other) noexcept
-    {
-        reset();
-        glHandle        = other.glHandle;
-        other.glHandle  = 0;
-        other.boundSlot = -1;
-
-        width          = other.width;
-        height         = other.height;
-        boundSlot      = other.boundSlot;
-        internalFormat = other.internalFormat;
-        _path          = other._path;
-    }
-
-    Texture& operator=(Texture&& other) noexcept
-    {
-        reset();
-        glHandle        = other.glHandle;
-        other.glHandle  = 0;
-        other.boundSlot = -1;
-
-        width          = other.width;
-        height         = other.height;
-        boundSlot      = other.boundSlot;
-        internalFormat = other.internalFormat;
-        _path          = other._path;
-        return *this;
-    }
-
     ~Texture() { reset(); }
+
+    String toString() const
+    {
+        return fmt::format("Handle: {}, Width: {}, Height: {}, Slot: {}, Path: {}",
+                            glHandle,   width,     height,    boundSlot, _path.string());
+    }
 
     void reset()
     {

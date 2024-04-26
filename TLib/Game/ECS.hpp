@@ -1,6 +1,7 @@
 #pragma once
 
 #include <entt/entt.hpp>
+#include <TLib/Macros.hpp>
 
 using ECS        = entt::registry;
 using Entity     = entt::entity;

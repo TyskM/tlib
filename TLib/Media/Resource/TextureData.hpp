@@ -8,7 +8,7 @@
 #include <TLib/thirdparty/stbi.hpp>
 
 // CPU Texture information
-class TextureData : NonCopyable
+class TextureData : NonAssignable
 {
     stbi_uc* _ptr          = nullptr;
     int      _width        = 0;
@@ -25,18 +25,46 @@ public:
     TextureData(stbi_uc* data, int width, int height, int channelCount) :
         _ptr{data}, _width{_width}, _height{_height}, _channelCount{_channelCount} { }
 
-    bool loadFromPath(const fs::path& path, int reqComp = 4)
+    // TODO: should be names loadFromFile
+    bool loadFromPath(const Path& path, int reqComp = 4)
     {
-        reset();
-        stbi_uc* tempptr = stbi_load(path.string().c_str(), &_width, &_height, &_channelCount, reqComp);
-
-        if (tempptr == NULL)
+        bool pathExists = fs::exists(path);
+        if (!pathExists)
         {
-            tlog::error("TextureData: Failed to load file from path '{}'", path.string());
-            _ptr = nullptr;
+            tlog::error("TextureData::loadFromFile (FILE DOES NOT EXIST): Failed to load file from path '{}'", path.string());
             return false;
         }
 
+        bool pathIsFile = fs::is_regular_file(path);
+        if (!pathIsFile)
+        {
+            tlog::error("TextureData::loadFromFile (PATH IS NOT FILE): Failed to load file from path '{}'", path.string());
+            return false;
+        }
+
+        stbi_uc* tempptr = stbi_load(path.string().c_str(), &_width, &_height, &_channelCount, reqComp);
+        if (tempptr == NULL)
+        {
+            tlog::error("TextureData::loadFromFile (INVALID DATA/UNKNOWN): Failed to load file from path '{}'", path.string());
+            return false;
+        }
+
+        reset();
+        _ptr = tempptr;
+        return true;
+    }
+
+    bool loadFromMemory(uint8_t const* data, int32_t length, int reqComp = 4)
+    {
+        stbi_uc* tempptr = stbi_load_from_memory(data, length, &_width, &_height, &_channelCount, reqComp);
+
+        if (tempptr == NULL)
+        {
+            tlog::error("TextureData::loadFromMemory : Failed to load texture from memory with length {}", length);
+            return false;
+        }
+
+        reset();
         _ptr = tempptr;
         return true;
     }
@@ -53,12 +81,6 @@ public:
     inline stbi_uc* ptr()           const { return _ptr; }
 
     ~TextureData() noexcept { reset(); }
-
-    TextureData(TextureData&& other) noexcept
-    {
-        _ptr = other._ptr;
-        other._ptr = nullptr;
-    };
 
     operator bool() { valid(); }
 };

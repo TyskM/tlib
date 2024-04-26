@@ -1,6 +1,5 @@
 
 // TODO: Finish model example
-
 #include <TLib/DataStructures.hpp>
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/View.hpp>
@@ -55,7 +54,14 @@ static void initPhysics()
     ASSERT(foundation); // Failed to create foundation
 }
 
-void physTest()
+static void shutdownPhysics()
+{
+    ASSERT(foundation);
+    if (foundation)
+        foundation->release();
+}
+
+PxPhysics* createPhysics()
 {
     bool recordMemoryAllocations = true;
 
@@ -66,9 +72,18 @@ void physTest()
     auto mPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation,
         PxTolerancesScale(), recordMemoryAllocations, mPvd);
     ASSERT(!mPhysics);
+    return mPhysics;
 }
 
 #pragma endregion
+
+
+struct Vertex
+{
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 texCoords;
+};
 
 struct MeshSlice
 {
@@ -78,14 +93,14 @@ struct MeshSlice
     size_t eboSize  = 0;
 };
 
-enum class ViewMode
-{
-    Perspective,
-    Orthographic
-};
-
 struct Camera3D
 {
+    enum class ViewMode
+    {
+        Perspective,
+        Orthographic
+    };
+
     float     znear    = 0.02f;
     float     zfar     = 3000.f;
     float     fov      = 110.f;
@@ -124,35 +139,181 @@ struct Camera3D
     }
 };
 
-struct Vertex
+enum class TextureType
 {
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec2 texCoords;
+    None    = aiTextureType::aiTextureType_NONE,
+    Diffuse = aiTextureType::aiTextureType_DIFFUSE
 };
 
 struct MeshData
 {
-    using TextureType = aiTextureType;
-
-    struct MeshTexture
+    struct MeshDataTexture
     {
-        TextureType type    = aiTextureType_NONE;
-        Texture*    texture = nullptr;
+        TextureType       type = TextureType::None;
+        UPtr<TextureData> textureData;
     };
 
     struct SubMesh
     {
-        Vector<Vertex>   vertices;
-        Vector<uint32_t> indices;
+        Vector<Vertex>          vertices;
+        Vector<uint32_t>        indices;
+        Vector<MeshDataTexture> textures;
     };
 
+    Vector<SubMesh> subMeshes;
 
+    bool loadFromFile(const Path& path)
+    {
+        // https://learnopengl.com/Model-Loading/Model
+
+        const aiPostProcessSteps importerFlags =
+            aiProcess_Triangulate           | aiProcess_GenNormals    |
+            aiProcess_OptimizeMeshes        | aiProcess_OptimizeGraph |
+            aiProcess_JoinIdenticalVertices | // TODO: Read somewhere this flag could cause problems, maybe look into it.
+            aiProcess_FlipUVs; // Renderer class already handles the OpenGL conversion.
+
+        Assimp::Importer importer;
+        const aiScene* scene = importer.ReadFile(path.string(), importerFlags);
+
+        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+        {
+            tlog::error("MeshData::loadFromFile: Failed to load mesh\nReason: {}\nPath: {}\nWorking Directory: {}",
+                importer.GetErrorString(), path.string(), fs::current_path().string());
+            return false;
+        }
+
+        reset();
+
+        Path fileFolder = Path(path).remove_filename();
+
+        static Stack<aiNode*> stack;
+        stack.get_container().clear();
+        stack.push(scene->mRootNode);
+
+        while (!stack.empty())
+        {
+            aiNode* node = stack.top();
+            stack.pop();
+
+            uint32_t meshCount     = node->mNumMeshes;
+            bool     nodeHasMeshes = meshCount > 0;
+
+            if (nodeHasMeshes)
+            {
+                for (uint32_t i = 0; i < meshCount; i++)
+                {
+                    auto& subMesh  = subMeshes.emplace_back();
+                    auto& vertices = subMesh.vertices;
+                    auto& indices  = subMesh.indices;
+
+                    aiMesh*  mesh         = scene->mMeshes[node->mMeshes[i]];
+                    uint32_t verticeCount = mesh->mNumVertices;
+                    uint32_t faceCount    = mesh->mNumFaces;
+                    auto     texCoords    = mesh->mTextureCoords[0];
+
+                    // process vertex positions, normals and texture coordinates
+                    ASSERT(vertices.empty()); // sanity check because im a fuck up
+                    vertices.reserve(verticeCount);
+                    for (uint32_t i = 0; i < verticeCount; i++)
+                    {
+                        Vertex& vertex = subMesh.vertices.emplace_back();
+
+                        auto& pos = mesh->mVertices[i];
+                        vertex.position = glm::vec3(pos.x, pos.y, pos.z);
+
+                        auto& normal = mesh->mNormals[i];
+                        vertex.normal = glm::vec3(normal.x, normal.y, normal.z);
+
+                        if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
+                        { vertex.texCoords = { texCoords[i].x, texCoords[i].y }; }
+                        else
+                        { vertex.texCoords = glm::vec2(0.0f, 0.0f); }
+                    }
+
+                    // process indices
+                    ASSERT(indices.empty());
+                    indices.reserve(faceCount * 3);
+                    for (uint32_t i = 0; i < faceCount; i++)
+                    {
+                        aiFace&  face        = mesh->mFaces[i];
+                        uint32_t indiceCount = face.mNumIndices;
+                        for (uint32_t j = 0; j < indiceCount; j++)
+                        { indices.push_back(face.mIndices[j]); }
+                    }
+
+                    // process material
+                    if (mesh->mMaterialIndex >= 0)
+                    {
+                        aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+                        loadMaterialTextures(subMesh.textures, scene, material, aiTextureType_DIFFUSE, fileFolder);
+                        ////loadMaterialTextures(modelMesh.textures, material, aiTextureType_SPECULAR, path);
+                    }
+                }
+            }
+
+            // Queue children for above process
+            for (unsigned int i = 0; i < node->mNumChildren; i++)
+            { stack.push(node->mChildren[i]); }
+        }
+
+        return true;
+    }
+
+    void reset()
+    {
+        subMeshes.clear();
+    }
+
+private:
+    void loadMaterialTextures(Vector<MeshDataTexture>& textures, const aiScene* scene, aiMaterial* mat, aiTextureType type, const fs::path& path)
+    {
+        size_t texCount = mat->GetTextureCount(type);
+        for (unsigned int i = 0; i < texCount; i++)
+        {
+            aiString str;
+            mat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), str);
+            
+            bool pathIsEmpty = str.C_Str()[0] == '\0';
+            ASSERT(!pathIsEmpty);
+            if (pathIsEmpty) { continue; }
+
+            MeshDataTexture& newTex = textures.emplace_back();
+            newTex.textureData = makeUnique<TextureData>();
+            newTex.type = TextureType::Diffuse;
+
+            // EMBEDDED TEXTURE
+            if (const aiTexture* texture = scene->GetEmbeddedTexture(str.C_Str()))
+            {
+                // returned pointer is not null, read texture from memory
+
+                // TEXTURE IS PNG/JPEG
+                if (texture->mHeight == 0)
+                {
+                    bool success = newTex.textureData->loadFromMemory((uint8_t*)texture->pcData, texture->mWidth);
+                    if (!success)
+                    { tlog::error("loadMaterialTextures (EMBEDDED::PNG/JPEG): Failed to model texture '{}'", path.string()); continue; }
+                }
+
+                // TEXTURE IS RAW RGB
+                else
+                {
+                    bool success = newTex.textureData->loadFromMemory((uint8_t*)texture->pcData, texture->mWidth * texture->mHeight);
+                    if (!success)
+                    { tlog::error("loadMaterialTextures (EMBEDDED::RAW): Failed to model texture '{}'", path.string()); continue; }
+                }
+            }
+
+            // TEXTURE IN FILESYSTEM
+            else
+            {
+                Path texPath = (path / str.C_Str());
+                newTex.textureData->loadFromPath(texPath);
+            }
+        }
+    }
 };
 
-// TODO:
-// Optimize VAO usage. One per model? // Done, thanks aiProcess_OptimizeGraph
-/*
+/* DONE: Optimize VAO usage. One per model? // Done, thanks aiProcess_OptimizeGraph
 
 Use single global VAO, VBO, and EBO to avoid the overhead of switching them.
 
@@ -168,208 +329,59 @@ size_t eboIndex, eboSize;
 // Support materials
 struct Model : NonAssignable
 {
-public:
-    using TextureType = aiTextureType;
-
 private:
     struct MeshTexture
     {
-        TextureType type = aiTextureType_NONE;
-        Texture* texture = nullptr;
+        TextureType   type = TextureType::Diffuse;
+        UPtr<Texture> texture;
     };
 
     // TODO: move everything to one VAO wtf are you doing
     struct ModelMesh
     {
-        Mesh mesh;
+        UPtr<Mesh> data;
         Vector<MeshTexture> textures;
     };
 
-    static inline Vector<UPtr<Texture>> texCache;
     Vector<ModelMesh> meshes;
-
-    void loadMaterialTextures(Vector<MeshTexture>& textures, const aiScene* scene, aiMaterial* mat, aiTextureType type, const fs::path& path)
-    {
-        size_t texCount = mat->GetTextureCount(type);
-        for (unsigned int i = 0; i < texCount; i++)
-        {
-            aiString str;
-            //mat->GetTexture(type, i, &str);
-            mat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), str);
-            
-            MeshTexture&   newTex = textures.emplace_back();
-            UPtr<Texture>& tex    = texCache.emplace_back(makeUnique<Texture>());
-            newTex.texture = tex.get();
-            newTex.type = TextureType::aiTextureType_DIFFUSE;
-
-            // EMBEDDED TEXTURE
-            if (const aiTexture* texture = scene->GetEmbeddedTexture(str.C_Str()))
-            {
-                // returned pointer is not null, read texture from memory
-
-                int width, height, channels;
-
-                // TEXTURE IS PNG/JPEG
-                if (texture->mHeight == 0)
-                {
-                    stbi_uc* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(texture->pcData), texture->mWidth, &width, &height, &channels, 4);
-                    if (data == NULL)
-                    {
-                        tlog::error("loadMaterialTextures: Failed to model texture '{}'", path.string());
-                        continue;
-                    }
-                    tex->setData(data, width, height);
-                }
-                // TEXTURE IS RAW RGB
-                else
-                {
-                    stbi_uc* data = stbi_load_from_memory(reinterpret_cast<unsigned char*>(texture->pcData), texture->mWidth * texture->mHeight, &width, &height, &channels, 4);
-                    if (data == NULL)
-                    {
-                        tlog::error("loadMaterialTextures: Failed to model texture '{}'", path.string());
-                        continue;
-                    }
-                    tex->setData(data, width, height);
-                }
-            }
-            // TEXTURE IN FILESYSTEM
-            else
-            {
-                // regular file, check if it exists and read it
-                if (str.C_Str()[0] == '\0') { continue; } // String is empty
-                ASSERT(fs::exists(str.C_Str()));
-                fs::path texPath = (path / str.C_Str()).lexically_normal();
-                tex->loadFromFile(texPath);
-            }
-
-            tex->setUVMode(UVMode::Repeat);
-            tex->setFilter(TextureMinFilter::LinearMipmapLinear, TextureMagFilter::Linear);
-            tex->generateMipmaps();
-
-            //MeshTexture& newTex = textures.emplace_back();
-            //fs::path texPath = (path / str.C_Str()).lexically_normal();
-            //
-            //bool texIsCached = false;
-            //for (auto& cachedTex : texCache)
-            //{
-            //    if (cachedTex->isFromSamePath(texPath))
-            //    {
-            //        tlog::info("Dupe path");
-            //        texIsCached = true;
-            //        newTex.texture = cachedTex.get();
-            //        break;
-            //    }
-            //}
-            //
-            //// Load new texture
-            //if (!texIsCached)
-            //{
-            //    tlog::info("Loading new texture: {}", texPath.string());
-            //    newTex.texture = &loadNewTexture(texPath);
-            //}
-            //
-            //ASSERT(newTex.texture->valid());
-            //newTex.type = type;
-        }
-    }
 
 public:
     Vector<ModelMesh>& getMeshes()
     { return meshes; }
 
-    // Returns false on failure
-    bool loadFromFile(const fs::path& path)
+    bool loadFromMemory(const MeshData& meshData)
     {
-        // https://learnopengl.com/Model-Loading/Model
-
-        Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(path.string(),
-            aiProcess_Triangulate           |
-            aiProcess_GenNormals            |
-            aiProcess_OptimizeMeshes        |
-            aiProcess_OptimizeGraph         |
-            aiProcess_JoinIdenticalVertices | // TODO: Read somewhere this flag could cause problems, maybe look into it.
-            aiProcess_FlipUVs); // Renderer class already handles the OpenGL conversion.
-
-        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+        for (auto& subMesh : meshData.subMeshes)
         {
-            tlog::error("ASSIMP: Failed to load mesh\nReason: {}\nPath: {}\nWorking Directory: {}",
-                importer.GetErrorString(), path.string(), fs::current_path().string());
-            return false;
-        }
+            auto& mesh = meshes.emplace_back();
+            mesh.data  = makeUnique<Mesh>();
+            mesh.data->setLayout({ Layout::Vec3f(), Layout::Vec3f(), Layout::Vec2f() });
+            mesh.data->setData(subMesh.vertices);
+            mesh.data->setIndices(subMesh.indices);
 
-        reset();
-
-        Path fileFolder = Path(path).remove_filename();
-
-        static Stack<aiNode*>   stack;
-        static Vector<Vertex>   vertices;
-        static Vector<uint32_t> indices;
-        stack.get_container().clear();
-        stack.push(scene->mRootNode);
-        while (!stack.empty())
-        {
-            aiNode* node = stack.top();
-            stack.pop();
-
-            // process all the node's meshes (if any)
-            for (unsigned int i = 0; i < node->mNumMeshes; i++)
+            for (auto& cpuTexture : subMesh.textures)
             {
-                aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-
-                ModelMesh& modelMesh = meshes.emplace_back();
-                modelMesh.mesh.setLayout({ Layout::Vec3f(), Layout::Vec3f(), Layout::Vec2f() });
-
-                // process vertex positions, normals and texture coordinates
-                vertices.clear();
-                vertices.reserve(mesh->mNumVertices);
-                for (unsigned int i = 0; i < mesh->mNumVertices; i++)
-                {
-                    Vertex vertex;
-
-                    auto& pos = mesh->mVertices[i];
-                    vertex.position = glm::vec3(pos.x, pos.y, pos.z);
-
-                    auto& normal = mesh->mNormals[i];
-                    vertex.normal = glm::vec3(normal.x, normal.y, normal.z);
-
-                    if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
-                    { vertex.texCoords ={ mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y }; }
-                    else
-                    { vertex.texCoords = glm::vec2(0.0f, 0.0f); }
-
-                    vertices.push_back(vertex);
-                }
-
-                modelMesh.mesh.setData(vertices);
-
-                // process indices
-                indices.clear();
-                for (unsigned int i = 0; i < mesh->mNumFaces; i++)
-                {
-                    aiFace face = mesh->mFaces[i];
-                    for (unsigned int j = 0; j < face.mNumIndices; j++)
-                    { indices.push_back(face.mIndices[j]); }
-                }
-
-                modelMesh.mesh.setIndices(indices);
-                // process material
-                if (mesh->mMaterialIndex >= 0)
-                {
-                    aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-                    loadMaterialTextures(modelMesh.textures, scene, material, aiTextureType_DIFFUSE, fileFolder);
-                    //loadMaterialTextures(modelMesh.textures, material, aiTextureType_SPECULAR, path);
-                }
-            }
-
-            // Queue children for above process
-            for (unsigned int i = 0; i < node->mNumChildren; i++)
-            {
-                stack.push(node->mChildren[i]);
+                auto& gpuTexture = mesh.textures.emplace_back();
+                gpuTexture.texture = makeUnique<Texture>();
+                gpuTexture.texture->setData(*cpuTexture.textureData);
+                gpuTexture.texture->setUVMode(UVMode::Repeat);
+                gpuTexture.texture->setFilter(TextureMinFilter::LinearMipmapLinear, TextureMagFilter::Linear);
+                gpuTexture.texture->generateMipmaps();
             }
         }
 
         return true;
+    }
+
+    // Returns false on failure
+    bool loadFromFile(const Path& path)
+    {
+        MeshData meshData;
+        bool success = meshData.loadFromFile(path);
+        if (!success) { tlog::error("Model::loadFromFile: Failed to load mesh"); return false; }
+        ASSERT(success);
+
+        return loadFromMemory(meshData);
     }
 
     void reset()
@@ -404,7 +416,7 @@ class Renderer3D
 {
     struct DrawCmd
     {
-        Model& model;
+        Model&    model;
         Transform transform;
 
         DrawCmd(Model& m, const Transform& tf) :
@@ -424,7 +436,7 @@ public:
     static inline GLubyte defaultTexColor[4] ={ 255, 255, 255, 255 };
     static inline GLubyte defaultTexData[defaultTexDataSize][defaultTexDataSize][4];
 
-    static inline bool useMSAA      = false; // Read / Write. Creates ugly artifacts, find post processing solution.
+    static inline bool useMSAA      = true;  // Read / Write. Creates ugly artifacts (sometimes), find post processing solution.
     static inline bool useDithering = false; // Read / Write. Is a no op on most implementations.
 
 private:
@@ -491,19 +503,19 @@ public:
                 // If there's no texture, use default texture
                 if (mesh.textures.empty())
                 {
-                    drawMeshImmediate(mesh.mesh, defaultTex, cmd.transform);
+                    drawMeshImmediate(*mesh.data, defaultTex, cmd.transform);
                 }
                 else
                 {
                     for (auto& tex : mesh.textures)
                     {
-                        if (tex.type == Model::TextureType::aiTextureType_DIFFUSE)
+                        if (tex.type == TextureType::Diffuse)
                         {
                             // Only use diffuse for now
                             // TODO: use the rest of the textures
                             // make a uniform block for all of them, and set them all at once.
-                            ASSERT(tex.texture && tex.texture->valid());
-                            drawMeshImmediate(mesh.mesh, *tex.texture, cmd.transform);
+                            ASSERT(tex.texture->valid());
+                            drawMeshImmediate(*mesh.data, *tex.texture, cmd.transform);
                             break;
                         }
                     }
@@ -630,13 +642,44 @@ String guiModel;
 float guiLightColor[3] ={ 0.5f, 0.5f, 0.5f };
 float totalTime = 0.f;
 
+PxPhysics* physics = nullptr;
+
 void init()
 {
     initPhysics();
+    physics = createPhysics();
 
+    // Load level mesh
+    MeshData levelMesh;
+    levelMesh.loadFromFile("assets/gm_construct/gm_construct.glb");
+
+    for (auto& submesh : levelMesh.subMeshes)
+    {
+        PxTriangleMeshDesc meshDesc;
+        meshDesc.points.count           = submesh.vertices.size();;
+        meshDesc.points.stride          = sizeof(PxVec3);
+        meshDesc.points.data            = submesh.vertices.data();
+        meshDesc.triangles.count        = submesh.indices.size()/3;
+        meshDesc.triangles.stride       = 3*sizeof(PxU32);
+        meshDesc.triangles.data         = submesh.indices.data();
+
+        PxTolerancesScale scale;
+        PxCookingParams params(scale);
+
+        PxDefaultMemoryOutputStream writeBuffer;
+        PxTriangleMeshCookingResult::Enum result;
+        bool status = PxCookTriangleMesh(params, meshDesc, writeBuffer, NULL);
+        ASSERT(status);
+
+        PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+
+        physics->createTriangleMesh(readBuffer);
+    }
+
+    // Upload to GPU
     auto& m = models.emplace_back();
     m.modelPtr = new Model();
-    m.modelPtr->loadFromFile("assets/gm_construct/gm_construct.glb");
+    m.modelPtr->loadFromMemory(levelMesh);
 }
 
 void update(float delta)
