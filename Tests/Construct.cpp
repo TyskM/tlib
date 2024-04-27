@@ -471,25 +471,6 @@ private:
         glm::mat4 lightSpaceMatrix = lightProjection * lightView;
     }
 
-    static void setupRender()
-    {
-        GL_CHECK(glEnable(GL_DEPTH_TEST));
-        GL_CHECK(glEnable(GL_BLEND));
-        GL_CHECK(glEnable(GL_CULL_FACE));
-        GL_CHECK(glFrontFace(GL_CCW));
-        GL_CHECK(glEnable(GL_DITHER));
-
-        if (useDithering) { GL_CHECK(glEnable(GL_DITHER)); }
-        else { GL_CHECK(glDisable(GL_DITHER)); }
-
-        if (useMSAA) { GL_CHECK(glEnable(GL_MULTISAMPLE)); }
-        else { GL_CHECK(glDisable(GL_MULTISAMPLE)); }
-
-        shader3d.setInt  ("material.diffuse", 0);
-        shader3d.setInt  ("material.specular", 1);
-        shader3d.setFloat("material.shininess", 32);
-    }
-
     static void drawMeshImmediate(Mesh& mesh, Texture& tex, const Transform& transform)
     {
         tex.bind();
@@ -511,20 +492,34 @@ public:
     {
         if (cmds.empty()) { return; }
 
-        setupRender();
+        GL_CHECK(glEnable(GL_DEPTH_TEST));
+        GL_CHECK(glEnable(GL_BLEND));
+        GL_CHECK(glEnable(GL_CULL_FACE));
+        GL_CHECK(glFrontFace(GL_CCW));
+        GL_CHECK(glEnable(GL_DITHER));
 
-        Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)));
-        shadowFbo.bind();
-        glClear(GL_DEPTH_BUFFER_BIT);
-        // Shadows here
-        shadowFbo.unbind();
-        Renderer2D::setView(Renderer2D::getView());
+        if (useDithering) { GL_CHECK(glEnable(GL_DITHER)); }
+        else { GL_CHECK(glDisable(GL_DITHER)); }
+
+        if (useMSAA) { GL_CHECK(glEnable(GL_MULTISAMPLE)); }
+        else { GL_CHECK(glDisable(GL_MULTISAMPLE)); }
+
+        shader3d.setInt  ("material.diffuse",   0);
+        shader3d.setInt  ("material.specular",  1);
+        shader3d.setFloat("material.shininess", 32);
+
+        //Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)));
+        //shadowFbo.bind();
+        //glClear(GL_DEPTH_BUFFER_BIT);
+        //// Shadows here
+        //shadowFbo.unbind();
+        //Renderer2D::setView(Renderer2D::getView());
 
         glEnable(GL_PRIMITIVE_RESTART);
         glPrimitiveRestartIndex(restartIndex);
 
-        primitiveMesh.setData   (primitivePositions, AccessType::Dynamic);
-        primitiveMesh.setIndices(primitiveIndices,   AccessType::Dynamic);
+        //primitiveMesh.setData   (primitivePositions, AccessType::Dynamic);
+        //primitiveMesh.setIndices(primitiveIndices,   AccessType::Dynamic);
 
         bool     stateChanged = true;
         uint32_t primOffset = 0;
@@ -535,9 +530,18 @@ public:
             {
                 PrimitiveDrawCmd& cmd = std::get<PrimitiveDrawCmd>(varCmd);
 
-                auto start = primitiveIndices.begin() + primOffset;
-                auto end   = start + cmd.indSize - 1;
-                flushPrimitives(*cmd.shader, cmd.drawMode, Span<uint32_t>(start, end));
+                Span<Vector3f> pos(primitivePositions.begin() + cmd.posIndex, cmd.posSize);
+                Span<uint32_t> ind(primitiveIndices.begin()   + cmd.indIndex, cmd.indSize);
+
+                primitiveMesh.setData   (pos, AccessType::Dynamic);
+                primitiveMesh.setIndices(ind, AccessType::Dynamic);
+
+                RenderState rs; rs.drawMode = cmd.drawMode;
+                Renderer::draw(*cmd.shader, primitiveMesh, rs);
+
+                //auto start = primitiveIndices.begin() + primOffset;
+                //auto end   = start + cmd.indSize - 1;
+                //flushPrimitives(*cmd.shader, cmd.drawMode, Span<uint32_t>(start, end));
                 primOffset = cmd.indIndex + cmd.indSize;
             }
 
@@ -582,6 +586,7 @@ public:
         defaultPrimitiveShader.create(
             myEmbeds.at("TLib/Embed/Shaders/3d_primitive.vert").asString(),
             myEmbeds.at("TLib/Embed/Shaders/3d_primitive.frag").asString());
+        defaultPrimitiveShader.setMat4f("model", glm::mat4(1));
         primitivePositions.reserve(1024 * 4);
         primitiveIndices  .reserve(1024 * 4);
 
@@ -638,13 +643,18 @@ public:
         shader3d.setMat4f("projection", proj);
         shader3d.setMat4f("view", view);
         shader3d.setVec3f("viewPos", camera.pos);
+
+        defaultPrimitiveShader.setMat4f("projection", proj);
+        defaultPrimitiveShader.setMat4f("view",       view);
+        defaultPrimitiveShader.setVec3f("viewPos",    camera.pos);
     }
 
     static void drawModel(Model& model, const Transform& transform)
     {
-        ModelDrawCmd& cmd = std::get<ModelDrawCmd>(cmds.emplace_back());
-        cmd.model     = &model;
-        cmd.transform = transform;
+        DrawCmd&      var = cmds.emplace_back();
+        ModelDrawCmd& cmd = var.emplace<ModelDrawCmd>();
+        cmd.model         = &model;
+        cmd.transform     = transform;
     }
 
     static void drawLines(
@@ -668,6 +678,7 @@ public:
         cmd.indSize  = points.size();
         cmd.posSize  = points.size();
 
+        //primitiveIndices.push_back(restartIndex);
         for (int i = 0; i < points.size(); i++)
         {
             const Vector3f& p = points[i];
@@ -701,6 +712,7 @@ String vertShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString();
 String fragShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString();
 
 // Cam vars
+bool  freeCam  = false;
 float sens     = 0.1f;
 float camSpeed = 12.f;
 float yaw      = 0.f;
@@ -758,16 +770,18 @@ void init()
     ASSERT(scene);
 
     // Init debug render
-    scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
-    scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f);
-    scene->setVisualizationParameter(PxVisualizationParameter::eACTOR_AXES, 2.0f);
+    scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f); // Required
+    scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f); // Laggy
+    //scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_DYNAMIC, 1.0f);
+    //scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_STATIC, 1.0f);
+    //scene->setVisualizationParameter(PxVisualizationParameter::eACTOR_AXES, 2.0f);
 
     PxShapeFlags shapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE;
     PxMaterial* mat = physics->createMaterial(1, 1, 1);
 
     // Load level mesh
     MeshData levelMesh;
-    levelMesh.loadFromFile("assets/gm_construct/gm_construct.glb");
+    levelMesh.loadFromFile("assets/space_station.glb");
 
     for (auto& submesh : levelMesh.subMeshes)
     {
@@ -778,14 +792,22 @@ void init()
         }
     }
 
+    // Level collision
     for (auto& submesh : levelMesh.subMeshes)
     {
         PxTriangleMeshDesc meshDesc;
-        meshDesc.points.count           = submesh.vertices.size();;
-        meshDesc.points.stride          = sizeof(PxVec3);
-        meshDesc.points.data            = submesh.vertices.data();
-        meshDesc.triangles.count        = submesh.indices.size()/3;
-        meshDesc.triangles.stride       = 3*sizeof(PxU32);
+
+        Vector<Vector3f> vertices;
+        for (auto& vert : submesh.vertices)
+        {
+            vertices.emplace_back(vert.position);
+        }
+
+        meshDesc.points.count           = vertices.size();;
+        meshDesc.points.stride          = sizeof(Vector3f);
+        meshDesc.points.data            = vertices.data();
+        meshDesc.triangles.count        = submesh.indices.size();
+        meshDesc.triangles.stride       = 3*sizeof(uint32_t);
         meshDesc.triangles.data         = submesh.indices.data();
 
         PxDefaultMemoryOutputStream writeBuffer;
@@ -794,12 +816,14 @@ void init()
 
         PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
 
-        physics->createTriangleMesh(readBuffer);
+        PxTriangleMesh* triMesh = physics->createTriangleMesh(readBuffer);
         
-        PxRigidStatic* rigidStatic = physics->createRigidStatic(PxTransformFromPlaneEquation(PxPlane(PxVec3(0.f, 1.f, 0.f), 0.f)));
+        PxMeshScale triScale(physx::PxVec3(1.0f, 1.0f, 1.0f), physx::PxQuat(physx::PxIdentity));
+        PxRigidStatic* rigidStatic = physics->createRigidStatic(PxTransform({0, 0, 0}));
         {
-            PxPlaneGeometry s;
-            PxShape* shape = physics->createShape(s, *mat, true, shapeFlags);
+            PxShape* shape = physics->createShape(PxTriangleMeshGeometry(triMesh, triScale), *mat, true, shapeFlags);
+            shape->setContactOffset(0.002f);
+            shape->setRestOffset(0.002f);
             rigidStatic->attachShape(*shape);
             shape->release(); // this way shape gets automatically released with actor
         }
@@ -813,9 +837,10 @@ void init()
     m.modelPtr->loadFromMemory(levelMesh);
 
     // Player geometry
-    playerShape = physics->createRigidDynamic(PxTransform(PxVec3(0.f, -10.f, 0.f)));
+    playerShape = physics->createRigidDynamic(PxTransform(PxVec3(0.f, 0.f, 0.f)));
     {
-        PxShape* shape = physics->createShape(PxBoxGeometry(2.f, 2.f, 2.f), *mat, true, shapeFlags);
+        PxShape* shape = physics->createShape(PxBoxGeometry(0.5f, 1.f, 0.5f), *mat, true, shapeFlags);
+        shape->setLocalPose(PxTransform(0.f, -0.3f, 0.f));
         playerShape->attachShape(*shape);
         shape->release(); // this way shape gets automatically released with actor
     }
@@ -937,13 +962,18 @@ void update(float delta)
         moveDir.x = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
         moveDir.y = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
 
-        if (moveDir.x)
-        { camera.pos += glm::normalize(glm::cross(cameraFront, camera.up)) * camSpeed * moveDir.x * delta; }
-        if (moveDir.y)
-        { camera.pos += camSpeed * cameraFront * moveDir.y * delta; }
-
-        //auto playerTransform = playerShape->getGlobalPose();
-        //camera.pos = { playerTransform.p.x, playerTransform.p.y, playerTransform.p.z };
+        if (freeCam)
+        {
+            if (moveDir.x)
+            { camera.pos += glm::normalize(glm::cross(cameraFront, camera.up)) * camSpeed * moveDir.x * delta; }
+            if (moveDir.y)
+            { camera.pos += camSpeed * cameraFront * moveDir.y * delta; }
+        }
+        else
+        {
+            auto playerTransform = playerShape->getGlobalPose();
+            camera.pos = { playerTransform.p.x, playerTransform.p.y, playerTransform.p.z };
+        }
 
         camera.target = camera.pos + glm::normalize(direction);
         R3D::setCamera(camera);
@@ -958,15 +988,10 @@ void draw(float delta)
     Vector3f lightPos  ={ lightX, 0.f, lightZ };
     R3D::addLight(lightPos, { guiLightColor[0], guiLightColor[1], guiLightColor[2] });
 
-    //for (auto& modelInst : models)
-    //{
-    //    ASSERT(modelInst.modelPtr);
-    //    R3D::drawModel(*modelInst.modelPtr, modelInst.transform);
-    //}
-
-    for (auto& v : levelMeshVerts)
+    for (auto& modelInst : models)
     {
-        R3D::drawLines(v);
+        ASSERT(modelInst.modelPtr);
+        R3D::drawModel(*modelInst.modelPtr, modelInst.transform);
     }
 
     const PxRenderBuffer& rb = scene->getRenderBuffer();
@@ -976,11 +1001,17 @@ void draw(float delta)
         // render the point
     }
 
+    static Vector<Vector3f> lines;
+    lines.clear();
+    lines.reserve(rb.getNbLines());
     for (PxU32 i=0; i < rb.getNbLines(); i++)
     {
         const PxDebugLine& line = rb.getLines()[i];
         // render the line
+        lines.emplace_back(line.pos0.x, line.pos0.y, line.pos0.z);
+        lines.emplace_back(line.pos1.x, line.pos1.y, line.pos1.z);
     }
+    R3D::drawLines(lines, ColorRGBAf::white(), GLDrawMode::Lines);
     
 }
 
