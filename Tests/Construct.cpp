@@ -21,6 +21,7 @@
 #include <physx/foundation/PxErrorCallback.h>
 #include <physx/foundation/PxFoundation.h>
 #include <physx/extensions/PxDefaultSimulationFilterShader.h>
+#include <physx/characterkinematic/PxCapsuleController.h>
 
 #pragma region Physics
 
@@ -712,11 +713,14 @@ String vertShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString();
 String fragShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString();
 
 // Cam vars
-bool  freeCam  = false;
-float sens     = 0.1f;
-float camSpeed = 12.f;
-float yaw      = 0.f;
-float pitch    = 0.f;
+bool  freeCam   = false;
+float sens      = 0.1f;
+float camSpeed  = 12.f;
+float yaw       = 0.f;
+float pitch     = 0.f;
+float walkSpeed = 100.f;
+
+bool debugDrawPhysics = false;
 
 void resetCamera()
 {
@@ -769,19 +773,12 @@ void init()
     scene = physics->createScene(desc);
     ASSERT(scene);
 
-    // Init debug render
-    scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f); // Required
-    scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f); // Laggy
-    //scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_DYNAMIC, 1.0f);
-    //scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_STATIC, 1.0f);
-    //scene->setVisualizationParameter(PxVisualizationParameter::eACTOR_AXES, 2.0f);
-
     PxShapeFlags shapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE;
     PxMaterial* mat = physics->createMaterial(1, 1, 1);
 
     // Load level mesh
     MeshData levelMesh;
-    levelMesh.loadFromFile("assets/space_station.glb");
+    levelMesh.loadFromFile("assets/scuffed_construct.glb");
 
     for (auto& submesh : levelMesh.subMeshes)
     {
@@ -837,13 +834,21 @@ void init()
     m.modelPtr->loadFromMemory(levelMesh);
 
     // Player geometry
-    playerShape = physics->createRigidDynamic(PxTransform(PxVec3(0.f, 0.f, 0.f)));
+    PxMaterial* playerMat = physics->createMaterial(0, 0, 0);
+    PxQuat rot(PxHalfPi, PxVec3(0, 0, 1));
+    playerShape = physics->createRigidDynamic(PxTransform(PxVec3(0.f, 0.f, 0.f), rot));
     {
-        PxShape* shape = physics->createShape(PxBoxGeometry(0.5f, 1.f, 0.5f), *mat, true, shapeFlags);
-        shape->setLocalPose(PxTransform(0.f, -0.3f, 0.f));
+        PxShape* shape = physics->createShape(PxCapsuleGeometry(0.5f, 0.5f), *playerMat, true, shapeFlags);
+        //shape->setLocalPose(PxTransform(0.f, -0.3f, 0.f));
         playerShape->attachShape(*shape);
         shape->release(); // this way shape gets automatically released with actor
     }
+    playerShape->setRigidDynamicLockFlag(PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z, true);
+    playerShape->setRigidDynamicLockFlag(PxRigidDynamicLockFlag::eLOCK_ANGULAR_X, true);
+    playerShape->setRigidDynamicLockFlag(PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y, true);
+    playerShape->setMaxLinearVelocity(walkSpeed);
+    playerShape->setLinearDamping(0.9999);
+    playerShape->setMass(100.f);
 
     scene->addActor(*playerShape);
 }
@@ -872,6 +877,22 @@ void update(float delta)
 
     #pragma region UI
     beginDiagWidgetExt();
+
+    if (ImGui::Checkbox("Physics Debug", &debugDrawPhysics))
+    {
+        if (debugDrawPhysics)
+        {
+            scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f); // Required
+            scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
+        }
+        else
+        {
+            scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 0.f);
+            scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 0.f);
+        }
+    }
+
+    ImGui::Checkbox("Freecam", &freeCam);
 
     auto playerPos = playerShape->getGlobalPose();
     static Vector3f guiTeleport;
@@ -952,30 +973,49 @@ void update(float delta)
             pitch  = std::clamp(pitch, -89.f, 89.f);
         }
 
-        glm::vec3 direction{};
-        direction.x      = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-        direction.y      = sin(glm::radians(pitch));
-        direction.z      = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-        auto cameraFront = glm::normalize(direction);
-
         Vector2f moveDir;
         moveDir.x = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
         moveDir.y = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
 
         if (freeCam)
         {
-            if (moveDir.x)
-            { camera.pos += glm::normalize(glm::cross(cameraFront, camera.up)) * camSpeed * moveDir.x * delta; }
-            if (moveDir.y)
-            { camera.pos += camSpeed * cameraFront * moveDir.y * delta; }
+            glm::vec3 dir{};
+            dir.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+            dir.y = sin(glm::radians(pitch));
+            dir.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+            auto front = glm::normalize(dir);
+
+            glm::vec3 finalMovement{};
+            if (moveDir.x) finalMovement += glm::normalize(glm::cross(front, camera.up)) * moveDir.x * delta;
+            if (moveDir.y) finalMovement += front * moveDir.y * delta;
+
+            if (moveDir.x) { camera.pos += glm::normalize(glm::cross(front, camera.up)) * camSpeed * moveDir.x * delta; }
+            if (moveDir.y) { camera.pos += camSpeed * front * moveDir.y * delta; }
+
+            camera.target = camera.pos + glm::normalize(dir);
         }
         else
         {
+            glm::vec3 dir{};
+            dir.x = cos(glm::radians(yaw));
+            dir.y = sin(glm::radians(pitch));
+            dir.z = sin(glm::radians(yaw));
+            auto front = glm::normalize(dir);
+
+            glm::vec3 finalMovement{};
+            if (moveDir.x) finalMovement += glm::normalize(glm::cross(front, camera.up)) * moveDir.x * delta;
+            if (moveDir.y) finalMovement += front * moveDir.y * delta;
+
             auto playerTransform = playerShape->getGlobalPose();
-            camera.pos = { playerTransform.p.x, playerTransform.p.y, playerTransform.p.z };
+            float mass = playerShape->getMass();
+            float moveSpeed = 10.f;
+            camera.pos ={ playerTransform.p.x, playerTransform.p.y, playerTransform.p.z };
+            playerShape->addForce(PxVec3(finalMovement.x * mass * moveSpeed, 0, finalMovement.z * mass * moveSpeed), PxForceMode::eIMPULSE);
+
+            camera.target = camera.pos + glm::normalize(dir);
         }
 
-        camera.target = camera.pos + glm::normalize(direction);
+        
         R3D::setCamera(camera);
     }
 }
@@ -994,31 +1034,35 @@ void draw(float delta)
         R3D::drawModel(*modelInst.modelPtr, modelInst.transform);
     }
 
-    const PxRenderBuffer& rb = scene->getRenderBuffer();
-    for (PxU32 i=0; i < rb.getNbPoints(); i++)
+    if (debugDrawPhysics)
     {
-        const PxDebugPoint& point = rb.getPoints()[i];
-        // render the point
-    }
+        const PxRenderBuffer& rb = scene->getRenderBuffer();
+        for (PxU32 i=0; i < rb.getNbPoints(); i++)
+        {
+            const PxDebugPoint& point = rb.getPoints()[i];
+            // render the point
+        }
 
-    static Vector<Vector3f> lines;
-    lines.clear();
-    lines.reserve(rb.getNbLines());
-    for (PxU32 i=0; i < rb.getNbLines(); i++)
-    {
-        const PxDebugLine& line = rb.getLines()[i];
-        // render the line
-        lines.emplace_back(line.pos0.x, line.pos0.y, line.pos0.z);
-        lines.emplace_back(line.pos1.x, line.pos1.y, line.pos1.z);
+        static Vector<Vector3f> lines;
+        lines.clear();
+        lines.reserve(rb.getNbLines());
+        for (PxU32 i=0; i < rb.getNbLines(); i++)
+        {
+            const PxDebugLine& line = rb.getLines()[i];
+            // render the line
+            lines.emplace_back(line.pos0.x, line.pos0.y, line.pos0.z);
+            lines.emplace_back(line.pos1.x, line.pos1.y, line.pos1.z);
+        }
+        if (!lines.empty())
+            R3D::drawLines(lines, ColorRGBAf::white(), GLDrawMode::Lines);
     }
-    R3D::drawLines(lines, ColorRGBAf::white(), GLDrawMode::Lines);
     
 }
 
 int main()
 {
     WindowCreateParams p;
-    p.size  = { 1280, 720 };
+    p.size  = { 1600, 900 };
     p.title = "Construct";
     window.create(p);
     Renderer::create();
