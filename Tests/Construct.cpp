@@ -77,7 +77,6 @@ PxPhysics* createPhysics(PxTolerancesScale& scale)
 
 #pragma endregion
 
-
 struct Vertex
 {
     glm::vec3 position;
@@ -431,10 +430,16 @@ class Renderer3D
 
     using DrawCmd = Variant<PrimitiveDrawCmd, ModelDrawCmd>;
 
-    static inline Vector<Vector3f> primitivePositions;
-    static inline Vector<uint32_t> primitiveIndices;
-    static inline Mesh             primitiveMesh;
-    static inline Shader           defaultPrimitiveShader;
+    struct PrimVertex
+    {
+        Vector3f   pos;
+        ColorRGBAf color;
+    };
+
+    static inline Vector<PrimVertex> primitiveVerts;
+    static inline Vector<uint32_t>   primitiveIndices;
+    static inline Mesh               primitiveMesh;
+    static inline Shader             defaultPrimitiveShader;
 
     static constexpr GLuint restartIndex = std::numeric_limits<GLuint>::max();
 
@@ -519,9 +524,6 @@ public:
         glEnable(GL_PRIMITIVE_RESTART);
         glPrimitiveRestartIndex(restartIndex);
 
-        //primitiveMesh.setData   (primitivePositions, AccessType::Dynamic);
-        //primitiveMesh.setIndices(primitiveIndices,   AccessType::Dynamic);
-
         bool     stateChanged = true;
         uint32_t primOffset = 0;
 
@@ -531,8 +533,8 @@ public:
             {
                 PrimitiveDrawCmd& cmd = std::get<PrimitiveDrawCmd>(varCmd);
 
-                Span<Vector3f> pos(primitivePositions.begin() + cmd.posIndex, cmd.posSize);
-                Span<uint32_t> ind(primitiveIndices.begin()   + cmd.indIndex, cmd.indSize);
+                Span<PrimVertex> pos(primitiveVerts.begin()   + cmd.posIndex, cmd.posSize);
+                Span<uint32_t>   ind(primitiveIndices.begin() + cmd.indIndex, cmd.indSize);
 
                 primitiveMesh.setData   (pos, AccessType::Dynamic);
                 primitiveMesh.setIndices(ind, AccessType::Dynamic);
@@ -577,19 +579,19 @@ public:
         }
 
         cmds.clear();
-        primitivePositions.clear();
+        primitiveVerts.clear();
         primitiveIndices.clear();
     }
 
     static void create()
     {
-        primitiveMesh.setLayout({ Layout::Vec3f() });
+        primitiveMesh.setLayout({ Layout::Vec3f(), Layout::Vec4f() });
         defaultPrimitiveShader.create(
             myEmbeds.at("TLib/Embed/Shaders/3d_primitive.vert").asString(),
             myEmbeds.at("TLib/Embed/Shaders/3d_primitive.frag").asString());
         defaultPrimitiveShader.setMat4f("model", glm::mat4(1));
-        primitivePositions.reserve(1024 * 4);
-        primitiveIndices  .reserve(1024 * 4);
+        primitiveVerts   .reserve(1024 * 4);
+        primitiveIndices .reserve(1024 * 4);
 
         defaultTex.create();
 
@@ -664,7 +666,7 @@ public:
         const GLDrawMode            mode   = GLDrawMode::LineStrip,
               Shader&               shader = defaultPrimitiveShader)
     {
-        ASSERT(points.size() > 0);
+        if (points.empty()) { return; }
 
         auto& var = cmds.emplace_back();
         auto& cmd = std::get<PrimitiveDrawCmd>(var);
@@ -674,7 +676,7 @@ public:
         cmd.color    = color;
 
         cmd.indIndex = primitiveIndices.size();
-        cmd.posIndex = primitivePositions.size();
+        cmd.posIndex = primitiveVerts.size();
         
         cmd.indSize  = points.size();
         cmd.posSize  = points.size();
@@ -683,7 +685,9 @@ public:
         for (int i = 0; i < points.size(); i++)
         {
             const Vector3f& p = points[i];
-            primitivePositions.emplace_back(p.x, p.y, p.z);
+            auto& vert = primitiveVerts.emplace_back();
+            vert.pos   = p;
+            vert.color = color;
             primitiveIndices.push_back(i);
         }
     }
@@ -703,33 +707,136 @@ struct ModelInstance
     Model* modelPtr = nullptr;
 };
 
+Vector<Vector3f> lines;
+
+struct PlayerController
+{
+private:
+    Vector2f moveDir;
+    glm::vec3 dir{};
+    glm::vec3 front{};
+    bool jump = false;
+
+public:
+    Camera3D camera;
+    bool     freeCam      = false;
+    float    sens         = 0.1f;
+    float    freeCamSpeed = 12.f;
+    float    yaw          = 0.f;
+    float    pitch        = 0.f;
+
+    float    moveSpeed =  1.f;
+    float    gravity   = -0.025f;
+    float    friction  =  0.92f;
+    float    jumpPower =  0.5f;
+    Vector3f velocity;
+
+    PxController* playerController = nullptr;
+    float         playerHeight     = 0.8f;
+
+    bool  isOnGround        = false;
+
+    void update(float delta, bool mouseCaptured)
+    {
+        if (mouseCaptured)
+        {
+            yaw   += float(Input::mouseDelta.x) * sens;
+            pitch -= float(Input::mouseDelta.y) * sens;
+            pitch  = std::clamp(pitch, -89.f, 89.f);
+        }
+
+        moveDir.x = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
+        moveDir.y = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
+
+        if (freeCam)
+        {
+            dir.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+            dir.y = sin(glm::radians(pitch));
+            dir.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+            front = glm::normalize(dir);
+
+            glm::vec3 finalMovement{};
+            if (moveDir.x) finalMovement += glm::normalize(glm::cross(front, camera.up)) * moveDir.x * delta;
+            if (moveDir.y) finalMovement += front * moveDir.y * delta;
+
+            camera.pos += finalMovement * freeCamSpeed;
+        }
+        else
+        {
+            dir.x = cos(glm::radians(yaw));
+            dir.y = sin(glm::radians(pitch));
+            dir.z = sin(glm::radians(yaw));
+            front = glm::normalize(dir);
+
+            if (Input::isKeyJustPressed(SDL_SCANCODE_SPACE))
+            { jump = true; }
+
+            const auto& pos = playerController->getPosition();
+            camera.pos = { pos.x, pos.y + playerHeight/2.f, pos.z };
+        }
+        camera.target = camera.pos + glm::normalize(dir);
+    }
+
+    void fixedUpdate(float delta)
+    {
+        if (freeCam) { }
+        else
+        {
+            const auto& pos = playerController->getPosition();
+
+            glm::vec3 finalMovement{};
+            if (moveDir.x) finalMovement += glm::normalize(glm::cross(front, camera.up)) * moveDir.x * delta;
+            if (moveDir.y) finalMovement += front * moveDir.y * delta;
+
+            PxControllerState state;
+            playerController->getState(state);
+
+            velocity.x += finalMovement.x * moveSpeed;
+            velocity.z += finalMovement.z * moveSpeed;
+
+            auto* scene = playerController->getScene();
+
+            //PxRaycastBuffer hit;
+            //PxQueryFilterData d; d.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eANY_HIT;
+            //isOnGround = scene->raycast(PxVec3(pos.x, pos.y, pos.z), PxVec3(0, -1, 0), onGroundRayLength, hit, PxHitFlag::eANY_HIT, d);
+
+            if (jump)
+            {
+                jump = false;
+                if (isOnGround)
+                { velocity.y += jumpPower; isOnGround = false; }
+            }
+            else if (!isOnGround)
+            { velocity.y += gravity; }
+
+            velocity *= friction;
+
+            PxControllerFilters filters;
+            filters.mFilterFlags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+            PxControllerCollisionFlags flags = playerController->move(PxVec3(velocity.x, velocity.y, velocity.z), 0.002f, delta, filters);
+            isOnGround = flags & PxControllerCollisionFlag::eCOLLISION_DOWN;
+        }
+    }
+
+    void resetCamera()
+    {
+        camera     = Camera3D();
+        pitch      = 0;
+        yaw        = 0;
+    }
+};
+
 Window     window;
 MyGui      imgui;
 FPSLimit   fpslimit;
 Timer      deltaTimer;
-Camera3D   camera;
 
 String vertShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString();
 String fragShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString();
 
-// Cam vars
-bool  freeCam   = false;
-float sens      = 0.1f;
-float camSpeed  = 12.f;
-float yaw       = 0.f;
-float pitch     = 0.f;
-float walkSpeed = 100.f;
-
 bool debugDrawPhysics = false;
-
-void resetCamera()
-{
-    camera     = Camera3D();
-    pitch      = 0;
-    yaw        = 0;
-}
-
 Vector<ModelInstance> models;
+PlayerController controller;
 
 const char* presetModelPaths[7] =
 {
@@ -746,11 +853,9 @@ String guiModel;
 float guiLightColor[3] ={ 0.5f, 0.5f, 0.5f };
 float totalTime = 0.f;
 
-PxPhysics*      physics     = nullptr;
-PxScene*        scene       = nullptr;
-PxRigidDynamic* playerShape = nullptr;
-
-Vector<Vector<Vector3f>> levelMeshVerts;
+PxPhysics*           physics          = nullptr;
+PxScene*             scene            = nullptr;
+PxControllerManager* controllerMan    = nullptr;
 
 void init()
 {
@@ -779,15 +884,6 @@ void init()
     // Load level mesh
     MeshData levelMesh;
     levelMesh.loadFromFile("assets/scuffed_construct.glb");
-
-    for (auto& submesh : levelMesh.subMeshes)
-    {
-        auto& v = levelMeshVerts.emplace_back();
-        for (auto& vert : submesh.vertices)
-        {
-            v.push_back({ vert.position.x, vert.position.y, vert.position.z });
-        }
-    }
 
     // Level collision
     for (auto& submesh : levelMesh.subMeshes)
@@ -835,26 +931,19 @@ void init()
 
     // Player geometry
     PxMaterial* playerMat = physics->createMaterial(0, 0, 0);
-    PxQuat rot(PxHalfPi, PxVec3(0, 0, 1));
-    playerShape = physics->createRigidDynamic(PxTransform(PxVec3(0.f, 0.f, 0.f), rot));
-    {
-        PxShape* shape = physics->createShape(PxCapsuleGeometry(0.5f, 0.5f), *playerMat, true, shapeFlags);
-        //shape->setLocalPose(PxTransform(0.f, -0.3f, 0.f));
-        playerShape->attachShape(*shape);
-        shape->release(); // this way shape gets automatically released with actor
-    }
-    playerShape->setRigidDynamicLockFlag(PxRigidDynamicLockFlag::eLOCK_ANGULAR_Z, true);
-    playerShape->setRigidDynamicLockFlag(PxRigidDynamicLockFlag::eLOCK_ANGULAR_X, true);
-    playerShape->setRigidDynamicLockFlag(PxRigidDynamicLockFlag::eLOCK_ANGULAR_Y, true);
-    playerShape->setMaxLinearVelocity(walkSpeed);
-    playerShape->setLinearDamping(0.9999);
-    playerShape->setMass(100.f);
+    controllerMan = PxCreateControllerManager(*scene);
+    PxCapsuleControllerDesc cdesc;
+    cdesc.material      = playerMat;
+    cdesc.radius        = 0.5f;
+    cdesc.height        = controller.playerHeight;
+    cdesc.contactOffset = 0.01f;
+    controller.playerController = controllerMan->createController(cdesc);
 
-    scene->addActor(*playerShape);
 }
 
 void fixedUpdate(float delta)
 {
+    controller.fixedUpdate(delta);
     scene->simulate(delta);
     scene->fetchResults(true);
 }
@@ -892,20 +981,24 @@ void update(float delta)
         }
     }
 
-    ImGui::Checkbox("Freecam", &freeCam);
+    ImGui::Checkbox("Freecam", &controller.freeCam);
 
-    auto playerPos = playerShape->getGlobalPose();
+    ImGui::SliderFloat("Move Speed", &controller.moveSpeed,         0.f,  100.f);
+    ImGui::SliderFloat("Gravity",    &controller.gravity,          -2.f,  2.f);
+    ImGui::SliderFloat("Friction",   &controller.friction,          0.f,  1.f);
+    ImGui::SliderFloat("Jump Power", &controller.jumpPower,         1.f,  100.f);
+    ImGui::Checkbox   ("On Ground",  &controller.isOnGround);
+
+    ImGui::Text(fmt::format("Velocity: ({})", controller.velocity.toString()).c_str());
+
+    auto& playerPos = controller.playerController->getPosition();
     static Vector3f guiTeleport;
     ImGui::InputFloat3("##teleportinput", &guiTeleport.x);
     if (ImGui::Button("Teleport"))
     {
-        playerPos.p = { guiTeleport.x, guiTeleport.y, guiTeleport.z };
-        playerShape->clearForce();
-        playerShape->clearTorque();
-
-        playerShape->setGlobalPose(playerPos);
+        controller.playerController->setPosition({guiTeleport.x, guiTeleport.y, guiTeleport.z});
     }
-    ImGui::Text(fmt::format("Current Pos: ({}, {}, {})", playerPos.p.x, playerPos.p.y, playerPos.p.z).c_str());
+    ImGui::Text(fmt::format("Current Pos: ({})", Vector3f(playerPos).toString()).c_str());
 
     static Vector3f guiGravity;
     ImGui::InputFloat3("##gravinput", &guiGravity.x);
@@ -914,12 +1007,12 @@ void update(float delta)
 
     ImGui::SeparatorText("Camera");
     if (ImGui::Button("Reset Camera"))
-    { resetCamera(); }
-    ImGui::SliderFloat("FOV", &camera.fov, 70.f, 170.f);
+    { controller.resetCamera(); }
+    ImGui::SliderFloat("FOV", &controller.camera.fov, 70.f, 170.f);
 
     ImGui::Text("Press ALT to toggle cursor.");
-    ImGui::SliderFloat("Sensitivity", &sens, 0.01f, 2.f);
-    ImGui::SliderFloat("Camera Speed", &camSpeed, 0.01f, 400.f);
+    ImGui::SliderFloat("Sensitivity",  &controller.sens, 0.01f, 2.f);
+    ImGui::SliderFloat("Camera Speed", &controller.freeCamSpeed, 0.01f, 400.f);
 
     // Model loading input
     ImGui::SeparatorText("Model");
@@ -966,57 +1059,9 @@ void update(float delta)
         if (Input::isKeyJustPressed(SDL_SCANCODE_LALT))
         { window.toggleFpsMode(); }
 
-        if (window.getFpsMode())
-        {
-            yaw   += float(Input::mouseDelta.x) * sens;
-            pitch -= float(Input::mouseDelta.y) * sens;
-            pitch  = std::clamp(pitch, -89.f, 89.f);
-        }
+        controller.update(delta, window.getFpsMode());
 
-        Vector2f moveDir;
-        moveDir.x = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
-        moveDir.y = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
-
-        if (freeCam)
-        {
-            glm::vec3 dir{};
-            dir.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-            dir.y = sin(glm::radians(pitch));
-            dir.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-            auto front = glm::normalize(dir);
-
-            glm::vec3 finalMovement{};
-            if (moveDir.x) finalMovement += glm::normalize(glm::cross(front, camera.up)) * moveDir.x * delta;
-            if (moveDir.y) finalMovement += front * moveDir.y * delta;
-
-            if (moveDir.x) { camera.pos += glm::normalize(glm::cross(front, camera.up)) * camSpeed * moveDir.x * delta; }
-            if (moveDir.y) { camera.pos += camSpeed * front * moveDir.y * delta; }
-
-            camera.target = camera.pos + glm::normalize(dir);
-        }
-        else
-        {
-            glm::vec3 dir{};
-            dir.x = cos(glm::radians(yaw));
-            dir.y = sin(glm::radians(pitch));
-            dir.z = sin(glm::radians(yaw));
-            auto front = glm::normalize(dir);
-
-            glm::vec3 finalMovement{};
-            if (moveDir.x) finalMovement += glm::normalize(glm::cross(front, camera.up)) * moveDir.x * delta;
-            if (moveDir.y) finalMovement += front * moveDir.y * delta;
-
-            auto playerTransform = playerShape->getGlobalPose();
-            float mass = playerShape->getMass();
-            float moveSpeed = 10.f;
-            camera.pos ={ playerTransform.p.x, playerTransform.p.y, playerTransform.p.z };
-            playerShape->addForce(PxVec3(finalMovement.x * mass * moveSpeed, 0, finalMovement.z * mass * moveSpeed), PxForceMode::eIMPULSE);
-
-            camera.target = camera.pos + glm::normalize(dir);
-        }
-
-        
-        R3D::setCamera(camera);
+        R3D::setCamera(controller.camera);
     }
 }
 
@@ -1033,6 +1078,8 @@ void draw(float delta)
         ASSERT(modelInst.modelPtr);
         R3D::drawModel(*modelInst.modelPtr, modelInst.transform);
     }
+
+    R3D::drawLines(lines, ColorRGBAf::green(), GLDrawMode::Lines);
 
     if (debugDrawPhysics)
     {
