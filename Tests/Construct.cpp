@@ -711,13 +711,16 @@ Vector<Vector3f> lines;
 
 struct PlayerController
 {
-private:
-    Vector2f moveDir;
-    glm::vec3 dir{};
-    glm::vec3 front{};
-    bool jump = false;
-
 public:
+    Vector2f  moveDir;
+    glm::vec3 forward{};
+    glm::vec3 forwardNoY{};
+    Vector3f up {0.f, 1.f, 0.f};
+
+    // Input
+    bool jump    = false;
+    bool primary = false;
+
     Camera3D camera;
     bool     freeCam      = false;
     float    sens         = 0.1f;
@@ -725,16 +728,20 @@ public:
     float    yaw          = 0.f;
     float    pitch        = 0.f;
 
-    float    moveSpeed =  1.f;
-    float    gravity   = -0.025f;
+    float maxPitch =  89.f;
+    float minPitch = -89.f;
+
+    float    moveSpeed =  0.01f;
+    float    gravity   = -0.011f;
     float    friction  =  0.92f;
-    float    jumpPower =  0.5f;
+    float    jumpPower =  0.25f;
     Vector3f velocity;
 
     PxController* playerController = nullptr;
     float         playerHeight     = 0.8f;
 
-    bool  isOnGround        = false;
+    bool isOnGround = false;
+    bool lookingAtGeometry = false;
 
     void update(float delta, bool mouseCaptured)
     {
@@ -742,39 +749,42 @@ public:
         {
             yaw   += float(Input::mouseDelta.x) * sens;
             pitch -= float(Input::mouseDelta.y) * sens;
-            pitch  = std::clamp(pitch, -89.f, 89.f);
+            pitch  = std::clamp(pitch, minPitch, maxPitch);
         }
 
         moveDir.x = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
         moveDir.y = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
 
+        forward.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        forward.y = sin(glm::radians(pitch));
+        forward.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        forward   = glm::normalize(forward);
+
+        forwardNoY.x = cos(glm::radians(yaw));
+        forwardNoY.z = sin(glm::radians(yaw));
+
+        // Camera Look
         if (freeCam)
         {
-            dir.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-            dir.y = sin(glm::radians(pitch));
-            dir.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-            front = glm::normalize(dir);
-
             glm::vec3 finalMovement{};
-            if (moveDir.x) finalMovement += glm::normalize(glm::cross(front, camera.up)) * moveDir.x * delta;
-            if (moveDir.y) finalMovement += front * moveDir.y * delta;
+            if (moveDir.x) finalMovement += glm::normalize(glm::cross(forward, camera.up)) * moveDir.x * delta;
+            if (moveDir.y) finalMovement += forward * moveDir.y * delta;
 
             camera.pos += finalMovement * freeCamSpeed;
         }
         else
         {
-            dir.x = cos(glm::radians(yaw));
-            dir.y = sin(glm::radians(pitch));
-            dir.z = sin(glm::radians(yaw));
-            front = glm::normalize(dir);
-
-            if (Input::isKeyJustPressed(SDL_SCANCODE_SPACE))
-            { jump = true; }
-
             const auto& pos = playerController->getPosition();
             camera.pos = { pos.x, pos.y + playerHeight/2.f, pos.z };
         }
-        camera.target = camera.pos + glm::normalize(dir);
+        camera.target = camera.pos + forward;
+
+        if (!freeCam && Input::isKeyJustPressed(SDL_SCANCODE_SPACE))
+        { jump = true; }
+
+        if (Input::isMouseJustPressed(Input::MOUSE_LEFT))
+        { primary = true; }
+
     }
 
     void fixedUpdate(float delta)
@@ -783,22 +793,28 @@ public:
         else
         {
             const auto& pos = playerController->getPosition();
-
-            glm::vec3 finalMovement{};
-            if (moveDir.x) finalMovement += glm::normalize(glm::cross(front, camera.up)) * moveDir.x * delta;
-            if (moveDir.y) finalMovement += front * moveDir.y * delta;
-
             PxControllerState state;
             playerController->getState(state);
 
-            velocity.x += finalMovement.x * moveSpeed;
-            velocity.z += finalMovement.z * moveSpeed;
+            Vector3f fw(forward);
+            if (moveDir.x) velocity += fw.cross(up).normalized() * moveDir.x * moveSpeed;
+            if (moveDir.y) velocity += fw * moveDir.y * moveSpeed;
 
             auto* scene = playerController->getScene();
 
-            //PxRaycastBuffer hit;
-            //PxQueryFilterData d; d.flags = PxQueryFlag::eSTATIC | PxQueryFlag::eANY_HIT;
-            //isOnGround = scene->raycast(PxVec3(pos.x, pos.y, pos.z), PxVec3(0, -1, 0), onGroundRayLength, hit, PxHitFlag::eANY_HIT, d);
+            PxRaycastBuffer hit;
+            PxQueryFilterData d; d.flags = PxQueryFlag::eSTATIC;
+            lookingAtGeometry = scene->raycast(PxVec3(camera.pos.x, camera.pos.y, camera.pos.z), PxVec3(forward.x, forward.y, forward.z), 10000.f, hit, PxHitFlag::eDEFAULT, d);
+
+            if (primary)
+            {
+                primary = false;
+                if (lookingAtGeometry)
+                {
+                    lines.emplace_back(camera.pos);
+                    lines.emplace_back(hit.block.position.x, hit.block.position.y, hit.block.position.z);
+                }
+            }
 
             if (jump)
             {
@@ -808,8 +824,11 @@ public:
             }
             else if (!isOnGround)
             { velocity.y += gravity; }
+            else
+            { velocity.y = gravity; }
 
-            velocity *= friction;
+            velocity.x *= friction;
+            velocity.z *= friction;
 
             PxControllerFilters filters;
             filters.mFilterFlags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
@@ -989,16 +1008,20 @@ void update(float delta)
     ImGui::SliderFloat("Jump Power", &controller.jumpPower,         1.f,  100.f);
     ImGui::Checkbox   ("On Ground",  &controller.isOnGround);
 
-    ImGui::Text(fmt::format("Velocity: ({})", controller.velocity.toString()).c_str());
+    ImGui::Text(fmt::format("Velocity: {}", controller.velocity.toString()).c_str());
+    ImGui::Text(fmt::format("Looking At Geometry: {}", controller.lookingAtGeometry).c_str());
+    ImGui::Text(fmt::format("Dir:      {}", Vector3f(controller.forward).toString()).c_str());
+    ImGui::Text(fmt::format("Dir No Y: {}", Vector3f(controller.forwardNoY).toString()).c_str());
 
-    auto& playerPos = controller.playerController->getPosition();
+    Vector3f playerPos(controller.playerController->getPosition());
     static Vector3f guiTeleport;
     ImGui::InputFloat3("##teleportinput", &guiTeleport.x);
     if (ImGui::Button("Teleport"))
-    {
-        controller.playerController->setPosition({guiTeleport.x, guiTeleport.y, guiTeleport.z});
-    }
-    ImGui::Text(fmt::format("Current Pos: ({})", Vector3f(playerPos).toString()).c_str());
+    { controller.playerController->setPosition({guiTeleport.x, guiTeleport.y, guiTeleport.z}); }
+    ImGui::SameLine();
+    if (ImGui::Button("Save Pos"))
+    { guiTeleport = playerPos; }
+    ImGui::Text(fmt::format("Current Pos: {}", playerPos.toString()).c_str());
 
     static Vector3f guiGravity;
     ImGui::InputFloat3("##gravinput", &guiGravity.x);
@@ -1013,6 +1036,8 @@ void update(float delta)
     ImGui::Text("Press ALT to toggle cursor.");
     ImGui::SliderFloat("Sensitivity",  &controller.sens, 0.01f, 2.f);
     ImGui::SliderFloat("Camera Speed", &controller.freeCamSpeed, 0.01f, 400.f);
+    ImGui::Text(fmt::format("Pitch : {}", controller.pitch).c_str());
+    ImGui::Text(fmt::format("Yaw   : {}", controller.yaw).c_str());
 
     // Model loading input
     ImGui::SeparatorText("Model");

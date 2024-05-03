@@ -228,6 +228,34 @@ struct Vector3
     Vector2<T> sqrt()       const { return { std::sqrt(x), std::sqrt(y), std::sqrt(z) }; }
     Vector2<T> pow(T value) const { return { std::pow(x, value), std::pow(y, value), std::pow(z, value) }; }
 
+    T length() const
+    { return static_cast<T>(std::sqrt(x * x + y * y + z * z)); }
+
+    T lengthSquared() const
+    { return x * x + y * y + z * z; }
+
+    void normalize()
+    {
+        *this = normalized();
+    }
+
+    Vector3<T> normalized() const
+    {
+        Vector3<T> rv = *this;
+        T len = length();
+        if (rv.x != 0) rv.x /= len;
+        if (rv.y != 0) rv.y /= len;
+        if (rv.z != 0) rv.z /= len;
+        return rv;
+    }
+
+    Vector3<T> cross(Vector3<T> other) const
+    {
+        return Vector3<T>( (y * other.z) - (z * other.y),
+                           (z * other.x) - (x * other.z),
+                           (x * other.y) - (y * other.x)  );
+    }
+
     operator std::string() const
     { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ")"); }
 
