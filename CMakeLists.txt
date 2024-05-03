@@ -104,6 +104,9 @@ target_link_libraries(TLib PUBLIC tinyfiledialogs::tinyfiledialogs)
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC unofficial::omniverse-physx-sdk::sdk)
 
+find_package(flecs CONFIG REQUIRED)
+target_link_libraries(TLib PRIVATE $<IF:$<TARGET_EXISTS:flecs::flecs>,flecs::flecs,flecs::flecs_static>)
+
 ### Graphics stuff
 
 find_dependency(SDL2 CONFIG REQUIRED)

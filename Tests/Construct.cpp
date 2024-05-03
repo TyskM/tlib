@@ -6,6 +6,7 @@
 #include <TLib/RNG.hpp>
 #include <TLib/Containers/Variant.hpp>
 #include <TLib/Containers/Span.hpp>
+#include <TLib/Media/Resource/Asset.hpp>
 #include "Common.hpp"
 
 #include <glm/gtx/quaternion.hpp>
@@ -14,6 +15,9 @@
 #include <assimp/postprocess.h>
 #include <TLib/Embed/Embed.hpp>
 #include <TLib/Containers/Stack.hpp>
+
+#define flecs_STATIC
+#include <flecs.h>
 
 #define PX_PHYSX_STATIC_LIB
 #include <physx/PxPhysics.h>
@@ -82,14 +86,6 @@ struct Vertex
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec2 texCoords;
-};
-
-struct MeshSlice
-{
-    size_t vboIndex = 0;
-    size_t vboSize  = 0;
-    size_t eboIndex = 0;
-    size_t eboSize  = 0;
 };
 
 struct Camera3D
@@ -326,7 +322,7 @@ size_t eboIndex, eboSize;
 */
 // Add lighting
 // Support materials
-struct Model : NonAssignable
+struct Mesh : NonAssignable
 {
 private:
     struct MeshTexture
@@ -338,7 +334,7 @@ private:
     // TODO: move everything to one VAO wtf are you doing
     struct ModelMesh
     {
-        UPtr<Mesh> data;
+        UPtr<GPUVertexData> data;
         Vector<MeshTexture> textures;
     };
 
@@ -353,7 +349,7 @@ public:
         for (auto& subMesh : meshData.subMeshes)
         {
             auto& mesh = meshes.emplace_back();
-            mesh.data  = makeUnique<Mesh>();
+            mesh.data  = makeUnique<GPUVertexData>();
             mesh.data->setLayout({ Layout::Vec3f(), Layout::Vec3f(), Layout::Vec2f() });
             mesh.data->setData(subMesh.vertices);
             mesh.data->setIndices(subMesh.indices);
@@ -389,11 +385,16 @@ public:
     }
 };
 
-struct Transform
+struct Quat : glm::quat
+{
+    using glm::quat::quat;
+};
+
+struct Transform3D
 {
     Vector3f  pos;
-    Vector3f  scale ={ 1, 1, 1 };
-    glm::quat rot{ glm::vec3(0.f, 0.f, 0.f) };
+    Vector3f  scale = { 1, 1, 1 };
+    Quat      rot     { glm::vec3(0.f, 0.f, 0.f) };
 
     glm::mat4 getMatrix() const
     {
@@ -415,8 +416,8 @@ class Renderer3D
 {
     struct ModelDrawCmd
     {
-        Model*    model;
-        Transform transform;
+        Mesh*       model;
+        Transform3D transform;
     };
 
     struct PrimitiveDrawCmd
@@ -438,7 +439,7 @@ class Renderer3D
 
     static inline Vector<PrimVertex> primitiveVerts;
     static inline Vector<uint32_t>   primitiveIndices;
-    static inline Mesh               primitiveMesh;
+    static inline GPUVertexData      primitiveMesh;
     static inline Shader             defaultPrimitiveShader;
 
     static constexpr GLuint restartIndex = std::numeric_limits<GLuint>::max();
@@ -477,7 +478,7 @@ private:
         glm::mat4 lightSpaceMatrix = lightProjection * lightView;
     }
 
-    static void drawMeshImmediate(Mesh& mesh, Texture& tex, const Transform& transform)
+    static void drawMeshImmediate(GPUVertexData& mesh, Texture& tex, const Transform3D& transform)
     {
         tex.bind();
         emptyTex.bind(1);
@@ -652,7 +653,7 @@ public:
         defaultPrimitiveShader.setVec3f("viewPos",    camera.pos);
     }
 
-    static void drawModel(Model& model, const Transform& transform)
+    static void drawModel(Mesh& model, const Transform3D& transform)
     {
         DrawCmd&      var = cmds.emplace_back();
         ModelDrawCmd& cmd = var.emplace<ModelDrawCmd>();
@@ -703,8 +704,8 @@ using R3D = Renderer3D;
 
 struct ModelInstance
 {
-    Transform transform;
-    Model* modelPtr = nullptr;
+    Transform3D transform;
+    Mesh*       modelPtr = nullptr;
 };
 
 Vector<Vector3f> lines;
@@ -845,6 +846,66 @@ public:
     }
 };
 
+struct MeshInstance3D
+{
+    Asset<Mesh> mesh;
+    Path        path;
+
+    MeshInstance3D(const Path& path) : path{ path } { }
+};
+
+struct Scene
+{
+    /* Components:
+        Transform3D
+        MeshInstance3D
+    */
+    using Entity = flecs::entity;
+    using ECS    = flecs::world;
+    using System = flecs::system;
+
+    ECS ecs;
+
+    System sysMeshInstance3DRender;
+
+    void onSetMeshInstance3D(Entity e, MeshInstance3D& meshInstance)
+    {
+        tlog::info("Creating mesh instance: {}", meshInstance.path.string());
+        meshInstance.mesh = new Mesh();
+        meshInstance.mesh->loadFromFile(meshInstance.path);
+    }
+
+    void sysMeshRenderFunc(Entity e, MeshInstance3D& mesh, const Transform3D& tf)
+    {
+        R3D::drawModel(mesh.mesh.get(), tf);
+    }
+
+    void init()
+    {
+        ecs.observer<MeshInstance3D>("OnSetMeshInstance3D").event(flecs::OnSet).each(
+        [&](Entity e, MeshInstance3D& meshInstance) { onSetMeshInstance3D(e, meshInstance); });
+
+        sysMeshInstance3DRender = ecs.system<MeshInstance3D, const Transform3D>("MeshInstance3D Render").each(
+        [&](Entity e, MeshInstance3D& mesh, const Transform3D& tf) { sysMeshRenderFunc(e, mesh, tf); });
+
+        auto e = ecs.entity();
+        ASSERT(e.is_alive());
+
+        e.emplace<Transform3D>();
+        e.emplace<MeshInstance3D>("assets/primitives/cube.obj");
+    }
+
+    void update(float delta)
+    {
+
+    }
+
+    void render(float delta)
+    {
+        sysMeshInstance3DRender.run(delta);
+    }
+};
+
 Window     window;
 MyGui      imgui;
 FPSLimit   fpslimit;
@@ -873,8 +934,10 @@ float guiLightColor[3] ={ 0.5f, 0.5f, 0.5f };
 float totalTime = 0.f;
 
 PxPhysics*           physics          = nullptr;
-PxScene*             scene            = nullptr;
+PxScene*             physicsScene     = nullptr;
 PxControllerManager* controllerMan    = nullptr;
+
+Scene scene;
 
 void init()
 {
@@ -894,8 +957,8 @@ void init()
     desc.cpuDispatcher = PxDefaultCpuDispatcherCreate(1);
     ASSERT(desc.isValid());
 
-    scene = physics->createScene(desc);
-    ASSERT(scene);
+    physicsScene = physics->createScene(desc);
+    ASSERT(physicsScene);
 
     PxShapeFlags shapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE;
     PxMaterial* mat = physics->createMaterial(1, 1, 1);
@@ -940,17 +1003,17 @@ void init()
             shape->release(); // this way shape gets automatically released with actor
         }
 
-        scene->addActor(*rigidStatic);
+        physicsScene->addActor(*rigidStatic);
     }
 
     // Upload to GPU
     auto& m = models.emplace_back();
-    m.modelPtr = new Model();
+    m.modelPtr = new Mesh();
     m.modelPtr->loadFromMemory(levelMesh);
 
     // Player geometry
     PxMaterial* playerMat = physics->createMaterial(0, 0, 0);
-    controllerMan = PxCreateControllerManager(*scene);
+    controllerMan = PxCreateControllerManager(*physicsScene);
     PxCapsuleControllerDesc cdesc;
     cdesc.material      = playerMat;
     cdesc.radius        = 0.5f;
@@ -958,13 +1021,14 @@ void init()
     cdesc.contactOffset = 0.01f;
     controller.playerController = controllerMan->createController(cdesc);
 
+    scene.init();
 }
 
 void fixedUpdate(float delta)
 {
     controller.fixedUpdate(delta);
-    scene->simulate(delta);
-    scene->fetchResults(true);
+    physicsScene->simulate(delta);
+    physicsScene->fetchResults(true);
 }
 
 void update(float delta)
@@ -983,6 +1047,8 @@ void update(float delta)
         timeBuffer -= fixedTimeStep;
     }
 
+    scene.update(delta);
+
     #pragma region UI
     beginDiagWidgetExt();
 
@@ -990,13 +1056,13 @@ void update(float delta)
     {
         if (debugDrawPhysics)
         {
-            scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f); // Required
-            scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
+            physicsScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f); // Required
+            physicsScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
         }
         else
         {
-            scene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 0.f);
-            scene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 0.f);
+            physicsScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 0.f);
+            physicsScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 0.f);
         }
     }
 
@@ -1026,7 +1092,7 @@ void update(float delta)
     static Vector3f guiGravity;
     ImGui::InputFloat3("##gravinput", &guiGravity.x);
     if (ImGui::Button("Set Gravity"))
-    { scene->setGravity({ guiGravity.x, guiGravity.y, guiGravity.z }); }
+    { physicsScene->setGravity({ guiGravity.x, guiGravity.y, guiGravity.z }); }
 
     ImGui::SeparatorText("Camera");
     if (ImGui::Button("Reset Camera"))
@@ -1104,11 +1170,13 @@ void draw(float delta)
         R3D::drawModel(*modelInst.modelPtr, modelInst.transform);
     }
 
+    scene.render(delta);
+
     R3D::drawLines(lines, ColorRGBAf::green(), GLDrawMode::Lines);
 
     if (debugDrawPhysics)
     {
-        const PxRenderBuffer& rb = scene->getRenderBuffer();
+        const PxRenderBuffer& rb = physicsScene->getRenderBuffer();
         for (PxU32 i=0; i < rb.getNbPoints(); i++)
         {
             const PxDebugPoint& point = rb.getPoints()[i];

@@ -12,33 +12,33 @@
 #include <TLib/NonAssignable.hpp>
 #include <cstdint>
 
-struct Mesh : NonCopyable
+struct GPUVertexData : NonCopyable
 {
 protected:
     VertexArray   vao; // Layout
     VertexBuffer  vbo; // Vertices
-    ElementBuffer ebo; // Indices (optional)
+    ElementBuffer ebo; // Indices
     Layout        _layout;
     uint32_t      _vertexCount = 0;
     uint32_t      _indiceCount = 0;
 
-    void move(Mesh& src)
+    void move(GPUVertexData& src)
     {
-        vao = eastl::move(src.vao);
-        vbo = eastl::move(src.vbo);
-        ebo = eastl::move(src.ebo);
+        vao          = eastl::move(src.vao);
+        vbo          = eastl::move(src.vbo);
+        ebo          = eastl::move(src.ebo);
         _layout      = src._layout;
         _vertexCount = src._vertexCount;
         _indiceCount = src._indiceCount;
     }
 
 public:
-    Mesh()  = default;
-    ~Mesh() = default;
+    GPUVertexData()  = default;
+    ~GPUVertexData() = default;
 
     // Movable only
-    Mesh(Mesh&& src)            noexcept { move(src); }
-    Mesh& operator=(Mesh&& src) noexcept { reset(); move(src); return *this; }
+    GPUVertexData(GPUVertexData&& src)            noexcept { move(src); }
+    GPUVertexData& operator=(GPUVertexData&& src) noexcept { reset(); move(src); return *this; }
 
     [[nodiscard]] inline const bool     valid()         const { return validLayout(); }
     [[nodiscard]] inline const bool     validLayout()   const { return vao.created() && _layout.sizeBytes() > 0; }

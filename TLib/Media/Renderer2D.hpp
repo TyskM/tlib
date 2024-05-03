@@ -607,11 +607,11 @@ private:
 
     static constexpr GLuint   restartIndex = std::numeric_limits<GLuint>::max();
 
-    static inline Mesh      mesh;
-    static inline Shader    defaultShader;
-    static inline Shader    textShader;
-    static inline View      currentView;
-    static inline bool      inited = false;
+    static inline GPUVertexData mesh;
+    static inline Shader        defaultShader;
+    static inline Shader        textShader;
+    static inline View          currentView;
+    static inline bool          inited = false;
 
     static inline float sdfTextWidth;
     static inline float sdfTextEdge;

@@ -45,7 +45,7 @@ protected:
     static inline size_t drawCalls = 0;
     static inline bool   isCreated = false;
 
-    static bool prepare(Shader& shader, Mesh& mesh, const RenderState& state)
+    static bool prepare(Shader& shader, GPUVertexData& mesh, const RenderState& state)
     {
         if (!mesh.bind())
         {
@@ -103,7 +103,7 @@ public:
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    static void draw(Shader& shader, Mesh& mesh, const RenderState& state = RenderState())
+    static void draw(Shader& shader, GPUVertexData& mesh, const RenderState& state = RenderState())
     {
         if (!prepare(shader, mesh, state)) { return; }
 
@@ -119,7 +119,7 @@ public:
 
     static void drawIndirect(
         Shader&                        shader,
-        Mesh&                          mesh,
+        GPUVertexData&                 mesh,
         const Vector<DrawIndirectCmd>& cmds,
         const RenderState&             state = RenderState())
     {
@@ -132,7 +132,7 @@ public:
         ++drawCalls;
     }
 
-    static void drawInstanced(Shader& shader, Mesh& mesh, uint32_t count, const RenderState& state = RenderState())
+    static void drawInstanced(Shader& shader, GPUVertexData& mesh, uint32_t count, const RenderState& state = RenderState())
     {
         if (!prepare(shader, mesh, state)) { return; }
 
