@@ -60,13 +60,27 @@ public:
 
         if (tempptr == NULL)
         {
-            tlog::error("TextureData::loadFromMemory : Failed to load texture from memory with length {}", length);
+            tlog::error("TextureData::loadFromMemory : Failed to load texture from memory with length {} ({})", length, stbi_failure_reason());
             return false;
         }
 
         reset();
         _ptr = tempptr;
         return true;
+    }
+
+    void loadFromMemoryRaw(uint8_t const* rawData, int width, int height, int channels)
+    {
+        reset();
+
+        int len = width * height * channels;
+        _ptr = (stbi_uc*)malloc(len);
+        memcpy(_ptr, rawData, len);
+        ASSERT(_ptr);
+
+        this->_width        = width;
+        this->_height       = height;
+        this->_channelCount = channels;
     }
 
     void reset()

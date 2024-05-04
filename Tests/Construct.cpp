@@ -9,10 +9,7 @@
 #include <TLib/Media/Resource/Asset.hpp>
 #include "Common.hpp"
 
-#include <glm/gtx/quaternion.hpp>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
+#include <TLib/Media/Resource/MeshData.hpp>
 #include <TLib/Embed/Embed.hpp>
 #include <TLib/Containers/Stack.hpp>
 
@@ -76,17 +73,26 @@ PxPhysics* createPhysics(PxTolerancesScale& scale)
     auto mPhysics = PxCreatePhysics(PX_PHYSICS_VERSION, *foundation,
         scale, recordMemoryAllocations, NULL);
     ASSERT(mPhysics);
+
+    if (!PxInitExtensions(*mPhysics, NULL))
+    { tlog::error("PxInitExtensions failed"); ASSERT(false); }
+
     return mPhysics;
 }
 
-#pragma endregion
-
-struct Vertex
+PxScene* createPhysicsScene(PxPhysics* phys)
 {
-    glm::vec3 position;
-    glm::vec3 normal;
-    glm::vec2 texCoords;
-};
+    PxSceneDesc desc(phys->getTolerancesScale());
+    desc.filterShader  = PxDefaultSimulationFilterShader;
+    desc.gravity       ={ 0.f, -20.f, 0.f };
+    desc.cpuDispatcher = PxDefaultCpuDispatcherCreate(1);
+    ASSERT(desc.isValid());
+    PxScene* physicsScene = phys->createScene(desc);
+    ASSERT(physicsScene);
+    return physicsScene;
+}
+
+#pragma endregion
 
 struct Camera3D
 {
@@ -134,180 +140,6 @@ struct Camera3D
     }
 };
 
-enum class TextureType
-{
-    None    = aiTextureType::aiTextureType_NONE,
-    Diffuse = aiTextureType::aiTextureType_DIFFUSE
-};
-
-struct MeshData
-{
-    struct MeshDataTexture
-    {
-        TextureType       type = TextureType::None;
-        UPtr<TextureData> textureData;
-    };
-
-    struct SubMesh
-    {
-        Vector<Vertex>          vertices;
-        Vector<uint32_t>        indices;
-        Vector<MeshDataTexture> textures;
-    };
-
-    Vector<SubMesh> subMeshes;
-
-    bool loadFromFile(const Path& path)
-    {
-        // https://learnopengl.com/Model-Loading/Model
-
-        const aiPostProcessSteps importerFlags =
-            aiProcess_Triangulate           | aiProcess_GenNormals    |
-            aiProcess_OptimizeMeshes        | aiProcess_OptimizeGraph |
-            aiProcess_JoinIdenticalVertices | // TODO: Read somewhere this flag could cause problems, maybe look into it.
-            aiProcess_FlipUVs; // Renderer class already handles the OpenGL conversion.
-
-        Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(path.string(), importerFlags);
-
-        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-        {
-            tlog::error("MeshData::loadFromFile: Failed to load mesh\nReason: {}\nPath: {}\nWorking Directory: {}",
-                importer.GetErrorString(), path.string(), fs::current_path().string());
-            return false;
-        }
-
-        reset();
-
-        Path fileFolder = Path(path).remove_filename();
-
-        static Stack<aiNode*> stack;
-        stack.get_container().clear();
-        stack.push(scene->mRootNode);
-
-        while (!stack.empty())
-        {
-            aiNode* node = stack.top();
-            stack.pop();
-
-            uint32_t meshCount     = node->mNumMeshes;
-            bool     nodeHasMeshes = meshCount > 0;
-
-            if (nodeHasMeshes)
-            {
-                for (uint32_t i = 0; i < meshCount; i++)
-                {
-                    auto& subMesh  = subMeshes.emplace_back();
-                    auto& vertices = subMesh.vertices;
-                    auto& indices  = subMesh.indices;
-
-                    aiMesh*  mesh         = scene->mMeshes[node->mMeshes[i]];
-                    uint32_t verticeCount = mesh->mNumVertices;
-                    uint32_t faceCount    = mesh->mNumFaces;
-                    auto     texCoords    = mesh->mTextureCoords[0];
-
-                    // process vertex positions, normals and texture coordinates
-                    ASSERT(vertices.empty()); // sanity check because im a fuck up
-                    vertices.reserve(verticeCount);
-                    for (uint32_t i = 0; i < verticeCount; i++)
-                    {
-                        Vertex& vertex = subMesh.vertices.emplace_back();
-
-                        auto& pos = mesh->mVertices[i];
-                        vertex.position = glm::vec3(pos.x, pos.y, pos.z);
-
-                        auto& normal = mesh->mNormals[i];
-                        vertex.normal = glm::vec3(normal.x, normal.y, normal.z);
-
-                        if (mesh->mTextureCoords[0]) // does the mesh contain texture coordinates?
-                        { vertex.texCoords = { texCoords[i].x, texCoords[i].y }; }
-                        else
-                        { vertex.texCoords = glm::vec2(0.0f, 0.0f); }
-                    }
-
-                    // process indices
-                    ASSERT(indices.empty());
-                    indices.reserve(faceCount * 3);
-                    for (uint32_t i = 0; i < faceCount; i++)
-                    {
-                        aiFace&  face        = mesh->mFaces[i];
-                        uint32_t indiceCount = face.mNumIndices;
-                        for (uint32_t j = 0; j < indiceCount; j++)
-                        { indices.push_back(face.mIndices[j]); }
-                    }
-
-                    // process material
-                    if (mesh->mMaterialIndex >= 0)
-                    {
-                        aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-                        loadMaterialTextures(subMesh.textures, scene, material, aiTextureType_DIFFUSE, fileFolder);
-                        ////loadMaterialTextures(modelMesh.textures, material, aiTextureType_SPECULAR, path);
-                    }
-                }
-            }
-
-            // Queue children for above process
-            for (unsigned int i = 0; i < node->mNumChildren; i++)
-            { stack.push(node->mChildren[i]); }
-        }
-
-        return true;
-    }
-
-    void reset()
-    {
-        subMeshes.clear();
-    }
-
-private:
-    void loadMaterialTextures(Vector<MeshDataTexture>& textures, const aiScene* scene, aiMaterial* mat, aiTextureType type, const fs::path& path)
-    {
-        size_t texCount = mat->GetTextureCount(type);
-        for (unsigned int i = 0; i < texCount; i++)
-        {
-            aiString str;
-            mat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), str);
-            
-            bool pathIsEmpty = str.C_Str()[0] == '\0';
-            ASSERT(!pathIsEmpty);
-            if (pathIsEmpty) { continue; }
-
-            MeshDataTexture& newTex = textures.emplace_back();
-            newTex.textureData = makeUnique<TextureData>();
-            newTex.type = TextureType::Diffuse;
-
-            // EMBEDDED TEXTURE
-            if (const aiTexture* texture = scene->GetEmbeddedTexture(str.C_Str()))
-            {
-                // returned pointer is not null, read texture from memory
-
-                // TEXTURE IS PNG/JPEG
-                if (texture->mHeight == 0)
-                {
-                    bool success = newTex.textureData->loadFromMemory((uint8_t*)texture->pcData, texture->mWidth);
-                    if (!success)
-                    { tlog::error("loadMaterialTextures (EMBEDDED::PNG/JPEG): Failed to model texture '{}'", path.string()); continue; }
-                }
-
-                // TEXTURE IS RAW RGB
-                else
-                {
-                    bool success = newTex.textureData->loadFromMemory((uint8_t*)texture->pcData, texture->mWidth * texture->mHeight);
-                    if (!success)
-                    { tlog::error("loadMaterialTextures (EMBEDDED::RAW): Failed to model texture '{}'", path.string()); continue; }
-                }
-            }
-
-            // TEXTURE IN FILESYSTEM
-            else
-            {
-                Path texPath = (path / str.C_Str());
-                newTex.textureData->loadFromPath(texPath);
-            }
-        }
-    }
-};
-
 /* DONE: Optimize VAO usage. One per model? // Done, thanks aiProcess_OptimizeGraph
 
 Use single global VAO, VBO, and EBO to avoid the overhead of switching them.
@@ -331,37 +163,44 @@ private:
         UPtr<Texture> texture;
     };
 
-    // TODO: move everything to one VAO wtf are you doing
-    struct ModelMesh
+    struct Material
     {
-        UPtr<GPUVertexData> data;
-        Vector<MeshTexture> textures;
+        Array<UPtr<Texture>, (size_t)TextureType::Count> textures;
     };
 
-    Vector<ModelMesh> meshes;
+    struct SubMesh
+    {
+        UPtr<GPUVertexData> vertices;
+        Material            material;
+    };
+
+    Vector<SubMesh> meshes;
 
 public:
-    Vector<ModelMesh>& getMeshes()
+    Vector<SubMesh>& getMeshes()
     { return meshes; }
 
-    bool loadFromMemory(const MeshData& meshData)
+    bool loadFromMemory(const MeshData& cpuMesh)
     {
-        for (auto& subMesh : meshData.subMeshes)
+        for (auto& cpuSubMesh : cpuMesh.subMeshes)
         {
-            auto& mesh = meshes.emplace_back();
-            mesh.data  = makeUnique<GPUVertexData>();
-            mesh.data->setLayout({ Layout::Vec3f(), Layout::Vec3f(), Layout::Vec2f() });
-            mesh.data->setData(subMesh.vertices);
-            mesh.data->setIndices(subMesh.indices);
+            auto& gpuSubMesh = meshes.emplace_back();
+            gpuSubMesh.vertices  = makeUnique<GPUVertexData>();
+            gpuSubMesh.vertices->setLayout({ Layout::Vec3f(), Layout::Vec3f(), Layout::Vec2f() });
+            gpuSubMesh.vertices->setData(cpuSubMesh.vertices);
+            gpuSubMesh.vertices->setIndices(cpuSubMesh.indices);
 
-            for (auto& cpuTexture : subMesh.textures)
+            int32_t i = 0;
+            for (auto& cpuTexture : cpuSubMesh.material.textures)
             {
-                auto& gpuTexture = mesh.textures.emplace_back();
-                gpuTexture.texture = makeUnique<Texture>();
-                gpuTexture.texture->setData(*cpuTexture.textureData);
-                gpuTexture.texture->setUVMode(UVMode::Repeat);
-                gpuTexture.texture->setFilter(TextureMinFilter::LinearMipmapLinear, TextureMagFilter::Linear);
-                gpuTexture.texture->generateMipmaps();
+                ASSERT(cpuTexture); // Textures should never be NULL, worst case they are 1x1 pure white/black/gray
+                auto& gpuTexture = gpuSubMesh.material.textures[i];
+                gpuTexture = makeUnique<Texture>();
+                gpuTexture->setData(*cpuTexture);
+                gpuTexture->setUVMode(UVMode::Repeat);
+                gpuTexture->setFilter(TextureMinFilter::LinearMipmapLinear, TextureMagFilter::Linear);
+                gpuTexture->generateMipmaps();
+                ++i;
             }
         }
 
@@ -511,9 +350,9 @@ public:
         if (useMSAA) { GL_CHECK(glEnable(GL_MULTISAMPLE)); }
         else { GL_CHECK(glDisable(GL_MULTISAMPLE)); }
 
-        shader3d.setInt  ("material.diffuse",   0);
-        shader3d.setInt  ("material.specular",  1);
-        shader3d.setFloat("material.shininess", 32);
+        shader3d.setInt ("material.diffuse",   0);
+        shader3d.setInt ("material.roughness", 1);
+        shader3d.setInt ("material.metallic",  2);
 
         //Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)));
         //shadowFbo.bind();
@@ -555,26 +394,12 @@ public:
 
                 for (auto& mesh : cmd.model->getMeshes())
                 {
-                    // If there's no texture, use default texture
-                    if (mesh.textures.empty())
-                    {
-                        drawMeshImmediate(*mesh.data, defaultTex, cmd.transform);
-                    }
-                    else
-                    {
-                        for (auto& tex : mesh.textures)
-                        {
-                            if (tex.type == TextureType::Diffuse)
-                            {
-                                // Only use diffuse for now
-                                // TODO: use the rest of the textures
-                                // make a uniform block for all of them, and set them all at once.
-                                ASSERT(tex.texture->valid());
-                                drawMeshImmediate(*mesh.data, *tex.texture, cmd.transform);
-                                break;
-                            }
-                        }
-                    }
+                    mesh.material.textures[(int32_t)TextureType::Diffuse]  ->bind(0);
+                    mesh.material.textures[(int32_t)TextureType::Roughness]->bind(1);
+                    mesh.material.textures[(int32_t)TextureType::Metalness]->bind(2);
+
+                    shader3d.setMat4f("model", cmd.transform.getMatrix());
+                    Renderer::draw(shader3d, *mesh.vertices);
                 }
             }
         }
@@ -642,15 +467,15 @@ public:
 
     static void setCamera(const Camera3D& camera)
     {
+        // TODO: use one of those global uniform things
         auto view = camera.getViewMatrix();
         auto proj = camera.getPerspectiveMatrix();
-        shader3d.setMat4f("projection", proj);
-        shader3d.setMat4f("view", view);
-        shader3d.setVec3f("viewPos", camera.pos);
+        shader3d.setMat4f("projection",    proj);
+        shader3d.setMat4f("view",          view);
+        shader3d.setVec3f("fragCameraPos", camera.pos);
 
-        defaultPrimitiveShader.setMat4f("projection", proj);
-        defaultPrimitiveShader.setMat4f("view",       view);
-        defaultPrimitiveShader.setVec3f("viewPos",    camera.pos);
+        defaultPrimitiveShader.setMat4f("projection",    proj);
+        defaultPrimitiveShader.setMat4f("view",          view);
     }
 
     static void drawModel(Mesh& model, const Transform3D& transform)
@@ -695,6 +520,7 @@ public:
 
     static void addLight(const Vector3f& pos, const ColorRGBf& color)
     {
+        // TODO: global uniform things here too.
         shader3d.setVec3f("lightPos", pos.x, pos.y, pos.z);
         shader3d.setVec3f("lightColor", color.r, color.g, color.b);
     }
@@ -797,7 +623,7 @@ public:
             PxControllerState state;
             playerController->getState(state);
 
-            Vector3f fw(forward);
+            Vector3f fw(forwardNoY);
             if (moveDir.x) velocity += fw.cross(up).normalized() * moveDir.x * moveSpeed;
             if (moveDir.y) velocity += fw * moveDir.y * moveSpeed;
 
@@ -854,11 +680,19 @@ struct MeshInstance3D
     MeshInstance3D(const Path& path) : path{ path } { }
 };
 
+struct RigidBody3D
+{
+
+};
+
 struct Scene
 {
     /* Components:
         Transform3D
         MeshInstance3D
+
+        Physics:
+            RigidBody3D
     */
     using Entity = flecs::entity;
     using ECS    = flecs::world;
@@ -868,6 +702,8 @@ struct Scene
 
     System sysMeshInstance3DRender;
 
+    #pragma region Constructors/Destructors
+
     void onSetMeshInstance3D(Entity e, MeshInstance3D& meshInstance)
     {
         tlog::info("Creating mesh instance: {}", meshInstance.path.string());
@@ -875,10 +711,21 @@ struct Scene
         meshInstance.mesh->loadFromFile(meshInstance.path);
     }
 
+    void onSetRigidBody3D(Entity e, RigidBody3D& body)
+    {
+
+    }
+
+    #pragma endregion
+
+    #pragma region Systems
+
     void sysMeshRenderFunc(Entity e, MeshInstance3D& mesh, const Transform3D& tf)
     {
         R3D::drawModel(mesh.mesh.get(), tf);
     }
+
+    #pragma endregion
 
     void init()
     {
@@ -946,22 +793,11 @@ void init()
     PxTolerancesScale scale{};
     physics = createPhysics(scale);
 
-    if (!PxInitExtensions(*physics, NULL))
-    { tlog::error("PxInitExtensions failed"); ASSERT(false); }
+    physicsScene = createPhysicsScene(physics);
 
-    PxCookingParams params(scale);
-    PxSceneDesc desc(scale);
-    desc.filterShader = PxDefaultSimulationFilterShader;
-    desc.gravity = { 0.f, -20.f, 0.f };
-    desc.bounceThresholdVelocity = 20.f;
-    desc.cpuDispatcher = PxDefaultCpuDispatcherCreate(1);
-    ASSERT(desc.isValid());
-
-    physicsScene = physics->createScene(desc);
-    ASSERT(physicsScene);
-
-    PxShapeFlags shapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE;
-    PxMaterial* mat = physics->createMaterial(1, 1, 1);
+    PxShapeFlags    shapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE;
+    PxMaterial*     mat = physics->createMaterial(1, 1, 1);
+    PxCookingParams params(physics->getTolerancesScale());
 
     // Load level mesh
     MeshData levelMesh;
