@@ -297,6 +297,8 @@ struct Vector4
     T w = 0;
 };
 
+using Vector4f = Vector4<float>;
+
 // Represents a RGBA color with values 0f-1f
 struct ColorRGBAf
 {
@@ -321,6 +323,9 @@ struct ColorRGBAf
 
     explicit constexpr ColorRGBAf(int rv, int gv, int bv, int av = 255) :
         r{ uint8ToFloat(rv) }, g{ uint8ToFloat(gv) }, b{ uint8ToFloat(bv) }, a{ uint8ToFloat(av) } { }
+
+    operator Vector4f() const
+    { return Vector4f(r, g, b, a); }
 
     ColorRGBAf& setR(float r) { this->r = r; return *this; }
     ColorRGBAf& setG(float g) { this->g = g; return *this; }
@@ -491,6 +496,8 @@ struct ColorRGBf
 
     explicit constexpr ColorRGBf(const ColorRGBAf& rgba) :
         r{rgba.r}, g{rgba.g}, b{rgba.b} { }
+
+    operator Vector3f() const { return Vector3f(r, g, b); }
 
     float r = 0;
     float g = 0;

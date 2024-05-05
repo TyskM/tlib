@@ -1,4 +1,6 @@
 #version 330 core
+#define PI 3.1415926535897932384626433832795
+
 out vec4 fragColor;
 
 in vec3 vertLocalPos;
@@ -10,11 +12,7 @@ in vec3 vertFragPos;
 in vec3 vertLightPos;
 
 uniform vec3  fragCameraPos;
-uniform vec3  lightColor       = vec3(0.2, 0.2, 0.2);
 uniform float ambientStrength  = 0.1;
-uniform vec3  sunDir           = vec3(-0.2, -1.0, -0.3);
-
-#define PI 3.1415926535897932384626433832795
 
 struct Material
 {
@@ -23,34 +21,55 @@ struct Material
     sampler2D metallic;
 };
 
-struct BaseLight
+struct Attenuation
 {
-    vec3  Color;
-    float AmbientIntensity;
-    float DiffuseIntensity;
+    float constant;
+    float linear;
+    float expo;
 };
 
-uniform Material material;
+struct Light
+{
+    vec3  color;
+    float ambientIntensity;
+    float diffuseIntensity;
+};
 
-//vec3 blinnPhongDir(vec3 normal, vec3 fragPos, vec3 lightDirRaw, vec3 lightColor)
-//{
-//    // ambient
-//    vec3 ambient = lightColor * vec3(texture(material.diffuse, vertTexCoords));
-//
-//    // diffuse
-//    vec3  lightDir = normalize(-lightDirRaw);
-//    float diff     = max(dot(lightDir, normal), 0.0);
-//    vec3  diffuse  = diff * lightColor * vec3(texture(material.diffuse, vertTexCoords));
-//
-//    // specular
-//    vec3 viewDir    = normalize(fragCameraPos - fragPos);
-//    float spec      = 0.0;
-//    vec3 halfwayDir = normalize(lightDir + viewDir);  
-//    spec            = pow(max(dot(normal, halfwayDir), 0.0), 1.0 - material.roughness);
-//    vec3 specular   = spec * lightColor * vec3(texture(material.specular, vertTexCoords)); 
-//   
-//    return ambient + diffuse + specular;
-//}
+struct PointLight
+{
+    Light light;
+    vec3  localPos; // used for lighting calculations
+    vec3  worldPos; // used for point light shadow mapping
+};
+
+struct DirectionalLight
+{
+    Light light;
+    vec3  dir;
+};
+
+struct SpotLight
+{
+    Light light;
+    vec3  pos;
+    vec3  dir;
+    float cosAngle;
+    float outerCosAngle;
+};
+
+// Inject    //! #define maxDirectionalLights
+uniform int              directionalLightCount;
+uniform DirectionalLight directionalLights[maxDirectionalLights];
+
+// Inject    //! #define maxPointLights
+uniform int              pointLightCount;
+uniform PointLight       pointLights[maxPointLights];
+
+// Inject    //! #define maxSpotLights
+uniform int              spotLightCount;
+uniform SpotLight        spotLights[maxSpotLights];
+
+uniform Material material;
 
 vec3 schlickFresnel(float vDotH)
 {
@@ -82,22 +101,22 @@ float geomSmith(float dp)
     return dp / denom;
 }
 
-vec3 CalcPBRLighting(BaseLight Light, vec3 PosDir, bool IsDirLight, vec3 Normal)
+vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
 {
-    vec3 LightIntensity = Light.Color * Light.DiffuseIntensity;
+    vec3 lightIntensity = light.color * light.diffuseIntensity;
 
     vec3 l = vec3(0.0);
 
-    if (IsDirLight) {
-        l = -PosDir.xyz;
+    if (isDirLight) {
+        l = -posDir.xyz;
     } else {
-        l = PosDir - vertLocalPos;
-        float LightToPixelDist = length(l);
+        l = posDir - vertLocalPos;
+        float lightToPixelDist = length(l);
         l = normalize(l);
-        LightIntensity /= (LightToPixelDist * LightToPixelDist);
+        lightIntensity /= (lightToPixelDist * lightToPixelDist);
     }
 
-    vec3 n = Normal;
+    vec3 n = normal;
     vec3 v = normalize(fragCameraPos - vertLocalPos);
     vec3 h = normalize(v + l);
 
@@ -111,14 +130,14 @@ vec3 CalcPBRLighting(BaseLight Light, vec3 PosDir, bool IsDirLight, vec3 Normal)
     vec3 kS = F;
     vec3 kD = 1.0 - kS;
 
-    vec3 SpecBRDF_nom  = ggxDistribution(nDotH) *
+    vec3 specBRDF_nom  = ggxDistribution(nDotH) *
                          F *
                          geomSmith(nDotL) *
                          geomSmith(nDotV);
 
-    float SpecBRDF_denom = 4.0 * nDotV * nDotL + 0.0001;
+    float specBRDF_denom = 4.0 * nDotV * nDotL + 0.0001;
 
-    vec3 SpecBRDF = SpecBRDF_nom / SpecBRDF_denom;
+    vec3 specBRDF = specBRDF_nom / specBRDF_denom;
 
     vec3 fLambert = vec3(0.0);
 
@@ -126,27 +145,70 @@ vec3 CalcPBRLighting(BaseLight Light, vec3 PosDir, bool IsDirLight, vec3 Normal)
     if (!isMetal)
     { fLambert = vec3(texture(material.diffuse, vertTexCoords)); }
 
-    vec3 DiffuseBRDF = kD * fLambert / PI;
+    vec3 diffuseBRDF = kD * fLambert / PI;
 
-    vec3 FinalColor = (DiffuseBRDF + SpecBRDF) * LightIntensity * nDotL;
+    vec3 finalColor = (diffuseBRDF + specBRDF) * lightIntensity * nDotL;
 
-    return FinalColor;
+    return finalColor;
+}
+
+vec3 calcPBRDirectionalLight(DirectionalLight light, vec3 normal)
+{
+    return calcPBRLighting(light.light, light.dir, true, normal);
+}
+
+vec3 calcPBRPointLight(PointLight light, vec3 normal)
+{
+    return calcPBRLighting(light.light, light.localPos, false, normal);
+}
+
+vec3 calcPBRSpotLight(SpotLight light, vec3 normal)
+{
+    vec3  lightDir    = normalize(light.pos - vertFragPos);
+    float theta       = dot(lightDir, normalize(-light.dir));
+    float epsilon     = light.cosAngle - light.outerCosAngle;
+    float intensity   = clamp((theta - light.outerCosAngle) / epsilon, 0.0, 1.0);    
+
+    return calcPBRLighting(light.light, light.pos, false, normal) * intensity;
+
+}
+
+vec3 calcTotalPBRLighting()
+{
+    vec3 normal = normalize(vertNormal);
+
+    vec3 totalLight = vec3(0, 0, 0);
+
+    for (int i = 0; i < directionalLightCount; i++)
+    {
+        totalLight += calcPBRDirectionalLight(directionalLights[i], normal);
+    }
+
+    for (int i = 0; i < pointLightCount; i++)
+    {
+        totalLight += calcPBRPointLight(pointLights[i], normal);
+    }
+
+    for (int i = 0; i < spotLightCount; i++)
+    {
+        totalLight += calcPBRSpotLight(spotLights[i], normal);
+    }
+
+    // HDR tone mapping
+    totalLight = totalLight / (totalLight + vec3(1.0));
+
+    // Gamma correction
+    vec3 finalLight = vec3( pow(totalLight, vec3(1.0/2.2)) );
+
+    return finalLight;
 }
 
 void main()
 {
     //fragColor = vec4(blinnPhongDir(vertNormal, vertFragPos, sunDir, lightColor), 1.0);
 
-    BaseLight bl;
-    bl.Color = lightColor;
-    bl.AmbientIntensity = 0.5;
-    bl.DiffuseIntensity = 0.5;
-    fragColor = vec4(CalcPBRLighting(bl, sunDir, true, vertNormal), 1.0);
-
+    vec3 color = calcTotalPBRLighting();
     vec3 ambient = vec3(ambientStrength) * vec3(texture(material.diffuse, vertTexCoords));
-    fragColor += vec4(ambient, 1.0);
-
-    // Gamma correction
-    float gamma = 2.2;
-    fragColor.rgb = pow(fragColor.rgb, vec3(1.0/gamma));
+    color += vec3(ambient);
+    fragColor = vec4(color, 1.0);
 }

@@ -86,17 +86,19 @@ public:
         }
     }
 
-    void create(const char* vertData, const char* fragData)
+    bool create(const char* vertData, const char* fragData)
     {
         Shader newShader;
-        if (newShader.setup(vertData, fragData))
+        bool success = newShader.setup(vertData, fragData);
+        if (success)
         { *this = std::move(newShader); }
+        return success;
         // I don't want the new shaders to replace the current one
         // unless it is CERTAIN that the new ones work.
     }
 
-    void create(const String& vert, const String& frag)
-    { create(vert.c_str(), frag.c_str()); }
+    bool create(const String& vert, const String& frag)
+    { return create(vert.c_str(), frag.c_str()); }
 
     bool created() const
     { return glHandle != 0; }
@@ -209,11 +211,25 @@ public:
         GL_CHECK(glUniform3f(loc, value.x, value.y, value.z));
     }
 
+    void setVec3f(const String& name, const Vector3f& value)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform3f(loc, value.x, value.y, value.z));
+    }
+
     void setVec4f(const String& name, float x, float y, float z, float w)
     {
         bind();
         auto loc = getUniformLocation(name); if (loc < 0) { return; }
         GL_CHECK(glUniform4f(loc, x, y, z, w));
+    }
+
+    void setVec4f(const String& name, const Vector4<float> value)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform4f(loc, value.x, value.y, value.z, value.w));
     }
 
     void setVec4f(const String& name, glm::vec4 value)

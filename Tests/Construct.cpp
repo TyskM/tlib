@@ -288,9 +288,6 @@ public:
 
     static inline Shader  shader3d;
 
-    static inline Texture emptyTex;
-    static inline GLubyte emptyTexData[1][1][4] ={ {{255,255,255,255}} };
-
     static inline Texture defaultTex;
     static constexpr int  defaultTexDataSize = 32;
     static inline GLubyte defaultTexColor[4] ={ 255, 255, 255, 255 };
@@ -306,6 +303,39 @@ private:
     static inline uint32_t    shadowSize = 1024;
     static inline Shader      shadowShader;
 
+    struct DirectionalLight
+    {
+        Vector3f  dir;
+        ColorRGBf color;
+        float     power = 1.f;
+    };
+
+    struct PointLight
+    {
+        Vector3f  pos;
+        ColorRGBf color;
+        float     power = 1.f;
+    };
+
+    struct SpotLight
+    {
+        Vector3f  pos;
+        Vector3f  dir;
+        ColorRGBf color;
+        float     cosAngle      = 1.f;
+        float     outerCosAngle = 0.2f;
+        float     power         = 1.f;
+    };
+
+    static inline uint32_t                 maxDirectionalLights = 2;
+    static inline Vector<DirectionalLight> directionalLights;
+
+    static inline uint32_t           maxPointLights = 32;
+    static inline Vector<PointLight> pointLights;
+
+    static inline uint32_t          maxSpotLights = 32;
+    static inline Vector<SpotLight> spotLights;
+
     static void drawLightDepthMap()
     {
         float near_plane = 1.0f, far_plane = 7.5f;
@@ -320,7 +350,6 @@ private:
     static void drawMeshImmediate(GPUVertexData& mesh, Texture& tex, const Transform3D& transform)
     {
         tex.bind();
-        emptyTex.bind(1);
         shader3d.setMat4f("model", transform.getMatrix());
         Renderer::draw(shader3d, mesh);
     }
@@ -363,6 +392,51 @@ public:
 
         glEnable(GL_PRIMITIVE_RESTART);
         glPrimitiveRestartIndex(restartIndex);
+
+        // Upload lights
+        {
+            // Point Lights
+            {
+                int32_t pointLightCount = std::min<int32_t>(pointLights.size(), maxPointLights);
+                shader3d.setInt("pointLightCount", pointLightCount);
+                for (int32_t i = 0; i < pointLightCount; i++)
+                {
+                    shader3d.setVec3f(fmt::format("pointLights[{}].localPos",               i), pointLights[i].pos);
+                    shader3d.setVec3f(fmt::format("pointLights[{}].light.color",            i), pointLights[i].color);
+                    shader3d.setFloat(fmt::format("pointLights[{}].light.diffuseIntensity", i), pointLights[i].power);
+                    shader3d.setFloat(fmt::format("pointLights[{}].light.ambientIntensity", i), 1.f);
+                }
+            }
+
+            // Directional Lights
+            {
+                int32_t directionalLightCount = std::min<int32_t>(directionalLights.size(), maxDirectionalLights);
+                shader3d.setInt("directionalLightCount", directionalLightCount);
+                for (int32_t i = 0; i < directionalLightCount; i++)
+                {
+                    shader3d.setVec3f(fmt::format("directionalLights[{}].dir",                    i), directionalLights[i].dir);
+                    shader3d.setVec3f(fmt::format("directionalLights[{}].light.color",            i), directionalLights[i].color);
+                    shader3d.setFloat(fmt::format("directionalLights[{}].light.diffuseIntensity", i), directionalLights[i].power);
+                    shader3d.setFloat(fmt::format("directionalLights[{}].light.ambientIntensity", i), 1.f);
+                }
+            }
+
+            // Spot Lights
+            {
+                int32_t spotLightCount = std::min<int32_t>(spotLights.size(), maxSpotLights);
+                shader3d.setInt("spotLightCount", spotLightCount);
+                for (int32_t i = 0; i < spotLightCount; i++)
+                {
+                    shader3d.setVec3f(fmt::format("spotLights[{}].pos",                    i), spotLights[i].pos);
+                    shader3d.setVec3f(fmt::format("spotLights[{}].dir",                    i), spotLights[i].dir);
+                    shader3d.setFloat(fmt::format("spotLights[{}].cosAngle",               i), spotLights[i].cosAngle);
+                    shader3d.setFloat(fmt::format("spotLights[{}].outerCosAngle",          i), spotLights[i].outerCosAngle);
+                    shader3d.setVec3f(fmt::format("spotLights[{}].light.color",            i), spotLights[i].color);
+                    shader3d.setFloat(fmt::format("spotLights[{}].light.diffuseIntensity", i), spotLights[i].power);
+                    shader3d.setFloat(fmt::format("spotLights[{}].light.ambientIntensity", i), 1.f);
+                }
+            }
+        }
 
         bool     stateChanged = true;
         uint32_t primOffset = 0;
@@ -407,25 +481,72 @@ public:
         cmds.clear();
         primitiveVerts.clear();
         primitiveIndices.clear();
+
+        pointLights.clear();
+        directionalLights.clear();
+        spotLights.clear();
+    }
+
+    struct GLSLSource
+    {
+    private:
+        String src;
+
+    public:
+        GLSLSource() = default;
+        GLSLSource(const String& str) : src{str} { }
+
+        void inject(const String& str)
+        {
+            size_t versionIndex = src.find("#version");
+            if (versionIndex == src.size()) { tlog::error("Missing #version"); return; }
+            size_t insertPoint = src.find('\n', versionIndex) + 1;
+            src.insert(insertPoint, str + '\n');
+        }
+
+        String string() const
+        { return src; }
+    };
+
+    static void setPBRShader(const String& vertsrc, const String& fragsrc)
+    {
+        GLSLSource vert(vertsrc); GLSLSource frag(fragsrc);
+        frag.inject(fmt::format("#define maxDirectionalLights {}", maxDirectionalLights));
+        frag.inject(fmt::format("#define maxPointLights       {}", maxPointLights));
+        frag.inject(fmt::format("#define maxSpotLights        {}", maxSpotLights));
+
+        if (!shader3d.create(vert.string(), frag.string()))
+        {
+            tlog::error("Failed to compile the following shader:");
+            tlog::error("Vertex Shader:");
+            tlog::error('\n' + vert.string());
+            tlog::error("Fragment Shader:");
+            tlog::error('\n' + frag.string());
+        }
     }
 
     static void create()
     {
-        primitiveMesh.setLayout({ Layout::Vec3f(), Layout::Vec4f() });
-        defaultPrimitiveShader.create(
-            myEmbeds.at("TLib/Embed/Shaders/3d_primitive.vert").asString(),
-            myEmbeds.at("TLib/Embed/Shaders/3d_primitive.frag").asString());
-        defaultPrimitiveShader.setMat4f("model", glm::mat4(1));
-        primitiveVerts   .reserve(1024 * 4);
-        primitiveIndices .reserve(1024 * 4);
+        // Setup Primitive Rendering
+        {
+            primitiveMesh.setLayout({ Layout::Vec3f(), Layout::Vec4f() });
+
+            defaultPrimitiveShader.create(
+                myEmbeds.at("TLib/Embed/Shaders/3d_primitive.vert").asString(),
+                myEmbeds.at("TLib/Embed/Shaders/3d_primitive.frag").asString());
+
+            defaultPrimitiveShader.setMat4f("model", glm::mat4(1));
+            primitiveVerts.reserve(1024 * 2);
+            primitiveIndices.reserve(1024 * 2);
+        }
+
+        // Setup PBR Rendering
+        {
+            setPBRShader(myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString(),
+                         myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
+        }
 
         defaultTex.create();
-
-        shader3d.create(myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString(),
-                        myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
-
-        emptyTex.create();
-        emptyTex.setData(emptyTexData, 1, 1);
 
         // Setup shadows
         shadowTex.create();
@@ -435,7 +556,7 @@ public:
         shadowFbo.create();
         shadowFbo.setTexture(shadowTex, FrameBufferAttachmentType::Depth);
         shadowShader.create(myEmbeds.at("TLib/Embed/Shaders/light.vert").asString(),
-            myEmbeds.at("TLib/Embed/Shaders/empty.frag").asString());
+                            myEmbeds.at("TLib/Embed/Shaders/empty.frag").asString());
 
         // Make the default texture look more interesting
         RNG rng;
@@ -518,11 +639,32 @@ public:
         }
     }
 
-    static void addLight(const Vector3f& pos, const ColorRGBf& color)
+    // Used for things like sun light
+    static void addDirectionalLight(const Vector3f& direction, const ColorRGBf color, float power = 1.f)
     {
-        // TODO: global uniform things here too.
-        shader3d.setVec3f("lightPos", pos.x, pos.y, pos.z);
-        shader3d.setVec3f("lightColor", color.r, color.g, color.b);
+        DirectionalLight& light = directionalLights.emplace_back();
+        light.dir   = direction;
+        light.color = color;
+        light.power = power;
+    }
+
+    static void addPointLight(const Vector3f& pos, const ColorRGBf& color, float power = 1.f)
+    {
+        PointLight& light = pointLights.emplace_back();
+        light.pos   = pos;
+        light.color = color;
+        light.power = power;
+    }
+
+    static void addSpotLight(const Vector3f& pos, const Vector3f& dir, float angleDeg, float outerAngleDeg, const ColorRGBf& color, float power = 1.f)
+    {
+        SpotLight& light    = spotLights.emplace_back();
+        light.pos           = pos;
+        light.dir           = dir;
+        light.cosAngle      = glm::cos(glm::radians(angleDeg));
+        light.outerCosAngle = glm::cos(glm::radians(angleDeg + outerAngleDeg));
+        light.color         = color;
+        light.power         = power;
     }
 };
 
@@ -569,6 +711,11 @@ public:
 
     bool isOnGround = false;
     bool lookingAtGeometry = false;
+
+    Vector3f getPos() const
+    {
+        return Vector3f(playerController->getPosition());
+    }
 
     void update(float delta, bool mouseCaptured)
     {
@@ -777,7 +924,17 @@ const char* presetModelPaths[7] =
 };
 int guiSelectedModel = 0;
 String guiModel;
-float guiLightColor[3] ={ 0.5f, 0.5f, 0.5f };
+
+ColorRGBAf lightColor ("#FFE082");
+ColorRGBAf sunColor   ("#17163A");
+ColorRGBAf spotColor  = ColorRGBAf::white();
+Vector3f   sunDir     (-0.2, -1.0, -0.3);
+float      lightPower = 1.f;
+float      sunPower   = 1.f;
+float      spotPower  = 1.f;
+float      spotAngle  = 40.f;
+float      spotOuterAngle = 20.f;
+
 float totalTime = 0.f;
 
 PxPhysics*           physics          = nullptr;
@@ -888,96 +1045,98 @@ void update(float delta)
     #pragma region UI
     beginDiagWidgetExt();
 
-    if (ImGui::Checkbox("Physics Debug", &debugDrawPhysics))
+    if (ImGui::CollapsingHeader("Character & Camera"))
     {
-        if (debugDrawPhysics)
+        if (ImGui::Checkbox("Physics Debug", &debugDrawPhysics))
         {
-            physicsScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f); // Required
-            physicsScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
+            if (debugDrawPhysics)
+            {
+                physicsScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f); // Required
+                physicsScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
+            }
+            else
+            {
+                physicsScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 0.f);
+                physicsScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 0.f);
+            }
         }
-        else
-        {
-            physicsScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 0.f);
-            physicsScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 0.f);
-        }
+
+        ImGui::Checkbox("Freecam", &controller.freeCam);
+
+        ImGui::SliderFloat("Move Speed", &controller.moveSpeed, 0.f, 100.f);
+        ImGui::SliderFloat("Gravity", &controller.gravity, -2.f, 2.f);
+        ImGui::SliderFloat("Friction", &controller.friction, 0.f, 1.f);
+        ImGui::SliderFloat("Jump Power", &controller.jumpPower, 1.f, 100.f);
+        ImGui::Checkbox   ("On Ground", &controller.isOnGround);
+
+        ImGui::Text(fmt::format("Velocity: {}", controller.velocity.toString()).c_str());
+        ImGui::Text(fmt::format("Looking At Geometry: {}", controller.lookingAtGeometry).c_str());
+        ImGui::Text(fmt::format("Dir:      {}", Vector3f(controller.forward).toString()).c_str());
+        ImGui::Text(fmt::format("Dir No Y: {}", Vector3f(controller.forwardNoY).toString()).c_str());
+
+        Vector3f playerPos(controller.playerController->getPosition());
+        static Vector3f guiTeleport;
+        ImGui::InputFloat3("##teleportinput", &guiTeleport.x);
+        if (ImGui::Button("Teleport"))
+        { controller.playerController->setPosition({ guiTeleport.x, guiTeleport.y, guiTeleport.z }); }
+        ImGui::SameLine();
+        if (ImGui::Button("Save Pos"))
+        { guiTeleport = playerPos; }
+        ImGui::Text(fmt::format("Current Pos: {}", playerPos.toString()).c_str());
+
+        static Vector3f guiGravity;
+        ImGui::InputFloat3("##gravinput", &guiGravity.x);
+        if (ImGui::Button("Set Gravity"))
+        { physicsScene->setGravity({ guiGravity.x, guiGravity.y, guiGravity.z }); }
+
+        ImGui::SeparatorText("Camera");
+        if (ImGui::Button("Reset Camera"))
+        { controller.resetCamera(); }
+        ImGui::SliderFloat("FOV", &controller.camera.fov, 70.f, 170.f);
+
+        ImGui::Text("Press ALT to toggle cursor.");
+        ImGui::SliderFloat("Sensitivity", &controller.sens, 0.01f, 2.f);
+        ImGui::SliderFloat("Camera Speed", &controller.freeCamSpeed, 0.01f, 400.f);
+        ImGui::Text(fmt::format("Pitch : {}", controller.pitch).c_str());
+        ImGui::Text(fmt::format("Yaw   : {}", controller.yaw).c_str());
     }
-
-    ImGui::Checkbox("Freecam", &controller.freeCam);
-
-    ImGui::SliderFloat("Move Speed", &controller.moveSpeed,         0.f,  100.f);
-    ImGui::SliderFloat("Gravity",    &controller.gravity,          -2.f,  2.f);
-    ImGui::SliderFloat("Friction",   &controller.friction,          0.f,  1.f);
-    ImGui::SliderFloat("Jump Power", &controller.jumpPower,         1.f,  100.f);
-    ImGui::Checkbox   ("On Ground",  &controller.isOnGround);
-
-    ImGui::Text(fmt::format("Velocity: {}", controller.velocity.toString()).c_str());
-    ImGui::Text(fmt::format("Looking At Geometry: {}", controller.lookingAtGeometry).c_str());
-    ImGui::Text(fmt::format("Dir:      {}", Vector3f(controller.forward).toString()).c_str());
-    ImGui::Text(fmt::format("Dir No Y: {}", Vector3f(controller.forwardNoY).toString()).c_str());
-
-    Vector3f playerPos(controller.playerController->getPosition());
-    static Vector3f guiTeleport;
-    ImGui::InputFloat3("##teleportinput", &guiTeleport.x);
-    if (ImGui::Button("Teleport"))
-    { controller.playerController->setPosition({guiTeleport.x, guiTeleport.y, guiTeleport.z}); }
-    ImGui::SameLine();
-    if (ImGui::Button("Save Pos"))
-    { guiTeleport = playerPos; }
-    ImGui::Text(fmt::format("Current Pos: {}", playerPos.toString()).c_str());
-
-    static Vector3f guiGravity;
-    ImGui::InputFloat3("##gravinput", &guiGravity.x);
-    if (ImGui::Button("Set Gravity"))
-    { physicsScene->setGravity({ guiGravity.x, guiGravity.y, guiGravity.z }); }
-
-    ImGui::SeparatorText("Camera");
-    if (ImGui::Button("Reset Camera"))
-    { controller.resetCamera(); }
-    ImGui::SliderFloat("FOV", &controller.camera.fov, 70.f, 170.f);
-
-    ImGui::Text("Press ALT to toggle cursor.");
-    ImGui::SliderFloat("Sensitivity",  &controller.sens, 0.01f, 2.f);
-    ImGui::SliderFloat("Camera Speed", &controller.freeCamSpeed, 0.01f, 400.f);
-    ImGui::Text(fmt::format("Pitch : {}", controller.pitch).c_str());
-    ImGui::Text(fmt::format("Yaw   : {}", controller.yaw).c_str());
-
     // Model loading input
-    ImGui::SeparatorText("Model");
-    if (ImGui::Combo("Models", &guiSelectedModel, presetModelPaths, std::size(presetModelPaths), -1))
-    { /*model.loadFromFile(presetModelPaths[guiSelectedModel]);*/ }
+    //ImGui::SeparatorText("Model");
+    //if (ImGui::Combo("Models", &guiSelectedModel, presetModelPaths, std::size(presetModelPaths), -1))
+    //{ /*model.loadFromFile(presetModelPaths[guiSelectedModel]);*/ }
     //if (ImGui::Button("Load Custom Model"))
     //{
     //    Path p = openSingleFileDialog();
     //    if (!p.empty()) { model.loadFromFile(p); }
     //}
 
-    ImGui::SeparatorText("Shaders");
+    if (ImGui::CollapsingHeader("Graphics"))
+    {
+        ImGui::ColorEdit3("Player Light",       &lightColor.r);
+        ImGui::DragFloat ("Player Light Power", &lightPower);
+        ImGui::ColorEdit3("Sun Light",          &sunColor.r);
+        ImGui::DragFloat3("Sun Dir",            &sunDir.x, 0.025f, -1.f, 1.f);
+        ImGui::DragFloat ("Sun Power",          &sunPower);
+        ImGui::ColorEdit3("Spot Light",         &spotColor.r);
+        ImGui::DragFloat ("Spot Power",         &spotPower);
+        ImGui::DragFloat ("Spot Angle",         &spotAngle);
+        ImGui::DragFloat ("Spot Outer Angle",   &spotOuterAngle);
+        
 
-    ImGui::ColorEdit3("Lighting", guiLightColor);
+        static float ambientStrength = R3D::shader3d.getFloat("ambientStrength");
+        if (ImGui::SliderFloat("Ambient Lighting", &ambientStrength, 0.f, 1.f))
+        { R3D::shader3d.setFloat("ambientStrength", ambientStrength); }
 
-    ImGui::Checkbox("MSAA", &R3D::useMSAA);
-    ImGui::Checkbox("Dithering", &R3D::useDithering);
+        ImGui::Checkbox("MSAA", &R3D::useMSAA);
+        ImGui::Checkbox("Dithering", &R3D::useDithering);
 
-    static float ambientStrength = R3D::shader3d.getFloat("ambientStrength");
-    if (ImGui::SliderFloat("Ambient Lighting", &ambientStrength, 0.f, 1.f))
-    { R3D::shader3d.setFloat("ambientStrength", ambientStrength); }
-
-    static float specularStrength = R3D::shader3d.getFloat("specularStrength");
-    if (ImGui::SliderFloat("Specular Strength", &specularStrength, 0.f, 1.f))
-    { R3D::shader3d.setFloat("specularStrength", specularStrength); }
-
-    static glm::vec3 sunDir = R3D::shader3d.getVec3f("sunDir");
-    if (ImGui::DragFloat3("Sun Dir", &sunDir.x, 0.025f, -1.f, 1.f))
-    { R3D::shader3d.setVec3f("sunDir", sunDir); }
-
-    if (ImGui::Button("Compile Shaders"))
-    { R3D::shader3d.create(vertShaderStr, fragShaderStr); }
-    if (ImGui::CollapsingHeader("Vert Shader"))
-    { ImGui::InputTextMultiline("#VertShaderEdit", &vertShaderStr, { ImGui::GetContentRegionAvail().x, 600 }); }
-    if (ImGui::CollapsingHeader("Frag Shader"))
-    { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }); }
-
-    ImGui::SeparatorText("Diag");
+        if (ImGui::Button("Compile Shaders"))
+        { R3D::setPBRShader(vertShaderStr, fragShaderStr); }
+        if (ImGui::CollapsingHeader("Vert Shader"))
+        { ImGui::InputTextMultiline("#VertShaderEdit", &vertShaderStr, { ImGui::GetContentRegionAvail().x, 600 }); }
+        if (ImGui::CollapsingHeader("Frag Shader"))
+        { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }); }
+    }
     ImGui::End();
     #pragma endregion
 
@@ -994,11 +1153,10 @@ void update(float delta)
 
 void draw(float delta)
 {
-    const float radius = 20.0f;
-    float    lightX    = sin(totalTime) * radius;
-    float    lightZ    = cos(totalTime) * radius;
-    Vector3f lightPos  ={ lightX, 0.f, lightZ };
-    R3D::addLight(lightPos, { guiLightColor[0], guiLightColor[1], guiLightColor[2] });
+    Vector3f lightPos  = controller.getPos();
+    R3D::addPointLight(lightPos, ColorRGBf(lightColor), lightPower);
+    R3D::addDirectionalLight(sunDir, ColorRGBf(sunColor), sunPower);
+    R3D::addSpotLight(lightPos, Vector3f(controller.forward), spotAngle, spotOuterAngle, ColorRGBf(spotColor), spotPower);
 
     for (auto& modelInst : models)
     {
