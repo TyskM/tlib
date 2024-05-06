@@ -260,7 +260,6 @@ class Renderer3D
 {
 public:
     static inline bool useMSAA      = true;  // Read / Write. Creates ugly artifacts (sometimes), find post processing solution.
-    static inline bool useDithering = false; // Read / Write. Is a no op on most implementations.
 
     struct ModelDrawCmd
     {
@@ -334,17 +333,6 @@ public:
 
     static inline uint32_t          maxSpotLights = 32;
     static inline Vector<SpotLight> spotLights;
-
-    static void drawLightDepthMap()
-    {
-        float near_plane = 1.0f, far_plane = 7.5f;
-        glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-        glm::mat4 lightView =
-            glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
-                glm::vec3(0.0f, 0.0f, 0.0f),
-                glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-    }
 
     static void drawMeshImmediate(GPUVertexData& mesh, Texture& tex, const Transform3D& transform)
     {
@@ -460,6 +448,33 @@ public:
         }
     }
 
+    static void drawCube(const Vector3f& pos, const Vector3f& size = 1.f, const ColorRGBAf color = ColorRGBAf::white())
+    {
+        constexpr Vector3f vertices[8] =
+        {   Vector3f(-1, -1, -1),
+            Vector3f( 1, -1, -1),
+            Vector3f( 1,  1, -1),
+            Vector3f(-1,  1, -1),
+            Vector3f(-1, -1,  1),
+            Vector3f( 1, -1,  1),
+            Vector3f( 1,  1,  1),
+            Vector3f(-1,  1,  1) };
+
+        constexpr int indices[36] =
+        {   0, 1, 3, 3, 1, 2,
+            1, 5, 2, 2, 5, 6,
+            5, 4, 6, 6, 4, 7,
+            4, 0, 7, 7, 0, 3,
+            3, 2, 7, 7, 2, 6,
+            4, 5, 0, 0, 5, 1  };
+
+        Vector<Vector3f> lines;
+        lines.reserve(36);
+        for (uint32_t i = 0; i < 36; i++)
+        { lines.push_back(vertices[indices[i]] * size + pos); }
+        drawLines(lines, color, GLDrawMode::Triangles);
+    }
+
     // Used for things like sun light
     static void addDirectionalLight(const Vector3f& direction, const ColorRGBf color, float power = 1.f)
     {
@@ -497,11 +512,8 @@ public:
         GL_CHECK(glEnable(GL_CULL_FACE));
         GL_CHECK(glFrontFace(GL_CCW));
 
-        if (useDithering) { GL_CHECK(glEnable(GL_DITHER)); }
-        else { GL_CHECK(glDisable(GL_DITHER)); }
-
         if (useMSAA) { GL_CHECK(glEnable(GL_MULTISAMPLE)); }
-        else { GL_CHECK(glDisable(GL_MULTISAMPLE)); }
+        else         { GL_CHECK(glDisable(GL_MULTISAMPLE)); }
 
         shader3d.setInt ("material.diffuse",   0);
         shader3d.setInt ("material.roughness", 1);
@@ -558,27 +570,35 @@ public:
         // Shadow pass
         {
             Camera3D shadowCamera;
-            Vector3f dir    = directionalLights[0].dir;
+            Vector3f dir    = directionalLights[0].dir.normalized();
             Vector3f pos    = Vector3f(camera.pos);
             Vector3f target = pos + dir;
 
+            drawCube(target, 0.2f);
+
+            // This works way better than glm::quatLookAt. what a world we live in.
+            auto mat = glm::lookAt(pos.toGlm(), target.toGlm(), Vector3f::up().toGlm());
+            shadowCamera.rot = glm::quat_cast(mat);
+
+            // if dir.z is negative, this shadow map turns inside out???
+            //shadowCamera.rot      = Quat::safeLookAt(Vector3f(), dir, Vector3f::up(), Vector3f::backward());
             shadowCamera.pos      = { pos.x, pos.y, pos.z };
-            shadowCamera.lookAt(target);
             shadowCamera.viewmode = Camera3D::ViewMode::Orthographic;
-            shadowCamera.zfar     =  50.f;
-            shadowCamera.znear    = -50.f;
+            shadowCamera.zfar     =  80.f;
+            shadowCamera.znear    = -80.f;
 
-            Mat4f lightProjection = shadowCamera.getPerspectiveMatrix(128.f);
-            Mat4f lightView       = shadowCamera.getViewMatrix();
+            ImGui::Begin("Shadow Camera");
+            ImGui::Text(fmt::format("Dir  : {}", dir.toString()).c_str());
+            ImGui::Text(fmt::format("Pos  : {}", pos.toString()).c_str());
+            ImGui::Text(fmt::format("Tar  : {}", target.toString()).c_str());
+            ImGui::Text(fmt::format("Quat : {}", shadowCamera.rot.toString()).c_str());
+            ImGui::End();
 
-            //float near_plane = 1.0f, far_plane = 50.f;
-            //glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-            //glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f,  4.0f, -1.0f),
-            //                                  glm::vec3( 0.0f,  0.0f,  0.0f),
-            //                                  glm::vec3( 0.0f,  1.0f,  0.0f));
+            Mat4f lightProjection  = shadowCamera.getPerspectiveMatrix(256.f);
+            Mat4f lightView        = shadowCamera.getViewMatrix();
             Mat4f lightSpaceMatrix = lightProjection * lightView;
 
-            Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)));
+            Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)), Vector2f((float)shadowSize));
             shadowFbo.bind();
             glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -602,6 +622,7 @@ public:
             Renderer2D::setView(Renderer2D::getView());
         }
 
+        // PBR Pass
         for (auto& varCmd : cmds)
         {
             if (is<PrimitiveDrawCmd>(varCmd))
@@ -695,8 +716,6 @@ struct PlayerController
 {
 public:
     Vector2f moveDir;
-    //Vector3f forward{};
-    //Vector3f forwardNoY{};
     Vector3f up = Vector3f::up();
 
     // Input
@@ -899,7 +918,7 @@ struct Scene
         auto e = ecs.entity();
         ASSERT(e.is_alive());
 
-        e.emplace<Transform3D>(Vector3f(5.f, -5.f, 0.f));
+        e.emplace<Transform3D>(Vector3f::up() * 5.f);
         e.emplace<MeshInstance3D>("assets/primitives/cube.obj");
     }
 
@@ -942,7 +961,7 @@ String guiModel;
 ColorRGBAf lightColor ("#FFE082");
 ColorRGBAf sunColor   ("#17163A");
 ColorRGBAf spotColor  ("#FFC182");
-Vector3f   sunDir     (-0.2, -1.0, -0.3);
+Vector3f   sunDir     = Vector3f::down();
 float      lightPower = 1.f;
 float      sunPower   = 1.f;
 float      spotPower  = 200.f;
@@ -1142,7 +1161,6 @@ void update(float delta)
         { R3D::shader3d.setFloat("ambientStrength", ambientStrength); }
 
         ImGui::Checkbox("MSAA", &R3D::useMSAA);
-        ImGui::Checkbox("Dithering", &R3D::useDithering);
 
         if (ImGui::Button("Compile Shaders"))
         { R3D::setPBRShader(vertShaderStr, fragShaderStr); }
@@ -1173,6 +1191,9 @@ void draw(float delta)
     R3D::addPointLight(lightPos, ColorRGBf(lightColor), lightPower);
     R3D::addDirectionalLight(sunDir, ColorRGBf(sunColor), sunPower);
     //R3D::addSpotLight(lightPos, Vector3f(controller.forward), spotAngle, spotOuterAngle, ColorRGBf(spotColor), spotPower);
+
+    Vector3f soffset = Vector3f::up() * 4.f;
+    R3D::drawLines(std::initializer_list{ soffset, soffset + sunDir*2.f }, sunColor, GLDrawMode::Lines);
 
     for (auto& modelInst : models)
     {

@@ -751,6 +751,8 @@ struct Quat
 
     glm::quat toGlm() const { return glm::quat(w, x, y, z); }
 
+    String toString() const { return fmt::format("({}, {}, {}, {})", w, x, y, z); }
+
     static Quat angleAxis(float angle, const Vector3f& axis)
     { return glm::angleAxis(angle, glm::vec3(axis.x, axis.y, axis.z)); }
 
@@ -776,12 +778,12 @@ struct Quat
     { return glm::normalize(toGlm()); }
 
     Mat4f toMat4f() const
-    { return glm::toMat4(glm::quat(w, x, y, z)); }
+    { return glm::toMat4(toGlm()); }
 
     static Quat safeLookAt(const Vector3f& lookFrom,
-                    const Vector3f& lookTo,
-                    const Vector3f& up,
-                    const Vector3f& alternativeUp)
+                           const Vector3f& lookTo,
+                           const Vector3f& up,
+                           const Vector3f& alternativeUp)
     {
         // https://stackoverflow.com/questions/18172388/glm-quaternion-lookat-function
         Vector3f  direction       = lookTo - lookFrom;
@@ -791,8 +793,7 @@ struct Quat
         if (!(directionLength > 0.0001))
             return glm::quat(1, 0, 0, 0); // Just return identity
 
-        // Normalize direction
-        direction /= directionLength;
+        direction = direction.normalized();
 
         // Is the normal up (nearly) parallel to direction?
         if (abs(direction.dot(up)) > .9999f)
