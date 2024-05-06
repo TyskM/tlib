@@ -9,6 +9,11 @@
 #include <TLib/EASTL.hpp>
 #include <TLib/Logging.hpp>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/vector_angle.hpp>
+
 // There's always a min/max macro somewhere. Make it stop!!!
 #undef min
 #undef max
@@ -204,6 +209,7 @@ template <typename T>
 struct Vector3
 {
     constexpr Vector3(T xv, T yv, T zv) : x{ xv }, y{ yv }, z{ zv } { }
+    constexpr Vector3(T v)              : x{ v  }, y{ v  }, z{ v  } { }
     constexpr Vector3() { }
 
     template <typename CT>
@@ -214,6 +220,8 @@ struct Vector3
         z = static_cast<T>(other.z);
     }
 
+    glm::vec<3, T> toGlm() const { return glm::vec<3, T>(x, y, z); }
+
     T x = 0;
     T y = 0;
     T z = 0;
@@ -221,12 +229,19 @@ struct Vector3
     std::string toString() const
     { return this->operator std::string(); }
 
-    Vector2<T> floored()    const { return { floor(x), floor(y), floor(z) }; }
-    Vector2<T> ceiled()     const { return { ceil(x),  ceil(y),  ceil(z)  }; }
-    Vector2<T> rounded()    const { return { round(x), round(y), round(z) }; }
-    Vector2<T> abs()        const { return { std::abs(x),  std::abs(y),  std::abs(z)  }; }
-    Vector2<T> sqrt()       const { return { std::sqrt(x), std::sqrt(y), std::sqrt(z) }; }
-    Vector2<T> pow(T value) const { return { std::pow(x, value), std::pow(y, value), std::pow(z, value) }; }
+    static Vector3<T> up()       { return Vector3<T>(0,  1,  0); }
+    static Vector3<T> down()     { return -up();                 }
+    static Vector3<T> right()    { return Vector3<T>(1,  0,  0); }
+    static Vector3<T> left()     { return -right();              }
+    static Vector3<T> forward()  { return Vector3<T>(0,  0, -1); }
+    static Vector3<T> backward() { return -forward();            }
+
+    Vector3<T> floored()    const { return { floor(x), floor(y), floor(z) }; }
+    Vector3<T> ceiled()     const { return { ceil(x),  ceil(y),  ceil(z)  }; }
+    Vector3<T> rounded()    const { return { round(x), round(y), round(z) }; }
+    Vector3<T> abs()        const { return { std::abs(x),  std::abs(y),  std::abs(z)  }; }
+    Vector3<T> sqrt()       const { return { std::sqrt(x), std::sqrt(y), std::sqrt(z) }; }
+    Vector3<T> pow(T value) const { return { std::pow(x, value), std::pow(y, value), std::pow(z, value) }; }
 
     T length() const
     { return static_cast<T>(std::sqrt(x * x + y * y + z * z)); }
@@ -255,6 +270,9 @@ struct Vector3
                            (z * other.x) - (x * other.z),
                            (x * other.y) - (y * other.x)  );
     }
+
+    float dot(Vector3<T> other) const
+    { return x * other.x + y * other.y + z * other.z; }
 
     operator std::string() const
     { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ")"); }
@@ -695,3 +713,96 @@ struct Rect
 
 using Rectf = Rect<float>;
 using Recti = Rect<int>;
+
+struct Mat4f
+{
+private:
+    glm::mat4 matrix;
+
+public:
+    Mat4f() = default;
+    Mat4f(float x) { matrix = glm::mat4(x); }
+    Mat4f(const glm::mat4& m) : matrix{ m } { }
+
+    const float* data() const
+    { return glm::value_ptr(matrix); }
+
+    Mat4f translate(const Vector3f& transform) const
+    { return glm::translate(matrix, glm::vec3(transform.x, transform.y, transform.z)); }
+
+    Mat4f scale(const Vector3f& _scale) const
+    { return glm::scale(matrix, glm::vec3(_scale.x, _scale.y, _scale.z)); }
+
+    Mat4f operator* (const Mat4f& other) { return matrix * other.matrix; }
+    Mat4f operator*=(const Mat4f& other) { return matrix * other.matrix; }
+};
+
+struct Quat
+{
+    float w = 1.f;
+    float x = 0.f;
+    float y = 0.f;
+    float z = 0.f;
+
+    Quat() = default;
+    Quat(float w, float x, float y, float z) : w{ w }, x{ x }, y{ y }, z{ z } { }
+    Quat(const glm::quat& q) : w{ q.w }, x{ q.x }, y{ q.y }, z{ q.z } { }
+    Quat(float angle, const Vector3f& axis) { *this = angleAxis(angle, axis); }
+
+    glm::quat toGlm() const { return glm::quat(w, x, y, z); }
+
+    static Quat angleAxis(float angle, const Vector3f& axis)
+    { return glm::angleAxis(angle, glm::vec3(axis.x, axis.y, axis.z)); }
+
+    Vector3f forward() const
+    { return inverse().rotated(Vector3f::forward()); }
+
+    Vector3f right() const
+    { return inverse().rotated(Vector3f::right()); }
+
+    Vector3f up() const
+    { return inverse().rotated(Vector3f::up()); }
+
+    Quat inverse() const
+    { return glm::inverse(toGlm()); }
+
+    Vector3f rotated(const Vector3f& axis) const
+    { return Vector3f(glm::rotate(toGlm(), glm::vec3{axis.x, axis.y, axis.z})); }
+
+    Vector3f rotated(float axisx, float axisy, float axisz) const
+    { return Vector3f(glm::rotate(toGlm(), glm::vec3{ axisx, axisy, axisz })); }
+
+    Quat normalized() const
+    { return glm::normalize(toGlm()); }
+
+    Mat4f toMat4f() const
+    { return glm::toMat4(glm::quat(w, x, y, z)); }
+
+    static Quat safeLookAt(const Vector3f& lookFrom,
+                    const Vector3f& lookTo,
+                    const Vector3f& up,
+                    const Vector3f& alternativeUp)
+    {
+        // https://stackoverflow.com/questions/18172388/glm-quaternion-lookat-function
+        Vector3f  direction       = lookTo - lookFrom;
+        float     directionLength = direction.length();
+
+        // Check if the direction is valid; Also deals with NaN
+        if (!(directionLength > 0.0001))
+            return glm::quat(1, 0, 0, 0); // Just return identity
+
+        // Normalize direction
+        direction /= directionLength;
+
+        // Is the normal up (nearly) parallel to direction?
+        if (abs(direction.dot(up)) > .9999f)
+        { return glm::quatLookAt(direction.toGlm(), alternativeUp.toGlm()); }
+        else
+        { return glm::quatLookAt(direction.toGlm(), up.toGlm()); }
+    }
+
+    Quat operator* (const Quat& other) { return toGlm() * other.toGlm(); }
+    Quat operator*=(const Quat& other) { return toGlm() * other.toGlm(); }
+
+
+};

@@ -246,6 +246,13 @@ public:
         GL_CHECK(glUniformMatrix4fv(loc, 1, false, glm::value_ptr(value)));
     }
 
+    void setMat4f(const String& name, const Mat4f& value)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniformMatrix4fv(loc, 1, false, value.data()));
+    }
+
     void setUniformBlock(const String& name, UniformBuffer& ubo, int index)
     {
         ubo.setBufferBase(index);

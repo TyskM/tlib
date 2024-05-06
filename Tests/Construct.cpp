@@ -24,6 +24,8 @@
 #include <physx/extensions/PxDefaultSimulationFilterShader.h>
 #include <physx/characterkinematic/PxCapsuleController.h>
 
+static glm::vec3 toGlm(const Vector3f& v) { return { v.x, v.y, v.z }; };
+
 #pragma region Physics
 
 using namespace physx;
@@ -105,37 +107,42 @@ struct Camera3D
     float     znear    = 0.02f;
     float     zfar     = 3000.f;
     float     fov      = 110.f;
-    glm::vec3 pos      ={ 0.0f, 0.0f, 0.0f };
-    glm::vec3 target   ={ 0.0f, 0.0f, 0.0f };
-    glm::vec3 up       ={ 0.0f, 1.0f, 0.0f };
+    Vector3f  pos      = { 0.0f, 0.0f, 0.0f };
+    Quat      rot;
     ViewMode  viewmode = ViewMode::Perspective;
 
     inline void setPos(const Vector3f& posv) { this->pos ={ posv.x, posv.y, posv.z }; }
     [[nodiscard]] inline Vector3f getPos() const { return Vector3f(pos); }
 
-    inline void setTarget(const Vector3f& targetv) { target ={ targetv.x, targetv.y, targetv.z }; }
-    [[nodiscard]] inline Vector3f getTarget() const { return Vector3f(target); }
-
-    inline void setUp(const Vector3f& upv) { up ={ upv.x, upv.y, upv.z }; }
-    [[nodiscard]] inline Vector3f getUp() const { return Vector3f(up); }
-
-    [[nodiscard]]
-    glm::mat4 getViewMatrix() const
+    void lookAt(const Vector3f& target,
+                const Vector3f& up    = Vector3f::up(),
+                const Vector3f& altUp = Vector3f::backward())
     {
-        return glm::lookAt(pos, target, up);
+        rot = Quat::safeLookAt(pos, target, up, altUp);
     }
 
     [[nodiscard]]
-    glm::mat4 getPerspectiveMatrix() const
+    Mat4f getViewMatrix() const
     {
-        Vector2f size = Vector2f(Renderer::getFramebufferSize());
+        Mat4f rotate = rot.toMat4f();
+        Mat4f translate(1.0f);
+        translate = translate.translate(-pos);
+        return rotate * translate;
+    }
+
+    [[nodiscard]]
+    Mat4f getPerspectiveMatrix(Vector2f size = Vector2f(Renderer::getFramebufferSize())) const
+    {
         switch (viewmode)
         {
             case ViewMode::Perspective:
                 return glm::perspective(glm::radians(fov), size.x / size.y, znear, zfar); break;
             case ViewMode::Orthographic:
-                return glm::ortho(0.f, size.x, 0.f, size.y, znear, zfar); break;
-            default: return glm::mat4(); break;
+            {
+                Vector2f halfSize = size/2.f;
+                return glm::ortho(-halfSize.x, halfSize.x, -halfSize.y, halfSize.y, znear, zfar); break;
+            }
+            default: return Mat4f(); break;
         }
     }
 };
@@ -224,35 +231,37 @@ public:
     }
 };
 
-struct Quat : glm::quat
-{
-    using glm::quat::quat;
-};
-
 struct Transform3D
 {
     Vector3f  pos;
     Vector3f  scale = { 1, 1, 1 };
     Quat      rot     { glm::vec3(0.f, 0.f, 0.f) };
 
-    glm::mat4 getMatrix() const
+    Transform3D() = default;
+    Transform3D(const Vector3f& pos, const Vector3f& scale = Vector3f(1.f), const Quat& rot = Quat()) : pos{pos}, scale{scale}, rot{rot} { }
+
+    Mat4f getMatrix() const
     {
         // Scale, rotate, translate
-        glm::mat4 mat(1.f);
-        mat  = glm::scale(mat, { scale.x, scale.y, scale.z });
-        mat *= glm::toMat4(rot);
-        mat  = glm::translate(mat, { pos.x, pos.y, pos.z });
+        Mat4f mat(1.f);
+        mat  = mat.scale(scale);
+        mat *= rot.toMat4f();
+        mat  = mat.translate(pos);
         return mat;
     }
 
     void rotate(float angle, const Vector3f& axis)
     {
-        rot *= glm::angleAxis(angle, glm::vec3{ axis.x, axis.y, axis.z });
+        rot *= Quat(angle, axis);
     }
 };
 
 class Renderer3D
 {
+public:
+    static inline bool useMSAA      = true;  // Read / Write. Creates ugly artifacts (sometimes), find post processing solution.
+    static inline bool useDithering = false; // Read / Write. Is a no op on most implementations.
+
     struct ModelDrawCmd
     {
         Mesh*       model;
@@ -283,20 +292,10 @@ class Renderer3D
 
     static constexpr GLuint restartIndex = std::numeric_limits<GLuint>::max();
 
-public:
     static inline Vector<DrawCmd> cmds;
+    static inline Camera3D        camera;
 
     static inline Shader  shader3d;
-
-    static inline Texture defaultTex;
-    static constexpr int  defaultTexDataSize = 32;
-    static inline GLubyte defaultTexColor[4] ={ 255, 255, 255, 255 };
-    static inline GLubyte defaultTexData[defaultTexDataSize][defaultTexDataSize][4];
-
-    static inline bool useMSAA      = true;  // Read / Write. Creates ugly artifacts (sometimes), find post processing solution.
-    static inline bool useDithering = false; // Read / Write. Is a no op on most implementations.
-
-private:
 
     static inline FrameBuffer shadowFbo;
     static inline Texture     shadowTex;
@@ -363,130 +362,6 @@ private:
     }
 
 public:
-    static void render()
-    {
-        if (cmds.empty()) { return; }
-
-        GL_CHECK(glEnable(GL_DEPTH_TEST));
-        GL_CHECK(glEnable(GL_BLEND));
-        GL_CHECK(glEnable(GL_CULL_FACE));
-        GL_CHECK(glFrontFace(GL_CCW));
-        GL_CHECK(glEnable(GL_DITHER));
-
-        if (useDithering) { GL_CHECK(glEnable(GL_DITHER)); }
-        else { GL_CHECK(glDisable(GL_DITHER)); }
-
-        if (useMSAA) { GL_CHECK(glEnable(GL_MULTISAMPLE)); }
-        else { GL_CHECK(glDisable(GL_MULTISAMPLE)); }
-
-        shader3d.setInt ("material.diffuse",   0);
-        shader3d.setInt ("material.roughness", 1);
-        shader3d.setInt ("material.metallic",  2);
-
-        //Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)));
-        //shadowFbo.bind();
-        //glClear(GL_DEPTH_BUFFER_BIT);
-        //// Shadows here
-        //shadowFbo.unbind();
-        //Renderer2D::setView(Renderer2D::getView());
-
-        glEnable(GL_PRIMITIVE_RESTART);
-        glPrimitiveRestartIndex(restartIndex);
-
-        // Upload lights
-        {
-            // Point Lights
-            {
-                int32_t pointLightCount = std::min<int32_t>(pointLights.size(), maxPointLights);
-                shader3d.setInt("pointLightCount", pointLightCount);
-                for (int32_t i = 0; i < pointLightCount; i++)
-                {
-                    shader3d.setVec3f(fmt::format("pointLights[{}].localPos",               i), pointLights[i].pos);
-                    shader3d.setVec3f(fmt::format("pointLights[{}].light.color",            i), pointLights[i].color);
-                    shader3d.setFloat(fmt::format("pointLights[{}].light.diffuseIntensity", i), pointLights[i].power);
-                    shader3d.setFloat(fmt::format("pointLights[{}].light.ambientIntensity", i), 1.f);
-                }
-            }
-
-            // Directional Lights
-            {
-                int32_t directionalLightCount = std::min<int32_t>(directionalLights.size(), maxDirectionalLights);
-                shader3d.setInt("directionalLightCount", directionalLightCount);
-                for (int32_t i = 0; i < directionalLightCount; i++)
-                {
-                    shader3d.setVec3f(fmt::format("directionalLights[{}].dir",                    i), directionalLights[i].dir);
-                    shader3d.setVec3f(fmt::format("directionalLights[{}].light.color",            i), directionalLights[i].color);
-                    shader3d.setFloat(fmt::format("directionalLights[{}].light.diffuseIntensity", i), directionalLights[i].power);
-                    shader3d.setFloat(fmt::format("directionalLights[{}].light.ambientIntensity", i), 1.f);
-                }
-            }
-
-            // Spot Lights
-            {
-                int32_t spotLightCount = std::min<int32_t>(spotLights.size(), maxSpotLights);
-                shader3d.setInt("spotLightCount", spotLightCount);
-                for (int32_t i = 0; i < spotLightCount; i++)
-                {
-                    shader3d.setVec3f(fmt::format("spotLights[{}].pos",                    i), spotLights[i].pos);
-                    shader3d.setVec3f(fmt::format("spotLights[{}].dir",                    i), spotLights[i].dir);
-                    shader3d.setFloat(fmt::format("spotLights[{}].cosAngle",               i), spotLights[i].cosAngle);
-                    shader3d.setFloat(fmt::format("spotLights[{}].outerCosAngle",          i), spotLights[i].outerCosAngle);
-                    shader3d.setVec3f(fmt::format("spotLights[{}].light.color",            i), spotLights[i].color);
-                    shader3d.setFloat(fmt::format("spotLights[{}].light.diffuseIntensity", i), spotLights[i].power);
-                    shader3d.setFloat(fmt::format("spotLights[{}].light.ambientIntensity", i), 1.f);
-                }
-            }
-        }
-
-        bool     stateChanged = true;
-        uint32_t primOffset = 0;
-
-        for (auto& varCmd : cmds)
-        {
-            if (is<PrimitiveDrawCmd>(varCmd))
-            {
-                PrimitiveDrawCmd& cmd = std::get<PrimitiveDrawCmd>(varCmd);
-
-                Span<PrimVertex> pos(primitiveVerts.begin()   + cmd.posIndex, cmd.posSize);
-                Span<uint32_t>   ind(primitiveIndices.begin() + cmd.indIndex, cmd.indSize);
-
-                primitiveMesh.setData   (pos, AccessType::Dynamic);
-                primitiveMesh.setIndices(ind, AccessType::Dynamic);
-
-                RenderState rs; rs.drawMode = cmd.drawMode;
-                Renderer::draw(*cmd.shader, primitiveMesh, rs);
-
-                //auto start = primitiveIndices.begin() + primOffset;
-                //auto end   = start + cmd.indSize - 1;
-                //flushPrimitives(*cmd.shader, cmd.drawMode, Span<uint32_t>(start, end));
-                primOffset = cmd.indIndex + cmd.indSize;
-            }
-
-            else if (is<ModelDrawCmd>(varCmd))
-            {
-                ModelDrawCmd& cmd = std::get<ModelDrawCmd>(varCmd);
-
-                for (auto& mesh : cmd.model->getMeshes())
-                {
-                    mesh.material.textures[(int32_t)TextureType::Diffuse]  ->bind(0);
-                    mesh.material.textures[(int32_t)TextureType::Roughness]->bind(1);
-                    mesh.material.textures[(int32_t)TextureType::Metalness]->bind(2);
-
-                    shader3d.setMat4f("model", cmd.transform.getMatrix());
-                    Renderer::draw(shader3d, *mesh.vertices);
-                }
-            }
-        }
-
-        cmds.clear();
-        primitiveVerts.clear();
-        primitiveIndices.clear();
-
-        pointLights.clear();
-        directionalLights.clear();
-        spotLights.clear();
-    }
-
     struct GLSLSource
     {
     private:
@@ -525,62 +400,6 @@ public:
         }
     }
 
-    static void create()
-    {
-        // Setup Primitive Rendering
-        {
-            primitiveMesh.setLayout({ Layout::Vec3f(), Layout::Vec4f() });
-
-            defaultPrimitiveShader.create(
-                myEmbeds.at("TLib/Embed/Shaders/3d_primitive.vert").asString(),
-                myEmbeds.at("TLib/Embed/Shaders/3d_primitive.frag").asString());
-
-            defaultPrimitiveShader.setMat4f("model", glm::mat4(1));
-            primitiveVerts.reserve(1024 * 2);
-            primitiveIndices.reserve(1024 * 2);
-        }
-
-        // Setup PBR Rendering
-        {
-            setPBRShader(myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString(),
-                         myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
-        }
-
-        defaultTex.create();
-
-        // Setup shadows
-        shadowTex.create();
-        shadowTex.setData(NULL, shadowSize, shadowSize, TexPixelFormats::DEPTH_COMPONENT, TexInternalFormats::DEPTH_COMPONENT);
-        shadowTex.setFilter(TextureFiltering::Nearest);
-        shadowTex.setUVMode(UVMode::Repeat);
-        shadowFbo.create();
-        shadowFbo.setTexture(shadowTex, FrameBufferAttachmentType::Depth);
-        shadowShader.create(myEmbeds.at("TLib/Embed/Shaders/light.vert").asString(),
-                            myEmbeds.at("TLib/Embed/Shaders/empty.frag").asString());
-
-        // Make the default texture look more interesting
-        RNG rng;
-        for (size_t x = 0; x < defaultTexDataSize; x++)
-        {
-            for (size_t y = 0; y < defaultTexDataSize; y++)
-            {
-                const int diff = 20;
-                GLubyte color[3] ={ 70, 130, 180 };
-                color[0] = std::clamp(rng.randRangeInt(color[0] - diff, color[0] + diff), 0, 255);
-                color[1] = std::clamp(rng.randRangeInt(color[1] - diff, color[1] + diff), 0, 255);
-                color[2] = std::clamp(rng.randRangeInt(color[2] - diff, color[2] + diff), 0, 255);
-
-                defaultTexData[x][y][0] = color[0];
-                defaultTexData[x][y][1] = color[1];
-                defaultTexData[x][y][2] = color[2];
-                defaultTexData[x][y][3] = 255;
-            }
-        }
-        defaultTex.setData(&defaultTexData, defaultTexDataSize, defaultTexDataSize);
-        defaultTex.setUVMode(UVMode::Repeat);
-        defaultTex.setFilter(TextureFiltering::Linear);
-    }
-
     static bool created()
     {
         return shader3d.created();
@@ -589,7 +408,9 @@ public:
     static void setCamera(const Camera3D& camera)
     {
         // TODO: use one of those global uniform things
+        Renderer3D::camera = camera;
         auto view = camera.getViewMatrix();
+
         auto proj = camera.getPerspectiveMatrix();
         shader3d.setMat4f("projection",    proj);
         shader3d.setMat4f("view",          view);
@@ -666,6 +487,198 @@ public:
         light.color         = color;
         light.power         = power;
     }
+
+    static void render()
+    {
+        if (cmds.empty()) { return; }
+
+        GL_CHECK(glEnable(GL_DEPTH_TEST));
+        GL_CHECK(glEnable(GL_BLEND));
+        GL_CHECK(glEnable(GL_CULL_FACE));
+        GL_CHECK(glFrontFace(GL_CCW));
+
+        if (useDithering) { GL_CHECK(glEnable(GL_DITHER)); }
+        else { GL_CHECK(glDisable(GL_DITHER)); }
+
+        if (useMSAA) { GL_CHECK(glEnable(GL_MULTISAMPLE)); }
+        else { GL_CHECK(glDisable(GL_MULTISAMPLE)); }
+
+        shader3d.setInt ("material.diffuse",   0);
+        shader3d.setInt ("material.roughness", 1);
+        shader3d.setInt ("material.metallic",  2);
+
+        glEnable(GL_PRIMITIVE_RESTART);
+        glPrimitiveRestartIndex(restartIndex);
+
+        // Upload lights
+        {
+            // Point Lights
+            {
+                int32_t pointLightCount = std::min<int32_t>(pointLights.size(), maxPointLights);
+                shader3d.setInt("pointLightCount", pointLightCount);
+                for (int32_t i = 0; i < pointLightCount; i++)
+                {
+                    shader3d.setVec3f(fmt::format("pointLights[{}].localPos",               i), pointLights[i].pos);
+                    shader3d.setVec3f(fmt::format("pointLights[{}].light.color",            i), pointLights[i].color);
+                    shader3d.setFloat(fmt::format("pointLights[{}].light.diffuseIntensity", i), pointLights[i].power);
+                    shader3d.setFloat(fmt::format("pointLights[{}].light.ambientIntensity", i), 1.f);
+                }
+            }
+
+            // Directional Lights
+            {
+                int32_t directionalLightCount = std::min<int32_t>(directionalLights.size(), maxDirectionalLights);
+                shader3d.setInt("directionalLightCount", directionalLightCount);
+                for (int32_t i = 0; i < directionalLightCount; i++)
+                {
+                    shader3d.setVec3f(fmt::format("directionalLights[{}].dir",                    i), directionalLights[i].dir);
+                    shader3d.setVec3f(fmt::format("directionalLights[{}].light.color",            i), directionalLights[i].color);
+                    shader3d.setFloat(fmt::format("directionalLights[{}].light.diffuseIntensity", i), directionalLights[i].power);
+                    shader3d.setFloat(fmt::format("directionalLights[{}].light.ambientIntensity", i), 1.f);
+                }
+            }
+
+            // Spot Lights
+            {
+                int32_t spotLightCount = std::min<int32_t>(spotLights.size(), maxSpotLights);
+                shader3d.setInt("spotLightCount", spotLightCount);
+                for (int32_t i = 0; i < spotLightCount; i++)
+                {
+                    shader3d.setVec3f(fmt::format("spotLights[{}].pos",                    i), spotLights[i].pos);
+                    shader3d.setVec3f(fmt::format("spotLights[{}].dir",                    i), spotLights[i].dir);
+                    shader3d.setFloat(fmt::format("spotLights[{}].cosAngle",               i), spotLights[i].cosAngle);
+                    shader3d.setFloat(fmt::format("spotLights[{}].outerCosAngle",          i), spotLights[i].outerCosAngle);
+                    shader3d.setVec3f(fmt::format("spotLights[{}].light.color",            i), spotLights[i].color);
+                    shader3d.setFloat(fmt::format("spotLights[{}].light.diffuseIntensity", i), spotLights[i].power);
+                    shader3d.setFloat(fmt::format("spotLights[{}].light.ambientIntensity", i), 1.f);
+                }
+            }
+        }
+
+        // Shadow pass
+        {
+            Camera3D shadowCamera;
+            Vector3f dir    = directionalLights[0].dir;
+            Vector3f pos    = Vector3f(camera.pos);
+            Vector3f target = pos + dir;
+
+            shadowCamera.pos      = { pos.x, pos.y, pos.z };
+            shadowCamera.lookAt(target);
+            shadowCamera.viewmode = Camera3D::ViewMode::Orthographic;
+            shadowCamera.zfar     =  50.f;
+            shadowCamera.znear    = -50.f;
+
+            Mat4f lightProjection = shadowCamera.getPerspectiveMatrix(128.f);
+            Mat4f lightView       = shadowCamera.getViewMatrix();
+
+            //float near_plane = 1.0f, far_plane = 50.f;
+            //glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+            //glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f,  4.0f, -1.0f),
+            //                                  glm::vec3( 0.0f,  0.0f,  0.0f),
+            //                                  glm::vec3( 0.0f,  1.0f,  0.0f));
+            Mat4f lightSpaceMatrix = lightProjection * lightView;
+
+            Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)));
+            shadowFbo.bind();
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            for (auto& varCmd : cmds)
+            {
+                if (is<ModelDrawCmd>(varCmd))
+                {
+                    ModelDrawCmd& cmd = std::get<ModelDrawCmd>(varCmd);
+
+                    for (auto& mesh : cmd.model->getMeshes())
+                    {
+                        shadowFbo.bind();
+                        shadowShader.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
+                        shadowShader.setMat4f("model", cmd.transform.getMatrix());
+                        Renderer::draw(shadowShader, *mesh.vertices);
+                        shadowFbo.unbind();
+                    }
+                }
+            }
+            shadowFbo.unbind();
+            Renderer2D::setView(Renderer2D::getView());
+        }
+
+        for (auto& varCmd : cmds)
+        {
+            if (is<PrimitiveDrawCmd>(varCmd))
+            {
+                PrimitiveDrawCmd& cmd = std::get<PrimitiveDrawCmd>(varCmd);
+
+                Span<PrimVertex> pos(primitiveVerts.begin()   + cmd.posIndex, cmd.posSize);
+                Span<uint32_t>   ind(primitiveIndices.begin() + cmd.indIndex, cmd.indSize);
+
+                primitiveMesh.setData   (pos, AccessType::Dynamic);
+                primitiveMesh.setIndices(ind, AccessType::Dynamic);
+
+                RenderState rs; rs.drawMode = cmd.drawMode;
+                Renderer::draw(*cmd.shader, primitiveMesh, rs);
+            }
+
+            else if (is<ModelDrawCmd>(varCmd))
+            {
+                ModelDrawCmd& cmd = std::get<ModelDrawCmd>(varCmd);
+
+                for (auto& mesh : cmd.model->getMeshes())
+                {
+                    mesh.material.textures[(int32_t)TextureType::Diffuse]  ->bind(0);
+                    mesh.material.textures[(int32_t)TextureType::Roughness]->bind(1);
+                    mesh.material.textures[(int32_t)TextureType::Metalness]->bind(2);
+
+                    shader3d.setMat4f("model", cmd.transform.getMatrix());
+                    Renderer::draw(shader3d, *mesh.vertices);
+                }
+            }
+        }
+
+        cmds.clear();
+        primitiveVerts.clear();
+        primitiveIndices.clear();
+
+        pointLights.clear();
+        directionalLights.clear();
+        spotLights.clear();
+    }
+
+    static void create()
+    {
+        // Setup Primitive Rendering
+        {
+            primitiveMesh.setLayout({ Layout::Vec3f(), Layout::Vec4f() });
+
+            defaultPrimitiveShader.create(
+                myEmbeds.at("TLib/Embed/Shaders/3d_primitive.vert").asString(),
+                myEmbeds.at("TLib/Embed/Shaders/3d_primitive.frag").asString());
+
+            defaultPrimitiveShader.setMat4f("model", glm::mat4(1));
+            primitiveVerts.reserve(1024 * 2);
+            primitiveIndices.reserve(1024 * 2);
+        }
+
+        // Setup PBR Rendering
+        {
+            setPBRShader(myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString(),
+                         myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
+        }
+
+        // Setup shadows
+        {
+            shadowTex.create();
+            shadowTex.setData(NULL, shadowSize, shadowSize, TexPixelFormats::DEPTH_COMPONENT, TexInternalFormats::DEPTH_COMPONENT);
+            shadowTex.setFilter(TextureFiltering::Nearest);
+            shadowTex.setUVMode(UVMode::Repeat);
+            GLint swizzle[4] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+            shadowTex.setSwizzle(swizzle); // To make debugging easier on the eyes
+            shadowFbo.create();
+            shadowFbo.setTexture(shadowTex, FrameBufferAttachmentType::Depth);
+            shadowShader.create(myEmbeds.at("TLib/Embed/Shaders/light.vert").asString(),
+                                myEmbeds.at("TLib/Embed/Shaders/empty.frag").asString());
+        }
+    }
+
 };
 
 using R3D = Renderer3D;
@@ -681,16 +694,17 @@ Vector<Vector3f> lines;
 struct PlayerController
 {
 public:
-    Vector2f  moveDir;
-    glm::vec3 forward{};
-    glm::vec3 forwardNoY{};
-    Vector3f up {0.f, 1.f, 0.f};
+    Vector2f moveDir;
+    //Vector3f forward{};
+    //Vector3f forwardNoY{};
+    Vector3f up = Vector3f::up();
 
     // Input
     bool jump    = false;
     bool primary = false;
 
     Camera3D camera;
+    Quat     bodyRot;
     bool     freeCam      = false;
     float    sens         = 0.1f;
     float    freeCamSpeed = 12.f;
@@ -722,26 +736,27 @@ public:
         if (mouseCaptured)
         {
             yaw   += float(Input::mouseDelta.x) * sens;
-            pitch -= float(Input::mouseDelta.y) * sens;
+            pitch += float(Input::mouseDelta.y) * sens;
             pitch  = std::clamp(pitch, minPitch, maxPitch);
         }
 
         moveDir.x = Input::isKeyPressed(SDL_SCANCODE_D) - Input::isKeyPressed(SDL_SCANCODE_A);
         moveDir.y = Input::isKeyPressed(SDL_SCANCODE_W) - Input::isKeyPressed(SDL_SCANCODE_S);
 
-        forward.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-        forward.y = sin(glm::radians(pitch));
-        forward.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-        forward   = glm::normalize(forward);
+        auto yawRad   = glm::radians(yaw);
+        auto pitchRad = glm::radians(pitch);
 
-        forwardNoY.x = cos(glm::radians(yaw));
-        forwardNoY.z = sin(glm::radians(yaw));
+        Quat qPitch  (pitchRad, Vector3f(1, 0, 0));
+        Quat qYaw    (yawRad,   Vector3f(0, 1, 0));
+        camera.rot  = (qPitch * qYaw).normalized();
+        bodyRot     = qYaw;
 
         // Camera Look
+        auto forward = camera.rot.forward();
         if (freeCam)
         {
-            glm::vec3 finalMovement{};
-            if (moveDir.x) finalMovement += glm::normalize(glm::cross(forward, camera.up)) * moveDir.x * delta;
+            Vector3f finalMovement{};
+            if (moveDir.x) finalMovement += forward.cross(up).normalized() * moveDir.x * delta;
             if (moveDir.y) finalMovement += forward * moveDir.y * delta;
 
             camera.pos += finalMovement * freeCamSpeed;
@@ -749,9 +764,8 @@ public:
         else
         {
             const auto& pos = playerController->getPosition();
-            camera.pos = { pos.x, pos.y + playerHeight/2.f, pos.z };
+            camera.pos = Vector3f(pos.x, pos.y + playerHeight/2.f, pos.z);
         }
-        camera.target = camera.pos + forward;
 
         if (!freeCam && Input::isKeyJustPressed(SDL_SCANCODE_SPACE))
         { jump = true; }
@@ -770,7 +784,7 @@ public:
             PxControllerState state;
             playerController->getState(state);
 
-            Vector3f fw(forwardNoY);
+            Vector3f fw = bodyRot.forward();
             if (moveDir.x) velocity += fw.cross(up).normalized() * moveDir.x * moveSpeed;
             if (moveDir.y) velocity += fw * moveDir.y * moveSpeed;
 
@@ -778,7 +792,7 @@ public:
 
             PxRaycastBuffer hit;
             PxQueryFilterData d; d.flags = PxQueryFlag::eSTATIC;
-            lookingAtGeometry = scene->raycast(PxVec3(camera.pos.x, camera.pos.y, camera.pos.z), PxVec3(forward.x, forward.y, forward.z), 10000.f, hit, PxHitFlag::eDEFAULT, d);
+            lookingAtGeometry = false; //scene->raycast(PxVec3(camera.pos.x, camera.pos.y, camera.pos.z), PxVec3(forward.x, forward.y, forward.z), 10000.f, hit, PxHitFlag::eDEFAULT, d);
 
             if (primary)
             {
@@ -885,7 +899,7 @@ struct Scene
         auto e = ecs.entity();
         ASSERT(e.is_alive());
 
-        e.emplace<Transform3D>();
+        e.emplace<Transform3D>(Vector3f(5.f, -5.f, 0.f));
         e.emplace<MeshInstance3D>("assets/primitives/cube.obj");
     }
 
@@ -927,13 +941,13 @@ String guiModel;
 
 ColorRGBAf lightColor ("#FFE082");
 ColorRGBAf sunColor   ("#17163A");
-ColorRGBAf spotColor  = ColorRGBAf::white();
+ColorRGBAf spotColor  ("#FFC182");
 Vector3f   sunDir     (-0.2, -1.0, -0.3);
 float      lightPower = 1.f;
 float      sunPower   = 1.f;
-float      spotPower  = 1.f;
-float      spotAngle  = 40.f;
-float      spotOuterAngle = 20.f;
+float      spotPower  = 200.f;
+float      spotAngle  = 10.f;
+float      spotOuterAngle = 30.f;
 
 float totalTime = 0.f;
 
@@ -1071,8 +1085,8 @@ void update(float delta)
 
         ImGui::Text(fmt::format("Velocity: {}", controller.velocity.toString()).c_str());
         ImGui::Text(fmt::format("Looking At Geometry: {}", controller.lookingAtGeometry).c_str());
-        ImGui::Text(fmt::format("Dir:      {}", Vector3f(controller.forward).toString()).c_str());
-        ImGui::Text(fmt::format("Dir No Y: {}", Vector3f(controller.forwardNoY).toString()).c_str());
+        //ImGui::Text(fmt::format("Dir:      {}", Vector3f(controller.forward).toString()).c_str());
+        //ImGui::Text(fmt::format("Dir No Y: {}", Vector3f(controller.forwardNoY).toString()).c_str());
 
         Vector3f playerPos(controller.playerController->getPosition());
         static Vector3f guiTeleport;
@@ -1136,6 +1150,8 @@ void update(float delta)
         { ImGui::InputTextMultiline("#VertShaderEdit", &vertShaderStr, { ImGui::GetContentRegionAvail().x, 600 }); }
         if (ImGui::CollapsingHeader("Frag Shader"))
         { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }); }
+        if (ImGui::CollapsingHeader("Shadow Map"))
+        { ImGui::Image(R3D::shadowTex, Vector2f(128.f, 128.f) * 4.f); }
     }
     ImGui::End();
     #pragma endregion
@@ -1156,7 +1172,7 @@ void draw(float delta)
     Vector3f lightPos  = controller.getPos();
     R3D::addPointLight(lightPos, ColorRGBf(lightColor), lightPower);
     R3D::addDirectionalLight(sunDir, ColorRGBf(sunColor), sunPower);
-    R3D::addSpotLight(lightPos, Vector3f(controller.forward), spotAngle, spotOuterAngle, ColorRGBf(spotColor), spotPower);
+    //R3D::addSpotLight(lightPos, Vector3f(controller.forward), spotAngle, spotOuterAngle, ColorRGBf(spotColor), spotPower);
 
     for (auto& modelInst : models)
     {
@@ -1166,6 +1182,9 @@ void draw(float delta)
 
     scene.render(delta);
 
+    R3D::drawLines(std::initializer_list{ Vector3f::up()      * 10, Vector3f() }, ColorRGBAf::green(), GLDrawMode::Lines);
+    R3D::drawLines(std::initializer_list{ Vector3f::right()   * 10, Vector3f() }, ColorRGBAf::red(),   GLDrawMode::Lines);
+    R3D::drawLines(std::initializer_list{ Vector3f::forward() * 10, Vector3f() }, ColorRGBAf::blue(),  GLDrawMode::Lines);
     R3D::drawLines(lines, ColorRGBAf::green(), GLDrawMode::Lines);
 
     if (debugDrawPhysics)
