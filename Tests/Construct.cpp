@@ -105,7 +105,7 @@ struct Camera3D
     };
 
     float     znear    = 0.02f;
-    float     zfar     = 3000.f;
+    float     zfar     = 50.f;
     float     fov      = 110.f;
     Vector3f  pos      = { 0.0f, 0.0f, 0.0f };
     Quat      rot;
@@ -256,10 +256,22 @@ struct Transform3D
     }
 };
 
+enum class FaceCullMode
+{
+    None,
+    Front,
+    Back,
+    Both
+};
+
 class Renderer3D
 {
 public:
-    static inline bool useMSAA      = true;  // Read / Write. Creates ugly artifacts (sometimes), find post processing solution.
+    static inline bool         useMSAA      = true;  // Read / Write. Creates ugly artifacts (sometimes), find post processing solution.
+    static inline float        zMult        = 2.0f;
+    static inline ColorRGBAf   fogColor     = ColorRGBAf(0.1f, 0.1f, 0.1f, 1.f);
+    static inline FaceCullMode faceCullMode = FaceCullMode::None;
+    static inline bool         shadows      = true;
 
     struct ModelDrawCmd
     {
@@ -298,7 +310,7 @@ public:
 
     static inline FrameBuffer shadowFbo;
     static inline Texture     shadowTex;
-    static inline uint32_t    shadowSize = 1024;
+    static inline uint32_t    shadowSize = 1024*16;
     static inline Shader      shadowShader;
 
     struct DirectionalLight
@@ -349,7 +361,25 @@ public:
         Renderer::drawIndices(shader, indices, rs);
     }
 
-public:
+    static Vector<Vector4f> getFrustumCornersWorldSpace(const Mat4f& proj, const Mat4f& view)
+    {
+        const auto inv = (proj * view).inverse();
+
+        Vector<Vector4f> frustumCorners;
+        for (unsigned int x = 0; x < 2; ++x) {
+        for (unsigned int y = 0; y < 2; ++y) {
+        for (unsigned int z = 0; z < 2; ++z)
+        {
+            const Vector4f pt =
+                inv * Vector4f(2.0f * x - 1.0f,
+                               2.0f * y - 1.0f,
+                               2.0f * z - 1.0f, 1.0f);
+            frustumCorners.push_back((pt / pt.w));
+        }}}
+
+        return frustumCorners;
+    }
+
     struct GLSLSource
     {
     private:
@@ -380,11 +410,11 @@ public:
 
         if (!shader3d.create(vert.string(), frag.string()))
         {
-            tlog::error("Failed to compile the following shader:");
-            tlog::error("Vertex Shader:");
-            tlog::error('\n' + vert.string());
-            tlog::error("Fragment Shader:");
-            tlog::error('\n' + frag.string());
+            tlog::error("Failed to compile PBR shader.");
+            //tlog::error("Vertex Shader:");
+            //tlog::error('\n' + vert.string());
+            //tlog::error("Fragment Shader:");
+            //tlog::error('\n' + frag.string());
         }
     }
 
@@ -397,15 +427,6 @@ public:
     {
         // TODO: use one of those global uniform things
         Renderer3D::camera = camera;
-        auto view = camera.getViewMatrix();
-
-        auto proj = camera.getPerspectiveMatrix();
-        shader3d.setMat4f("projection",    proj);
-        shader3d.setMat4f("view",          view);
-        shader3d.setVec3f("fragCameraPos", camera.pos);
-
-        defaultPrimitiveShader.setMat4f("projection",    proj);
-        defaultPrimitiveShader.setMat4f("view",          view);
     }
 
     static void drawModel(Mesh& model, const Transform3D& transform)
@@ -507,20 +528,50 @@ public:
     {
         if (cmds.empty()) { return; }
 
+        Renderer::clearColor(fogColor);
         GL_CHECK(glEnable(GL_DEPTH_TEST));
         GL_CHECK(glEnable(GL_BLEND));
-        GL_CHECK(glEnable(GL_CULL_FACE));
         GL_CHECK(glFrontFace(GL_CCW));
 
         if (useMSAA) { GL_CHECK(glEnable(GL_MULTISAMPLE)); }
         else         { GL_CHECK(glDisable(GL_MULTISAMPLE)); }
 
+        switch (faceCullMode)
+        {
+            case FaceCullMode::None:
+                GL_CHECK(glDisable(GL_CULL_FACE));
+                break;
+            case FaceCullMode::Front:
+                GL_CHECK(glEnable(GL_CULL_FACE));
+                glCullFace(GL_FRONT);
+                break;
+            case FaceCullMode::Back:
+                GL_CHECK(glEnable(GL_CULL_FACE));
+                glCullFace(GL_BACK);
+                break;
+            case FaceCullMode::Both:
+                GL_CHECK(glEnable(GL_CULL_FACE));
+                glCullFace(GL_FRONT_AND_BACK);
+                break;
+            default: break;
+        }
+
         shader3d.setInt ("material.diffuse",   0);
         shader3d.setInt ("material.roughness", 1);
         shader3d.setInt ("material.metallic",  2);
+        shader3d.setInt ("shadowMap",          3);
 
         glEnable(GL_PRIMITIVE_RESTART);
         glPrimitiveRestartIndex(restartIndex);
+
+        auto view = camera.getViewMatrix();
+        auto proj = camera.getPerspectiveMatrix();
+        shader3d.setMat4f("projection", proj);
+        shader3d.setMat4f("view", view);
+        shader3d.setVec3f("cameraPos", camera.pos);
+
+        defaultPrimitiveShader.setMat4f("projection", proj);
+        defaultPrimitiveShader.setMat4f("view", view);
 
         // Upload lights
         {
@@ -568,38 +619,58 @@ public:
         }
 
         // Shadow pass
+        shader3d.setBool("shadowsEnabled", shadows);
+        if (shadows)
         {
-            Camera3D shadowCamera;
-            Vector3f dir    = directionalLights[0].dir.normalized();
-            Vector3f pos    = Vector3f(camera.pos);
-            Vector3f target = pos + dir;
+            Vector3f dir = directionalLights[0].dir;
 
-            drawCube(target, 0.2f);
+            Vector3f center;
+            auto corners = getFrustumCornersWorldSpace(camera.getPerspectiveMatrix(), camera.getViewMatrix());
+            for (const auto& v : corners)
+            { center += Vector3f(v); }
+            center /= (float)corners.size();
+            center = center.ceiled();
 
-            // This works way better than glm::quatLookAt. what a world we live in.
-            auto mat = glm::lookAt(pos.toGlm(), target.toGlm(), Vector3f::up().toGlm());
-            shadowCamera.rot = glm::quat_cast(mat);
+            Vector3f eye = (center - dir);
 
-            // if dir.z is negative, this shadow map turns inside out???
-            //shadowCamera.rot      = Quat::safeLookAt(Vector3f(), dir, Vector3f::up(), Vector3f::backward());
-            shadowCamera.pos      = { pos.x, pos.y, pos.z };
-            shadowCamera.viewmode = Camera3D::ViewMode::Orthographic;
-            shadowCamera.zfar     =  80.f;
-            shadowCamera.znear    = -80.f;
+            Vector3f up = Vector3f::up();
+            if (abs(dir.dot(up)) > .9999f) { up = Vector3f::backward(); }
+            Mat4f lightView = glm::lookAt(eye.toGlm(), center.toGlm(), up.toGlm());
 
-            ImGui::Begin("Shadow Camera");
-            ImGui::Text(fmt::format("Dir  : {}", dir.toString()).c_str());
-            ImGui::Text(fmt::format("Pos  : {}", pos.toString()).c_str());
-            ImGui::Text(fmt::format("Tar  : {}", target.toString()).c_str());
-            ImGui::Text(fmt::format("Quat : {}", shadowCamera.rot.toString()).c_str());
-            ImGui::End();
+            Mat4f lightProjection;
+            {
+                float minX = std::numeric_limits<float>::max();
+                float maxX = std::numeric_limits<float>::lowest();
+                float minY = std::numeric_limits<float>::max();
+                float maxY = std::numeric_limits<float>::lowest();
+                float minZ = std::numeric_limits<float>::max();
+                float maxZ = std::numeric_limits<float>::lowest();
+                for (const auto& v : corners)
+                {
+                    const auto trf = lightView * v;
+                    minX = std::min(minX, trf.x);
+                    maxX = std::max(maxX, trf.x);
+                    minY = std::min(minY, trf.y);
+                    maxY = std::max(maxY, trf.y);
+                    minZ = std::min(minZ, trf.z);
+                    maxZ = std::max(maxZ, trf.z);
+                }
 
-            Mat4f lightProjection  = shadowCamera.getPerspectiveMatrix(256.f);
-            Mat4f lightView        = shadowCamera.getViewMatrix();
+                if (minZ < 0) { minZ *= zMult; }
+                else          { minZ /= zMult; }
+                if (maxZ < 0) { maxZ /= zMult; }
+                else          { maxZ *= zMult; }
+
+                lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
+            }
+            lightProjection = lightProjection.scale(Vector3f(1.f, -1.f, 1.f));
+
             Mat4f lightSpaceMatrix = lightProjection * lightView;
 
             Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)), Vector2f((float)shadowSize));
             shadowFbo.bind();
+            shadowShader.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
+            shader3d.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
             glClear(GL_DEPTH_BUFFER_BIT);
 
             for (auto& varCmd : cmds)
@@ -610,19 +681,20 @@ public:
 
                     for (auto& mesh : cmd.model->getMeshes())
                     {
-                        shadowFbo.bind();
-                        shadowShader.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
                         shadowShader.setMat4f("model", cmd.transform.getMatrix());
                         Renderer::draw(shadowShader, *mesh.vertices);
-                        shadowFbo.unbind();
                     }
                 }
             }
+
             shadowFbo.unbind();
             Renderer2D::setView(Renderer2D::getView());
         }
 
         // PBR Pass
+        shader3d.setVec3f("fogColor", Vector3f(fogColor.r, fogColor.g, fogColor.b));
+        shader3d.setFloat("viewDistance", camera.zfar);
+
         for (auto& varCmd : cmds)
         {
             if (is<PrimitiveDrawCmd>(varCmd))
@@ -648,6 +720,7 @@ public:
                     mesh.material.textures[(int32_t)TextureType::Diffuse]  ->bind(0);
                     mesh.material.textures[(int32_t)TextureType::Roughness]->bind(1);
                     mesh.material.textures[(int32_t)TextureType::Metalness]->bind(2);
+                    shadowTex.bind(3);
 
                     shader3d.setMat4f("model", cmd.transform.getMatrix());
                     Renderer::draw(shader3d, *mesh.vertices);
@@ -688,11 +761,14 @@ public:
         // Setup shadows
         {
             shadowTex.create();
-            shadowTex.setData(NULL, shadowSize, shadowSize, TexPixelFormats::DEPTH_COMPONENT, TexInternalFormats::DEPTH_COMPONENT);
+            shadowTex.setData(NULL, shadowSize, shadowSize, TexPixelFormats::DEPTH_COMPONENT, TexInternalFormats::DEPTH_COMPONENT, TexPixelType::Float);
             shadowTex.setFilter(TextureFiltering::Nearest);
             shadowTex.setUVMode(UVMode::Repeat);
             GLint swizzle[4] = { GL_RED, GL_RED, GL_RED, GL_ONE };
             shadowTex.setSwizzle(swizzle); // To make debugging easier on the eyes
+            //shadowTex.bind();
+            //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE));
+            //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL));
             shadowFbo.create();
             shadowFbo.setTexture(shadowTex, FrameBufferAttachmentType::Depth);
             shadowShader.create(myEmbeds.at("TLib/Embed/Shaders/light.vert").asString(),
@@ -959,9 +1035,9 @@ int guiSelectedModel = 0;
 String guiModel;
 
 ColorRGBAf lightColor ("#FFE082");
-ColorRGBAf sunColor   ("#17163A");
+ColorRGBAf sunColor   ("#6561FF");
 ColorRGBAf spotColor  ("#FFC182");
-Vector3f   sunDir     = Vector3f::down();
+Vector3f   sunDir     = Vector3f(-0.225, -1.f, 1.f);
 float      lightPower = 1.f;
 float      sunPower   = 1.f;
 float      spotPower  = 200.f;
@@ -1104,6 +1180,8 @@ void update(float delta)
 
         ImGui::Text(fmt::format("Velocity: {}", controller.velocity.toString()).c_str());
         ImGui::Text(fmt::format("Looking At Geometry: {}", controller.lookingAtGeometry).c_str());
+        ImGui::SliderFloat("Near Plane", &controller.camera.znear, 0.f, 1.f);
+        ImGui::SliderFloat(" Far Plane", &controller.camera.zfar, 0.f, 500.f);
         //ImGui::Text(fmt::format("Dir:      {}", Vector3f(controller.forward).toString()).c_str());
         //ImGui::Text(fmt::format("Dir No Y: {}", Vector3f(controller.forwardNoY).toString()).c_str());
 
@@ -1155,19 +1233,25 @@ void update(float delta)
         ImGui::DragFloat ("Spot Angle",         &spotAngle);
         ImGui::DragFloat ("Spot Outer Angle",   &spotOuterAngle);
         
+        auto ret = imguiEnumCombo("Face Cull Mode", R3D::faceCullMode);
+        if (ret.first) { R3D::faceCullMode = ret.second; }
 
         static float ambientStrength = R3D::shader3d.getFloat("ambientStrength");
         if (ImGui::SliderFloat("Ambient Lighting", &ambientStrength, 0.f, 1.f))
         { R3D::shader3d.setFloat("ambientStrength", ambientStrength); }
 
+        ImGui::Checkbox("Shadows", &R3D::shadows);
         ImGui::Checkbox("MSAA", &R3D::useMSAA);
+        ImGui::SliderFloat("ZMult", &R3D::zMult, 0.1f, 20.f);
+
+        int textEditFlags = ImGuiInputTextFlags_AllowTabInput;
 
         if (ImGui::Button("Compile Shaders"))
         { R3D::setPBRShader(vertShaderStr, fragShaderStr); }
         if (ImGui::CollapsingHeader("Vert Shader"))
-        { ImGui::InputTextMultiline("#VertShaderEdit", &vertShaderStr, { ImGui::GetContentRegionAvail().x, 600 }); }
+        { ImGui::InputTextMultiline("#VertShaderEdit", &vertShaderStr, { ImGui::GetContentRegionAvail().x, 600 }, textEditFlags); }
         if (ImGui::CollapsingHeader("Frag Shader"))
-        { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }); }
+        { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }, textEditFlags); }
         if (ImGui::CollapsingHeader("Shadow Map"))
         { ImGui::Image(R3D::shadowTex, Vector2f(128.f, 128.f) * 4.f); }
     }
@@ -1187,12 +1271,14 @@ void update(float delta)
 
 void draw(float delta)
 {
+    //sunDir = Vector3f::forward() * controller.camera.rot;
     Vector3f lightPos  = controller.getPos();
+    R3D::fogColor = sunColor;
     R3D::addPointLight(lightPos, ColorRGBf(lightColor), lightPower);
     R3D::addDirectionalLight(sunDir, ColorRGBf(sunColor), sunPower);
     //R3D::addSpotLight(lightPos, Vector3f(controller.forward), spotAngle, spotOuterAngle, ColorRGBf(spotColor), spotPower);
 
-    Vector3f soffset = Vector3f::up() * 4.f;
+    Vector3f soffset = Vector3f::up() * 4.f + Vector3f::right() * 4;
     R3D::drawLines(std::initializer_list{ soffset, soffset + sunDir*2.f }, sunColor, GLDrawMode::Lines);
 
     for (auto& modelInst : models)
@@ -1281,7 +1367,6 @@ int main()
         Vector2f mwpos = Renderer2D::getMouseWorldPos();
 
         glClear(GL_DEPTH_BUFFER_BIT);
-        Renderer::clearColor();
         totalTime += delta;
         update(delta);
         draw(delta);

@@ -7,12 +7,15 @@ in vec3 vertLocalPos;
 in vec3 vertWorldPos;
 in vec3 vertNormal;
 in vec2 vertTexCoords;
+in vec4 vertFragPosLightSpace;
 
-in vec3 vertFragPos;
-in vec3 vertLightPos;
-
-uniform vec3  fragCameraPos;
+uniform vec3  cameraPos;
 uniform float ambientStrength  = 0.1;
+uniform int   pcfSteps = 2;
+uniform vec3  fogColor;
+uniform float viewDistance;
+
+uniform bool shadowsEnabled;
 
 struct Material
 {
@@ -70,23 +73,31 @@ uniform int              spotLightCount;
 uniform SpotLight        spotLights[maxSpotLights];
 
 uniform Material material;
+uniform sampler2D shadowMap;
+
+float getFogFactor(float dist, float nearPlane, float farPlane)
+{
+    float fogMax = farPlane;
+    float fogMin = nearPlane;
+    if (dist>=fogMax) return 1.0f;
+    if (dist<=fogMin) return 0.0f;
+    return 1.0f - (fogMax - dist) / (fogMax - fogMin);
+}
 
 vec3 schlickFresnel(float vDotH)
 {
     vec3 F0 = vec3(0.04);
 
-    bool isMetal = vec3(texture(material.metallic, vertTexCoords)).r == 1.0;
-    if (isMetal)
-    { F0 = vec3(texture(material.diffuse, vertTexCoords)); }
+    vec3 diffuse   = vec3(texture(material.diffuse,  vertTexCoords));
+    float metallic = vec3(texture(material.metallic, vertTexCoords)).r;
+    F0 = mix(F0, diffuse, metallic);
 
-    vec3 ret = F0 + (1 - F0) * pow(clamp(1.0 - vDotH, 0.0, 1.0), 5);
-
-    return ret;
+    return F0 + (1 - F0) * pow(clamp(1.0 - vDotH, 0.001, 1.0), 5);
 }
 
 float ggxDistribution(float nDotH)
 {
-    float  r = vec3(texture(material.roughness, vertTexCoords)).r;
+    float  r          = vec3(texture(material.roughness, vertTexCoords)).r;
     float  alpha2     = r * r * r * r;
     float  d          = nDotH * nDotH * (alpha2 - 1) + 1;
     float  ggxdistrib = alpha2 / (PI * d * d);
@@ -101,24 +112,54 @@ float geomSmith(float dp)
     return dp / denom;
 }
 
+float calcShadow(vec4 lightSpace)
+{
+    vec3 projCoords = lightSpace.xyz / lightSpace.w; // perform perspective divide
+    projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(shadowMap, projCoords.xy).r; 
+    float currentDepth = projCoords.z; // get depth of current fragment from light's perspective
+
+    float bias   = 0.0025;
+    float shadow = 0.0;
+
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for(int x = -pcfSteps; x <= pcfSteps; ++x)
+    {
+        for(int y = -pcfSteps; y <= pcfSteps; ++y)
+        {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;        
+        }    
+    }
+
+    int s = pcfSteps*2+1;
+    shadow /= s*s;
+
+    return shadow;
+
+
+}
+
 vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
 {
     vec3 lightIntensity = light.color * light.diffuseIntensity;
 
     vec3 l = vec3(0.0);
 
-    if (isDirLight) {
-        l = -posDir.xyz;
-    } else {
+    if (isDirLight)
+    { l = -posDir.xyz; }
+    else
+    {
         l = posDir - vertLocalPos;
         float lightToPixelDist = length(l);
         l = normalize(l);
         lightIntensity /= (lightToPixelDist * lightToPixelDist);
     }
 
-    vec3 n = normal;
-    vec3 v = normalize(fragCameraPos - vertLocalPos);
-    vec3 h = normalize(v + l);
+    vec3 n = normal;                           // Without this vec3 theres ugly black rim
+    vec3 v = normalize(cameraPos - vertWorldPos) + (vec3(0,5,0)); // lighting from some angles
+    vec3 h = normalize(v + l);                 //\\ TODO: find a less scuffed fix for above.
 
     float nDotH = max(dot(n, h), 0.0);
     float vDotH = max(dot(v, h), 0.0);
@@ -130,10 +171,8 @@ vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
     vec3 kS = F;
     vec3 kD = 1.0 - kS;
 
-    vec3 specBRDF_nom  = ggxDistribution(nDotH) *
-                         F *
-                         geomSmith(nDotL) *
-                         geomSmith(nDotV);
+    vec3 specBRDF_nom  = ggxDistribution(nDotH) * F *
+                         geomSmith(nDotL) * geomSmith(nDotV);
 
     float specBRDF_denom = 4.0 * nDotV * nDotL + 0.0001;
 
@@ -141,7 +180,8 @@ vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
 
     vec3 fLambert = vec3(0.0);
 
-    bool isMetal = vec3(texture(material.metallic, vertTexCoords)).r == 1.0;
+	float metallic = vec3(texture(material.metallic, vertTexCoords)).r;
+    bool isMetal = metallic == 1.0;
     if (!isMetal)
     { fLambert = vec3(texture(material.diffuse, vertTexCoords)); }
 
@@ -154,7 +194,15 @@ vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
 
 vec3 calcPBRDirectionalLight(DirectionalLight light, vec3 normal)
 {
-    return calcPBRLighting(light.light, light.dir, true, normal);
+    vec3 ret = calcPBRLighting(light.light, light.dir, true, normal);
+
+    if (shadowsEnabled)
+    {
+        float shadow = calcShadow(vertFragPosLightSpace);
+        ret *= (1.0 - shadow);
+    }
+
+    return ret;
 }
 
 vec3 calcPBRPointLight(PointLight light, vec3 normal)
@@ -164,7 +212,7 @@ vec3 calcPBRPointLight(PointLight light, vec3 normal)
 
 vec3 calcPBRSpotLight(SpotLight light, vec3 normal)
 {
-    vec3  lightDir    = normalize(light.pos - vertFragPos);
+    vec3  lightDir    = normalize(light.pos - vertWorldPos);
     float theta       = dot(lightDir, normalize(-light.dir));
     float epsilon     = light.cosAngle - light.outerCosAngle;
     float intensity   = clamp((theta - light.outerCosAngle) / epsilon, 0.0, 1.0);    
@@ -205,10 +253,14 @@ vec3 calcTotalPBRLighting()
 
 void main()
 {
-    //fragColor = vec4(blinnPhongDir(vertNormal, vertFragPos, sunDir, lightColor), 1.0);
-
     vec3 color = calcTotalPBRLighting();
     vec3 ambient = vec3(ambientStrength) * vec3(texture(material.diffuse, vertTexCoords));
     color += vec3(ambient);
+
+    float dist = distance(cameraPos, vertWorldPos);
+	float fog = getFogFactor(dist, viewDistance*0.5, viewDistance);
+    color = mix(color, fogColor, fog);
+
     fragColor = vec4(color, 1.0);
+
 }

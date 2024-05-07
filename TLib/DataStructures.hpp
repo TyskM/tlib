@@ -297,6 +297,8 @@ struct Vector3
     Vector3<T> operator*=(const float& num)             { return Vector3<T>(x *= num, y *= num, z *= num); }
     Vector3<T> operator/=(const float& num)             { return Vector3<T>(x /= num, y /= num, z /= num); }
 
+
+
 };
 using Vector3i = Vector3<int>;
 using Vector3f = Vector3<float>;
@@ -306,13 +308,45 @@ struct Vector4
 {
     using value_type = T;
 
+    constexpr Vector4() = default;
     constexpr Vector4(T xv, T yv, T zv, T wv) : x{ xv }, y{ yv }, z{ zv }, w{ wv } { }
-    constexpr Vector4() { }
+    constexpr Vector4(const glm::vec<4, T>& v) : x{ v.x }, y{ v.y }, z{ v.z }, w{ v.w } { }
+
+    glm::vec<4, T> toGlm() const { return glm::vec<4, T>(x, y, z, w); }
 
     T x = 0;
     T y = 0;
     T z = 0;
     T w = 0;
+
+    Vector4<T> floored()    const { return Vector4<T>( floor(x), floor(y), floor(z), floor(w)                                         ); }
+    Vector4<T> ceiled()     const { return Vector4<T>( ceil(x), ceil(y), ceil(z), ceil(w)                                             ); }
+    Vector4<T> rounded()    const { return Vector4<T>( round(x), round(y), round(z), round(w)                                         ); }
+    Vector4<T> abs()        const { return Vector4<T>( std::abs(x), std::abs(y), std::abs(z), std::abs(w)                             ); }
+    Vector4<T> sqrt()       const { return Vector4<T>( std::sqrt(x), std::sqrt(y), std::sqrt(z), std::sqrt(w)                         ); }
+    Vector4<T> pow(T value) const { return Vector4<T>( std::pow(x, value), std::pow(y, value), std::pow(z, value), std::pow(w, value) ); }
+    
+    Vector4<T> stepify(T step) const
+    {
+        return Vector4<T>(math::stepify(x, step),
+                          math::stepify(y, step),
+                          math::stepify(z, step),
+                          math::stepify(w, step));
+    }
+
+    Vector4<T> operator+ (const Vector4<T>& v) const { return Vector4<T>(x+v.x, y+v.y, z+v.z, w+v.w); }
+    Vector4<T> operator+=(const Vector4<T>& v) const { return Vector4<T>(x+v.x, y+v.y, z+v.z, w+v.w); }
+    Vector4<T> operator- (const Vector4<T>& v) const { return Vector4<T>(x-v.x, y-v.y, z-v.z, w-v.w); }
+    Vector4<T> operator-=(const Vector4<T>& v) const { return Vector4<T>(x-v.x, y-v.y, z-v.z, w-v.w); }
+    Vector4<T> operator* (const Vector4<T>& v) const { return Vector4<T>(x*v.x, y*v.y, z*v.z, w*v.w); }
+    Vector4<T> operator*=(const Vector4<T>& v) const { return Vector4<T>(x*v.x, y*v.y, z*v.z, w*v.w); }
+    Vector4<T> operator/ (const Vector4<T>& v) const { return Vector4<T>(x/v.x, y/v.y, z/v.z, w/v.w); }
+    Vector4<T> operator/=(const Vector4<T>& v) const { return Vector4<T>(x/v.x, y/v.y, z/v.z, w/v.w); }
+
+    Vector4<T> operator* (const T v) const { return Vector4<T>(x*v, y*v, z*v, w*v); }
+    Vector4<T> operator*=(const T v) const { return Vector4<T>(x*v, y*v, z*v, w*v); }
+    Vector4<T> operator/ (const T v) const { return Vector4<T>(x/v, y/v, z/v, w/v); }
+    Vector4<T> operator/=(const T v) const { return Vector4<T>(x/v, y/v, z/v, w/v); }
 };
 
 using Vector4f = Vector4<float>;
@@ -733,6 +767,11 @@ public:
     Mat4f scale(const Vector3f& _scale) const
     { return glm::scale(matrix, glm::vec3(_scale.x, _scale.y, _scale.z)); }
 
+    Mat4f inverse() const
+    { return glm::inverse(toGlm()); }
+
+    glm::mat4 toGlm() const { return matrix; }
+
     Mat4f operator* (const Mat4f& other) { return matrix * other.matrix; }
     Mat4f operator*=(const Mat4f& other) { return matrix * other.matrix; }
 };
@@ -804,6 +843,15 @@ struct Quat
 
     Quat operator* (const Quat& other) { return toGlm() * other.toGlm(); }
     Quat operator*=(const Quat& other) { return toGlm() * other.toGlm(); }
-
-
 };
+
+Mat4f    operator* (const Mat4f& a, const Mat4f& b)   { return a.toGlm() * b.toGlm(); }
+Mat4f    operator*=(const Mat4f& a, const Mat4f& b)   { return a.toGlm() * b.toGlm(); }
+
+Vector3f operator* (const Vector3f& v, const Quat& q) { return Vector3f(v.toGlm() * q.toGlm()); }
+Vector3f operator*=(const Vector3f& v, const Quat& q) { return Vector3f(v.toGlm() * q.toGlm()); }
+
+Vector4f operator* (const Vector4f& v, const Mat4f& m) { return v.toGlm() * m.toGlm(); }
+Vector4f operator*=(const Vector4f& v, const Mat4f& m) { return v.toGlm() * m.toGlm(); }
+Vector4f operator* (const Mat4f& m, const Vector4f& v) { return m.toGlm() * v.toGlm(); }
+Vector4f operator*=(const Mat4f& m, const Vector4f& v) { return m.toGlm() * v.toGlm(); }

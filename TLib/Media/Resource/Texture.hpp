@@ -80,7 +80,9 @@ enum class TexPixelFormats : int
 enum class TexPixelType
 {
     UnsignedByte = GL_UNSIGNED_BYTE,
-    uint8888Rev  = GL_UNSIGNED_INT_8_8_8_8_REV
+    uint8888Rev  = GL_UNSIGNED_INT_8_8_8_8_REV,
+    Float        = GL_FLOAT
+
 };
 
 enum class UVMode
@@ -124,7 +126,6 @@ private:
     GLuint glHandle        =  0;
     int    width           =  0;
     int    height          =  0;
-    int    boundSlot       = -1;
     TexInternalFormats internalFormat = TexInternalFormats::Unknown;
     Path   _path;
 
@@ -135,8 +136,8 @@ public:
 
     String toString() const
     {
-        return fmt::format("Handle: {}, Width: {}, Height: {}, Slot: {}, Path: {}",
-                            glHandle,   width,     height,    boundSlot, _path.string());
+        return fmt::format("Handle: {}, Width: {}, Height: {}, Path: {}",
+                            glHandle,   width,     height, _path.string());
     }
 
     void reset()
@@ -147,7 +148,6 @@ public:
             glHandle        =  0;
             width           =  0;
             height          =  0;
-            boundSlot       = -1;
             internalFormat  = TexInternalFormats::Unknown;
         }
     }
@@ -277,7 +277,6 @@ public:
 
         if (slot > glState.boundTextures.size())
         { glState.boundTextures.resize(slot, nullptr); }
-        else if (glState.boundTextures[slot] == this) { return; }
 
         GL_CHECK(glActiveTexture(GL_TEXTURE0 + slot));
         GL_CHECK(glBindTexture(GL_TEXTURE_2D, glHandle));
