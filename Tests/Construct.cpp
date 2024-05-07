@@ -105,7 +105,7 @@ struct Camera3D
     };
 
     float     znear    = 0.02f;
-    float     zfar     = 50.f;
+    float     zfar     = 500.f;
     float     fov      = 110.f;
     Vector3f  pos      = { 0.0f, 0.0f, 0.0f };
     Quat      rot;
@@ -267,11 +267,17 @@ enum class FaceCullMode
 class Renderer3D
 {
 public:
-    static inline bool         useMSAA      = true;  // Read / Write. Creates ugly artifacts (sometimes), find post processing solution.
-    static inline float        zMult        = 2.0f;
-    static inline ColorRGBAf   fogColor     = ColorRGBAf(0.1f, 0.1f, 0.1f, 1.f);
-    static inline FaceCullMode faceCullMode = FaceCullMode::None;
-    static inline bool         shadows      = true;
+    static inline bool         useMSAA              = true;  // Read / Write. Creates ugly artifacts (sometimes), find post processing solution.
+    static inline FaceCullMode faceCullMode         = FaceCullMode::None;
+    static inline bool         fog                  = false;
+    static inline ColorRGBf    fogColor             = ColorRGBf(0.1f, 0.1f, 0.1f);
+    static inline bool         shadows              = true;
+    static inline float        shadowDistance       = 50.f;
+    static inline float        shadowFrustZMult     = 2.0f;
+    static inline int          shadowPcfSteps       = 2;
+    static inline float        shadowBias           = 0.0025;
+    static inline ColorRGBAf   skyColor             = ColorRGBAf(0.1f, 0.1f, 0.1f);
+    static inline float        ambientLightStrength = 0.1f;
 
     struct ModelDrawCmd
     {
@@ -310,7 +316,7 @@ public:
 
     static inline FrameBuffer shadowFbo;
     static inline Texture     shadowTex;
-    static inline uint32_t    shadowSize = 1024*16;
+    static inline uint32_t    shadowSize = 1024*4;
     static inline Shader      shadowShader;
 
     struct DirectionalLight
@@ -528,7 +534,7 @@ public:
     {
         if (cmds.empty()) { return; }
 
-        Renderer::clearColor(fogColor);
+        Renderer::clearColor(skyColor);
         GL_CHECK(glEnable(GL_DEPTH_TEST));
         GL_CHECK(glEnable(GL_BLEND));
         GL_CHECK(glFrontFace(GL_CCW));
@@ -566,9 +572,16 @@ public:
 
         auto view = camera.getViewMatrix();
         auto proj = camera.getPerspectiveMatrix();
-        shader3d.setMat4f("projection", proj);
-        shader3d.setMat4f("view", view);
-        shader3d.setVec3f("cameraPos", camera.pos);
+        shader3d.setMat4f("projection",      proj);
+        shader3d.setMat4f("view",            view);
+        shader3d.setFloat("ambientStrength", ambientLightStrength);
+        shader3d.setVec3f("cameraPos",       camera.pos);
+        shader3d.setBool ("fogEnabled",      fog);
+        shader3d.setVec3f("fogColor",        Vector3f(fogColor.r, fogColor.g, fogColor.b));
+        shader3d.setFloat("viewDistance",    camera.zfar);
+        shader3d.setBool ("shadowsEnabled",  shadows);
+        shader3d.setInt  ("pcfSteps",        shadowPcfSteps);
+        shader3d.setFloat("shadowBias",      shadowBias);
 
         defaultPrimitiveShader.setMat4f("projection", proj);
         defaultPrimitiveShader.setMat4f("view", view);
@@ -619,13 +632,14 @@ public:
         }
 
         // Shadow pass
-        shader3d.setBool("shadowsEnabled", shadows);
         if (shadows)
         {
             Vector3f dir = directionalLights[0].dir;
-
             Vector3f center;
-            auto corners = getFrustumCornersWorldSpace(camera.getPerspectiveMatrix(), camera.getViewMatrix());
+
+            Camera3D camCopy = camera;
+            camCopy.zfar = std::min(shadowDistance, camera.zfar);
+            auto corners = getFrustumCornersWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
             for (const auto& v : corners)
             { center += Vector3f(v); }
             center /= (float)corners.size();
@@ -656,10 +670,10 @@ public:
                     maxZ = std::max(maxZ, trf.z);
                 }
 
-                if (minZ < 0) { minZ *= zMult; }
-                else          { minZ /= zMult; }
-                if (maxZ < 0) { maxZ /= zMult; }
-                else          { maxZ *= zMult; }
+                if (minZ < 0) { minZ *= shadowFrustZMult; }
+                else          { minZ /= shadowFrustZMult; }
+                if (maxZ < 0) { maxZ /= shadowFrustZMult; }
+                else          { maxZ *= shadowFrustZMult; }
 
                 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
             }
@@ -692,9 +706,6 @@ public:
         }
 
         // PBR Pass
-        shader3d.setVec3f("fogColor", Vector3f(fogColor.r, fogColor.g, fogColor.b));
-        shader3d.setFloat("viewDistance", camera.zfar);
-
         for (auto& varCmd : cmds)
         {
             if (is<PrimitiveDrawCmd>(varCmd))
@@ -762,11 +773,13 @@ public:
         {
             shadowTex.create();
             shadowTex.setData(NULL, shadowSize, shadowSize, TexPixelFormats::DEPTH_COMPONENT, TexInternalFormats::DEPTH_COMPONENT, TexPixelType::Float);
-            shadowTex.setFilter(TextureFiltering::Nearest);
-            shadowTex.setUVMode(UVMode::Repeat);
+            shadowTex.setFilter(TextureMinFilter::Linear, TextureMagFilter::Linear);
+            shadowTex.setUVMode(UVMode::ClampToBorder);
+            shadowTex.setBorderColor(ColorRGBAf::white());
             GLint swizzle[4] = { GL_RED, GL_RED, GL_RED, GL_ONE };
             shadowTex.setSwizzle(swizzle); // To make debugging easier on the eyes
-            //shadowTex.bind();
+            shadowTex.bind();
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 16.f); // TODO: extend tex class
             //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE));
             //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL));
             shadowFbo.create();
@@ -1154,8 +1167,12 @@ void update(float delta)
     #pragma region UI
     beginDiagWidgetExt();
 
-    if (ImGui::CollapsingHeader("Character & Camera"))
+    int headerFlags = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_FramePadding;
+    ImVec2 dummySize(10, 10);
+
+    if (ImGui::CollapsingHeader("Character & Camera", headerFlags))
     {
+        ImGui::Indent();
         if (ImGui::Checkbox("Physics Debug", &debugDrawPhysics))
         {
             if (debugDrawPhysics)
@@ -1180,8 +1197,6 @@ void update(float delta)
 
         ImGui::Text(fmt::format("Velocity: {}", controller.velocity.toString()).c_str());
         ImGui::Text(fmt::format("Looking At Geometry: {}", controller.lookingAtGeometry).c_str());
-        ImGui::SliderFloat("Near Plane", &controller.camera.znear, 0.f, 1.f);
-        ImGui::SliderFloat(" Far Plane", &controller.camera.zfar, 0.f, 500.f);
         //ImGui::Text(fmt::format("Dir:      {}", Vector3f(controller.forward).toString()).c_str());
         //ImGui::Text(fmt::format("Dir No Y: {}", Vector3f(controller.forwardNoY).toString()).c_str());
 
@@ -1210,6 +1225,7 @@ void update(float delta)
         ImGui::SliderFloat("Camera Speed", &controller.freeCamSpeed, 0.01f, 400.f);
         ImGui::Text(fmt::format("Pitch : {}", controller.pitch).c_str());
         ImGui::Text(fmt::format("Yaw   : {}", controller.yaw).c_str());
+        ImGui::Unindent();
     }
     // Model loading input
     //ImGui::SeparatorText("Model");
@@ -1221,39 +1237,65 @@ void update(float delta)
     //    if (!p.empty()) { model.loadFromFile(p); }
     //}
 
-    if (ImGui::CollapsingHeader("Graphics"))
+    if (ImGui::CollapsingHeader("Graphics", headerFlags))
     {
-        ImGui::ColorEdit3("Player Light",       &lightColor.r);
-        ImGui::DragFloat ("Player Light Power", &lightPower);
-        ImGui::ColorEdit3("Sun Light",          &sunColor.r);
-        ImGui::DragFloat3("Sun Dir",            &sunDir.x, 0.025f, -1.f, 1.f);
-        ImGui::DragFloat ("Sun Power",          &sunPower);
-        ImGui::ColorEdit3("Spot Light",         &spotColor.r);
-        ImGui::DragFloat ("Spot Power",         &spotPower);
-        ImGui::DragFloat ("Spot Angle",         &spotAngle);
-        ImGui::DragFloat ("Spot Outer Angle",   &spotOuterAngle);
-        
+        ImGui::Indent();
+        if (ImGui::CollapsingHeader("Lights", headerFlags))
+        {
+            ImGui::Indent();
+            ImGui::ColorEdit4 ("Sky Color",              &R3D::skyColor.r);
+            ImGui::SliderFloat("Ambient Light Strength", &R3D::ambientLightStrength, 0.f, 1.f);
+            ImGui::ColorEdit3 ("Player Light",           &lightColor.r);
+            ImGui::DragFloat  ("Player Light Power",     &lightPower);
+            ImGui::ColorEdit3 ("Sun Light",              &sunColor.r);
+            ImGui::DragFloat3 ("Sun Dir",                &sunDir.x, 0.025f, -1.f, 1.f);
+            ImGui::DragFloat  ("Sun Power",              &sunPower);
+            ImGui::ColorEdit3 ("Spot Light",             &spotColor.r);
+            ImGui::DragFloat  ("Spot Power",             &spotPower);
+            ImGui::DragFloat  ("Spot Angle",             &spotAngle);
+            ImGui::DragFloat  ("Spot Outer Angle",       &spotOuterAngle);
+            ImGui::Dummy(dummySize);
+            ImGui::Unindent();
+        }
+        if (ImGui::CollapsingHeader("View Distance", headerFlags))
+        {
+            ImGui::Indent();
+            ImGui::Checkbox   ("Fog", &R3D::fog);
+            ImGui::ColorEdit3 ("Fog Color", &R3D::fogColor.r);
+            ImGui::SliderFloat("Near Plane", &controller.camera.znear, 0.f, 1.f);
+            ImGui::SliderFloat(" Far Plane", &controller.camera.zfar, 0.f, 500.f);
+            ImGui::Dummy(dummySize);
+            ImGui::Unindent();
+        }
+        if (ImGui::CollapsingHeader("Shadows", headerFlags))
+        {
+            ImGui::Indent();
+            ImGui::Checkbox   ("Enabled",   &R3D::shadows);
+            ImGui::SliderFloat("Frustum Z Multiplier", &R3D::shadowFrustZMult, 0.1f, 20.f);
+            ImGui::SliderFloat("Distance",  &R3D::shadowDistance, 1.f, 200.f);
+            ImGui::SliderInt  ("PCF Steps", &R3D::shadowPcfSteps, 0, 6);
+            ImGui::SliderFloat("Bias",      &R3D::shadowBias, 0, 1.f);
+            ImGui::Dummy(dummySize);
+            ImGui::Unindent();
+        }
+
+        ImGui::Checkbox("MSAA", &R3D::useMSAA);
+
         auto ret = imguiEnumCombo("Face Cull Mode", R3D::faceCullMode);
         if (ret.first) { R3D::faceCullMode = ret.second; }
-
-        static float ambientStrength = R3D::shader3d.getFloat("ambientStrength");
-        if (ImGui::SliderFloat("Ambient Lighting", &ambientStrength, 0.f, 1.f))
-        { R3D::shader3d.setFloat("ambientStrength", ambientStrength); }
-
-        ImGui::Checkbox("Shadows", &R3D::shadows);
-        ImGui::Checkbox("MSAA", &R3D::useMSAA);
-        ImGui::SliderFloat("ZMult", &R3D::zMult, 0.1f, 20.f);
 
         int textEditFlags = ImGuiInputTextFlags_AllowTabInput;
 
         if (ImGui::Button("Compile Shaders"))
         { R3D::setPBRShader(vertShaderStr, fragShaderStr); }
-        if (ImGui::CollapsingHeader("Vert Shader"))
+        if (ImGui::CollapsingHeader("Vert Shader", headerFlags))
         { ImGui::InputTextMultiline("#VertShaderEdit", &vertShaderStr, { ImGui::GetContentRegionAvail().x, 600 }, textEditFlags); }
-        if (ImGui::CollapsingHeader("Frag Shader"))
+        if (ImGui::CollapsingHeader("Frag Shader", headerFlags))
         { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }, textEditFlags); }
-        if (ImGui::CollapsingHeader("Shadow Map"))
+        if (ImGui::CollapsingHeader("Shadow Map", headerFlags))
         { ImGui::Image(R3D::shadowTex, Vector2f(128.f, 128.f) * 4.f); }
+        ImGui::Dummy(dummySize);
+        ImGui::Unindent();
     }
     ImGui::End();
     #pragma endregion
@@ -1273,7 +1315,6 @@ void draw(float delta)
 {
     //sunDir = Vector3f::forward() * controller.camera.rot;
     Vector3f lightPos  = controller.getPos();
-    R3D::fogColor = sunColor;
     R3D::addPointLight(lightPos, ColorRGBf(lightColor), lightPower);
     R3D::addDirectionalLight(sunDir, ColorRGBf(sunColor), sunPower);
     //R3D::addSpotLight(lightPos, Vector3f(controller.forward), spotAngle, spotOuterAngle, ColorRGBf(spotColor), spotPower);

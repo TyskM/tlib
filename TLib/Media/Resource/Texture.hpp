@@ -330,6 +330,13 @@ public:
         glPixelStorei(GL_UNPACK_ALIGNMENT, value);
     }
 
+    void setBorderColor(const ColorRGBAf& color)
+    {
+        bind();
+        float borderColor[] = { color.r, color.g, color.b, color.a };
+        GL_CHECK(glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor));
+    }
+
     // Equivalent to setting GL_TEXTURE_WRAP_S and GL_TEXTURE_WRAP_T
     void setUVMode(UVMode u, UVMode v)
     {
@@ -338,7 +345,6 @@ public:
         GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<int>(v)) );
     }
 
-    [[deprecated]]
     void setUVMode(UVMode uv)
     { setUVMode(uv, uv); }
 

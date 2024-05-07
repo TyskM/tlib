@@ -10,12 +10,15 @@ in vec2 vertTexCoords;
 in vec4 vertFragPosLightSpace;
 
 uniform vec3  cameraPos;
-uniform float ambientStrength  = 0.1;
-uniform int   pcfSteps = 2;
-uniform vec3  fogColor;
-uniform float viewDistance;
+uniform float ambientStrength = 0.1;
+uniform float viewDistance    = 50;
 
-uniform bool shadowsEnabled;
+uniform bool  shadowsEnabled = true;
+uniform int   pcfSteps       = 2;
+uniform float shadowBias     = 0.0025;
+
+uniform bool fogEnabled = false;
+uniform vec3 fogColor   = vec3(1, 1, 1);
 
 struct Material
 {
@@ -120,16 +123,14 @@ float calcShadow(vec4 lightSpace)
     float closestDepth = texture(shadowMap, projCoords.xy).r; 
     float currentDepth = projCoords.z; // get depth of current fragment from light's perspective
 
-    float bias   = 0.0025;
     float shadow = 0.0;
-
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     for(int x = -pcfSteps; x <= pcfSteps; ++x)
     {
         for(int y = -pcfSteps; y <= pcfSteps; ++y)
         {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;        
+            shadow += currentDepth - shadowBias > pcfDepth ? 1.0 : 0.0;        
         }    
     }
 
@@ -137,8 +138,6 @@ float calcShadow(vec4 lightSpace)
     shadow /= s*s;
 
     return shadow;
-
-
 }
 
 vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
@@ -180,7 +179,7 @@ vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
 
     vec3 fLambert = vec3(0.0);
 
-	float metallic = vec3(texture(material.metallic, vertTexCoords)).r;
+    float metallic = vec3(texture(material.metallic, vertTexCoords)).r;
     bool isMetal = metallic == 1.0;
     if (!isMetal)
     { fLambert = vec3(texture(material.diffuse, vertTexCoords)); }
@@ -257,9 +256,12 @@ void main()
     vec3 ambient = vec3(ambientStrength) * vec3(texture(material.diffuse, vertTexCoords));
     color += vec3(ambient);
 
-    float dist = distance(cameraPos, vertWorldPos);
-	float fog = getFogFactor(dist, viewDistance*0.5, viewDistance);
-    color = mix(color, fogColor, fog);
+    if (fogEnabled)
+    {
+        float dist = distance(cameraPos, vertWorldPos);
+        float fog = getFogFactor(dist, viewDistance*0.5, viewDistance);
+        color = mix(color, fogColor, fog);
+    }
 
     fragColor = vec4(color, 1.0);
 
