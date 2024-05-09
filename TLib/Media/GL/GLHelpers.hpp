@@ -86,6 +86,14 @@ enum class VSyncMode
     Adaptive [[maybe_unused]] = -1
 };
 
+enum class FaceCullMode
+{
+    None,
+    Front,
+    Back,
+    Both
+};
+
 static const char* glErrorTypeToStr(GLenum type)
 {
     switch (type)

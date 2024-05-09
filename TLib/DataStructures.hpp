@@ -767,6 +767,9 @@ public:
     Mat4f scale(const Vector3f& _scale) const
     { return glm::scale(matrix, glm::vec3(_scale.x, _scale.y, _scale.z)); }
 
+    Mat4f scale(float x, float y, float z) const
+    { return glm::scale(matrix, glm::vec3(x, y, z)); }
+
     Mat4f inverse() const
     { return glm::inverse(toGlm()); }
 

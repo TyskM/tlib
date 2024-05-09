@@ -15,7 +15,8 @@ uniform float viewDistance    = 50;
 
 uniform bool  shadowsEnabled = true;
 uniform int   pcfSteps       = 2;
-uniform float shadowBias     = 0.0025;
+uniform float minShadowBias  = 0.1;
+uniform float maxShadowBias  = 2.0;
 
 uniform bool fogEnabled = false;
 uniform vec3 fogColor   = vec3(1, 1, 1);
@@ -115,7 +116,7 @@ float geomSmith(float dp)
     return dp / denom;
 }
 
-float calcShadow(vec4 lightSpace)
+float calcShadow(vec4 lightSpace, vec3 lightDir, vec3 normal)
 {
     vec3 projCoords = lightSpace.xyz / lightSpace.w; // perform perspective divide
     projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
@@ -123,14 +124,17 @@ float calcShadow(vec4 lightSpace)
     float closestDepth = texture(shadowMap, projCoords.xy).r; 
     float currentDepth = projCoords.z; // get depth of current fragment from light's perspective
 
+    vec2  texelSize        = 1.0 / textureSize(shadowMap, 0);
+    float biasDirInfluence = max(maxShadowBias * (1.0 - dot(normal, lightDir)), minShadowBias);
+    float biasPx           = texelSize.x * biasDirInfluence; // Texels should be the same size both ways
+
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
     for(int x = -pcfSteps; x <= pcfSteps; ++x)
     {
         for(int y = -pcfSteps; y <= pcfSteps; ++y)
         {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-            shadow += currentDepth - shadowBias > pcfDepth ? 1.0 : 0.0;        
+            shadow += currentDepth - biasPx > pcfDepth ? 1.0 : 0.0;        
         }    
     }
 
@@ -197,7 +201,7 @@ vec3 calcPBRDirectionalLight(DirectionalLight light, vec3 normal)
 
     if (shadowsEnabled)
     {
-        float shadow = calcShadow(vertFragPosLightSpace);
+        float shadow = calcShadow(vertFragPosLightSpace, light.dir, normal);
         ret *= (1.0 - shadow);
     }
 

@@ -1,155 +1,94 @@
-//
-// Created by Ty on 2023-01-27.
-//
+
 
 #pragma once
 
-#include <TLib/Media/GL/VertexArray.hpp>
-#include <TLib/Media/GL/VertexBuffer.hpp>
-#include <TLib/Media/GL/Layout.hpp>
-#include <TLib/Media/GL/ElementBuffer.hpp>
-#include <TLib/Media/Logging.hpp>
+#include <TLib/Media/Resource/MeshData.hpp>
+#include <TLib/Media/Resource/Texture.hpp>
+#include <TLib/Media/Resource/GPUVertexData.hpp>
 #include <TLib/NonAssignable.hpp>
-#include <cstdint>
+#include <TLib/Pointers.hpp>
+#include <TLib/Containers/Array.hpp>
 
-struct GPUVertexData : NonCopyable
+/* DONE: Optimize VAO usage. One per model? // Done, thanks aiProcess_OptimizeGraph
+
+Use single global VAO, VBO, and EBO to avoid the overhead of switching them.
+
+global VertexArray;  // Layout
+global VertexBuffer; // Vertices
+global ElementBuffer // Indices
+
+size_t vboIndex, vboSize;
+size_t eboIndex, eboSize;
+
+*/
+// Add lighting
+// Support materials
+struct Mesh : NonAssignable
 {
-protected:
-    VertexArray   vao; // Layout
-    VertexBuffer  vbo; // Vertices
-    ElementBuffer ebo; // Indices
-    Layout        _layout;
-    uint32_t      _vertexCount = 0;
-    uint32_t      _indiceCount = 0;
-
-    void move(GPUVertexData& src)
+private:
+    struct MeshTexture
     {
-        vao          = eastl::move(src.vao);
-        vbo          = eastl::move(src.vbo);
-        ebo          = eastl::move(src.ebo);
-        _layout      = src._layout;
-        _vertexCount = src._vertexCount;
-        _indiceCount = src._indiceCount;
-    }
+        TextureType   type = TextureType::Diffuse;
+        UPtr<Texture> texture;
+    };
+
+    struct Material
+    {
+        Array<UPtr<Texture>, (size_t)TextureType::Count> textures;
+    };
+
+    struct SubMesh
+    {
+        UPtr<GPUVertexData> vertices;
+        Material            material;
+    };
+
+    Vector<SubMesh> meshes;
 
 public:
-    GPUVertexData()  = default;
-    ~GPUVertexData() = default;
+    Vector<SubMesh>& getMeshes()
+    { return meshes; }
 
-    // Movable only
-    GPUVertexData(GPUVertexData&& src)            noexcept { move(src); }
-    GPUVertexData& operator=(GPUVertexData&& src) noexcept { reset(); move(src); return *this; }
-
-    [[nodiscard]] inline const bool     valid()         const { return validLayout(); }
-    [[nodiscard]] inline const bool     validLayout()   const { return vao.created() && _layout.sizeBytes() > 0; }
-    [[nodiscard]] inline const bool     validVertices() const { return vbo.created(); }
-    [[nodiscard]] inline const bool     validIndices()  const { return ebo.created(); }
-    [[nodiscard]] inline const Layout   layout()        const { return _layout; }
-    [[nodiscard]] inline const uint32_t vertexCount()   const { return _vertexCount; }
-    [[nodiscard]] inline const uint32_t indiceCount()   const { return _indiceCount; }
-
-    void reset()
+    bool loadFromMemory(const MeshData& cpuMesh)
     {
-        ebo.reset();
-        vbo.reset();
-        vao.reset();
-        _layout.clear();
-        _vertexCount = 0;
-        _indiceCount = 0;
-    }
+        for (auto& cpuSubMesh : cpuMesh.subMeshes)
+        {
+            auto& gpuSubMesh = meshes.emplace_back();
+            gpuSubMesh.vertices  = makeUnique<GPUVertexData>();
+            gpuSubMesh.vertices->setLayout({ Layout::Vec3f(), Layout::Vec3f(), Layout::Vec2f() });
+            gpuSubMesh.vertices->setData(cpuSubMesh.vertices);
+            gpuSubMesh.vertices->setIndices(cpuSubMesh.indices);
 
-    bool bind()
-    {
-        if (!valid()) { return false; }
-        vao.bind();
+            int32_t i = 0;
+            for (auto& cpuTexture : cpuSubMesh.material.textures)
+            {
+                ASSERT(cpuTexture); // Textures should never be NULL, worst case they are 1x1 pure white/black/gray
+                auto& gpuTexture = gpuSubMesh.material.textures[i];
+                gpuTexture = makeUnique<Texture>();
+                gpuTexture->setData(*cpuTexture);
+                gpuTexture->setUVMode(UVMode::Repeat);
+                gpuTexture->setFilter(TextureMinFilter::LinearMipmapLinear, TextureMagFilter::Linear);
+                gpuTexture->generateMipmaps();
+                ++i;
+            }
+        }
+
         return true;
     }
 
-    static void unbind()
-    { VertexArray::unbind(); }
-
-    /**
-     * @param layout The layout describing your vertices
-     * @see Attribute
-     */
-    void setLayout(const Layout& layout)
+    // Returns false on failure
+    bool loadFromFile(const Path& path)
     {
-        if (!vao.created()) { vao.create(); }
-        if (!vbo.created()) { vbo.create(); }
+        MeshData meshData;
+        bool success = meshData.loadFromFile(path);
+        if (!success) { tlog::error("Model::loadFromFile: Failed to load mesh"); return false; }
+        ASSERT(success);
 
-        rendlog->info("Setting mesh layout: Bytes={}; Size={};", layout.sizeBytes(), layout.getValues().size());
-
-        vao.bind();
-        vbo.bind();
-
-        GLuint   index  = 0;
-        uint32_t offset = 0;
-        GLsizei  stride = layout.sizeBytes();
-
-        for (const auto& l : layout.getValues())
-        {
-            GL_CHECK(glEnableVertexAttribArray(index));
-            GL_CHECK(glVertexAttribPointer(index, l.size(), static_cast<GLenum>(l.type()),
-                                           GL_FALSE, stride, (GLvoid*)(offset)));
-            if (l.divisor())
-            { GL_CHECK(glVertexAttribDivisor(index, l.divisor())); }
-            ++index;
-            offset += l.sizeBytes();
-        }
-
-        _layout = layout;
-
-        if (layout.getValues().size() > 0)
-        { ASSERT(index > 0); }
-
+        return loadFromMemory(meshData);
     }
 
-    template <typename ContainerType>
-    void setData(const ContainerType& data, AccessType accessType = AccessType::Static)
+    void reset()
     {
-        using T = ContainerType::value_type;
-        ASSERT(validLayout()); // Layout must be set before setting data
-
-        #ifdef TLIB_DEBUG
-        if (sizeof(T) != _layout.sizeBytes())
-        {
-            tlog::critical("The size of the value Type: ({}) Size: ({}) does not match the size of the layout ({})",
-                typeid(T).name(), sizeof(T), _layout.sizeBytes());
-            ASSERT(false); // Layout and data size mismatch
-        }
-        #endif
-
-        if (accessType == AccessType::Static)
-        { rendlog->info("Setting static mesh data: Bytes={}; Size={};", sizeof(T) * data.size(), data.size()); }
-
-        vao.bind();
-        vbo.bind();
-        vbo.bufferData(data, accessType);
-        _vertexCount = data.size();
-    }
-
-    template <typename ContainerOfuint32_tType>
-    void setIndices(const ContainerOfuint32_tType& indices, AccessType accessType = AccessType::Static)
-    {
-        if (indices.size() == 0) { return; }
-
-        if (accessType == AccessType::Static)
-        { rendlog->info("Setting static mesh indices: Bytes={}; Size={};", indices.size() * sizeof(uint32_t), indices.size()); }
-        if (!vao.created()) { vao.create(); }
-        if (!ebo.created()) { ebo.create(); }
-
-        vao.bind();
-        ebo.bind();
-
-        ebo.bufferData(indices, accessType);
-        _indiceCount = indices.size();
-
-        ASSERT(_indiceCount > 0);
-    }
-
-    void removeIndices()
-    {
-        _indiceCount = 0;
-        ebo.reset();
+        meshes.clear();
     }
 };

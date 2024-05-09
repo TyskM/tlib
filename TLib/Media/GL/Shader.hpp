@@ -18,38 +18,62 @@ class Shader : NonCopyable
     GLuint glHandle = 0;
     mutable std::unordered_map<String, int> _uniformCache;
 
-    bool setup(const char* vertData, const char* fragData)
+    void cleanup(Vector<GLuint>& shaders, GLuint program)
     {
+        for (auto& shader : shaders)
+        {
+            if (shader) { glDeleteShader(shader); }
+        }
+        if (program)
+        { glDeleteProgram(program); }
+        GL_CHECK_NOABORT((void)0);
+    }
+
+    bool setup(const char* vertData, const char* fragData, const char* geomData = nullptr)
+    {
+        Vector<GLuint> shaders;
+        GLuint tmpHandle = glCreateProgram();
+
+        {
+            GLuint& vertShader = shaders.emplace_back();
+            vertShader = glCreateShader(GL_VERTEX_SHADER);
+            glShaderSource (vertShader, 1, &vertData, NULL);
+            glCompileShader(vertShader);
+            if (!verifyShaderCompilation(vertShader))
+            { cleanup(shaders, tmpHandle); return false; }
+            glAttachShader(tmpHandle, vertShader);
+        }
+
+        {
+            GLuint& fragShader = shaders.emplace_back();
+            fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+            glShaderSource (fragShader, 1, &fragData, NULL);
+            glCompileShader(fragShader);
+            if (!verifyShaderCompilation(fragShader))
+            { cleanup(shaders, tmpHandle); return false; }
+            glAttachShader(tmpHandle, fragShader);
+        }
+
+        if (geomData)
+        {
+            GLuint& geomShader = shaders.emplace_back();
+            geomShader = glCreateShader(GL_GEOMETRY_SHADER);
+            glShaderSource(geomShader, 1, &geomData, NULL);
+            glCompileShader(geomShader);
+            if (!verifyShaderCompilation(geomShader))
+            { cleanup(shaders, tmpHandle); return false; }
+            glAttachShader(tmpHandle, geomShader);
+        }
+
+        glLinkProgram (tmpHandle);
+        if (!verifyProgamLinkage(tmpHandle))
+        { cleanup(shaders, tmpHandle); return false; }
+
+        cleanup(shaders, 0);
         reset();
-        GLuint vertShader = glCreateShader(GL_VERTEX_SHADER);
-        GLuint fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-
-        glShaderSource(vertShader, 1, &vertData, NULL);
-        glShaderSource(fragShader, 1, &fragData, NULL);
-
-        glCompileShader(vertShader);
-        glCompileShader(fragShader);
-
-        if (!verifyShaderCompilation(vertShader) ||
-            !verifyShaderCompilation(fragShader))
-        { goto failed; }
-
-        glHandle = glCreateProgram();
-        glAttachShader(glHandle, vertShader);
-        glAttachShader(glHandle, fragShader);
-        glLinkProgram(glHandle);
-        if (!verifyProgamLinkage(glHandle)) { goto failed; };
-
-        glDeleteShader(vertShader);
-        glDeleteShader(fragShader);
+        glHandle = tmpHandle;
 
         return true;
-
-    failed:
-        glDeleteShader(vertShader);
-        glDeleteShader(fragShader);
-        GL_CHECK_NOABORT((void)0);
-        return false;
     }
 
     void showFailedToFindUniformError(const String& uniName) const
@@ -86,19 +110,16 @@ public:
         }
     }
 
-    bool create(const char* vertData, const char* fragData)
+    bool create(const char* vertData, const char* fragData, const char* geomData = nullptr)
     {
-        Shader newShader;
-        bool success = newShader.setup(vertData, fragData);
-        if (success)
-        { *this = std::move(newShader); }
-        return success;
-        // I don't want the new shaders to replace the current one
-        // unless it is CERTAIN that the new ones work.
+        return setup(vertData, fragData);
     }
 
     bool create(const String& vert, const String& frag)
     { return create(vert.c_str(), frag.c_str()); }
+
+    bool create(const String& vert, const String& frag, const String& geom)
+    { return create(vert.c_str(), frag.c_str(), geom.c_str()); }
 
     bool created() const
     { return glHandle != 0; }

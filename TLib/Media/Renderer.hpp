@@ -4,7 +4,7 @@
 #include <TLib/Media/GL/Shader.hpp>
 #include <TLib/Media/GL/FrameBuffer.hpp>
 #include <TLib/Media/Resource/Texture.hpp>
-#include <TLib/Media/Resource/Mesh.hpp>
+#include <TLib/Media/Resource/GPUVertexData.hpp>
 #include <TLib/Media/Logging.hpp>
 #include <TLib/Macros.hpp>
 #include <TLib/Containers/Span.hpp>
