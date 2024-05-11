@@ -32,6 +32,7 @@ private:
     FrameBufferAttachmentType currentType = FrameBufferAttachmentType::Null;
 
 public:
+    // TODO: auto reset binding to prev state, for now this unbinds if bound.
     void setTexture(Texture& texture, FrameBufferAttachmentType type = FrameBufferAttachmentType::Color0)
     {
         if (!created()) { create(); }
@@ -56,7 +57,10 @@ public:
     { return created() && texturePtr != nullptr; }
 
     void create()
-    { GL_CHECK(glGenFramebuffers(1, &glHandle)); }
+    {
+        if (created()) { return; }
+        GL_CHECK(glGenFramebuffers(1, &glHandle));
+    }
 
     void reset()
     { if (created()) glDeleteFramebuffers(1, &glHandle); }

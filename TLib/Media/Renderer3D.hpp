@@ -61,22 +61,6 @@ public:
         ColorRGBAf color;
     };
 
-    static constexpr GLuint restartIndex = std::numeric_limits<GLuint>::max();
-
-    static inline Vector<PrimVertex> primitiveVerts;
-    static inline Vector<uint32_t>   primitiveIndices;
-    static inline GPUVertexData      primitiveMesh;
-    static inline Shader             defaultPrimitiveShader;
-
-    static inline Vector<DrawCmd> cmds;
-    static inline View3D          camera;
-    static inline Shader          shader3d;
-
-    static inline FrameBuffer shadowFbo;
-    static inline Texture     shadowTex;
-    static inline uint32_t    shadowSize = 1024*4;
-    static inline Shader      shadowShader;
-
     struct DirectionalLight
     {
         Vector3f  dir;
@@ -100,6 +84,26 @@ public:
         float     outerCosAngle = 0.2f;
         float     power         = 1.f;
     };
+
+    static constexpr GLuint restartIndex = std::numeric_limits<GLuint>::max();
+
+    static inline Vector<PrimVertex> primitiveVerts;
+    static inline Vector<uint32_t>   primitiveIndices;
+    static inline GPUVertexData      primitiveMesh;
+    static inline Shader             defaultPrimitiveShader;
+
+    static inline Vector<DrawCmd> cmds;
+    static inline View3D          camera;
+    static inline Shader          shader3d;
+
+    static inline FrameBuffer shadowFbo;
+    static inline Texture     shadowTex;
+    static inline uint32_t    shadowSize = 1024*4;
+    static inline Shader      shadowShader;
+
+    static inline FrameBuffer           csmFbo;
+    static inline Vector<UPtr<Texture>> csmTextures;
+    static inline Shader                csmShader;
 
     static inline uint32_t                 maxDirectionalLights = 2;
     static inline Vector<DirectionalLight> directionalLights;
@@ -164,26 +168,6 @@ public:
         String string() const
         { return src; }
     };
-
-    static void setPBRShader(const String& vertsrc, const String& fragsrc)
-    {
-        GLSLSource vert(vertsrc); GLSLSource frag(fragsrc);
-        frag.inject(fmt::format("#define maxDirectionalLights {}", maxDirectionalLights));
-        frag.inject(fmt::format("#define maxPointLights       {}", maxPointLights));
-        frag.inject(fmt::format("#define maxSpotLights        {}", maxSpotLights));
-
-        frag.inject(fmt::format("#define shadowMapCascadeCount {}", shadowCascadesCount));
-        vert.inject(fmt::format("#define shadowMapCascadeCount {}", shadowCascadesCount));
-
-        if (!shader3d.create(vert.string(), frag.string()))
-        {
-            tlog::error("Failed to compile PBR shader.");
-            //tlog::error("Vertex Shader:");
-            //tlog::error('\n' + vert.string());
-            //tlog::error("Fragment Shader:");
-            //tlog::error('\n' + frag.string());
-        }
-    }
 
     static bool created()
     {
@@ -291,6 +275,26 @@ public:
         light.power         = power;
     }
 
+    static void setPBRShader(const String& vertsrc, const String& fragsrc)
+    {
+        GLSLSource vert(vertsrc); GLSLSource frag(fragsrc);
+        frag.inject(fmt::format("#define maxDirectionalLights {}", maxDirectionalLights));
+        frag.inject(fmt::format("#define maxPointLights       {}", maxPointLights));
+        frag.inject(fmt::format("#define maxSpotLights        {}", maxSpotLights));
+
+        frag.inject(fmt::format("#define shadowMapCascadeCount {}", shadowCascadesCount));
+        vert.inject(fmt::format("#define shadowMapCascadeCount {}", shadowCascadesCount));
+
+        if (!shader3d.create(vert.string(), frag.string()))
+        {
+            tlog::error("Failed to compile PBR shader.");
+            //tlog::error("Vertex Shader:");
+            //tlog::error('\n' + vert.string());
+            //tlog::error("Fragment Shader:");
+            //tlog::error('\n' + frag.string());
+        }
+    }
+
     static void render()
     {
         if (cmds.empty()) { return; }
@@ -325,6 +329,7 @@ public:
 
         uploadLights();
         renderShadows();
+        renderCSMs();
         renderMeshes();
 
         // Clear state
@@ -359,6 +364,7 @@ public:
 
         // Setup shadows
         initShadows();
+        initCSMs();
     }
 
 private:
@@ -382,6 +388,102 @@ private:
                 glCullFace(GL_FRONT_AND_BACK);
                 break;
             default: break;
+        }
+    }
+
+    static void initCSMs()
+    {
+        csmShader.create(myEmbeds["TLib/Embed/Shaders/csm.vert"]  .asString(),
+                         myEmbeds["TLib/Embed/Shaders/empty.frag"].asString());
+
+        csmFbo.create();
+
+        for (uint32_t i = 0; i < shadowCascadesCount; i++)
+        {
+            auto& tex = csmTextures.emplace_back();
+            GLint swizzle[4] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+            tex = makeUnique<Texture>();
+            tex->create();
+            tex->setData(NULL, shadowSize, shadowSize, TexPixelFormats::DEPTH_COMPONENT, TexInternalFormats::DEPTH_COMPONENT, TexPixelType::Float);
+            tex->setFilter(TextureMinFilter::Linear, TextureMagFilter::Linear);
+            tex->setUVMode(UVMode::ClampToBorder);
+            tex->setBorderColor(ColorRGBAf::white());
+            tex->setSwizzle(swizzle); // To make debugging easier on the eyes
+            tex->bind();
+            glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 8.f); // TODO: extend tex class
+            //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE));
+            //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL));
+        }
+    }
+
+    static void renderCSMs()
+    {
+        if (shadowCascadesCount < 2)
+        { return; }
+
+        const float maxDist  = camera.zfar;
+        const float minDist  = 20.f;
+        const float distDiff = maxDist - minDist;
+        const float distStep = distDiff / (shadowCascadesCount-1);
+
+        const uint32_t texStartIndex = 4;
+
+        if (maxDist < minDist) {  }
+
+        for (uint32_t i = 0; i < shadowCascadesCount; i++)
+        {
+            float zfar = minDist + i * distStep;
+
+            // Get vp
+            Mat4f lightSpaceMatrix;
+            {
+                View3D camCopy   = camera;
+                camCopy.zfar     = zfar;
+
+                Vector3f dir     = directionalLights[0].dir;
+                auto corners     = getFrustumCornersWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
+
+                Vector3f viewTarget = getFrustumCenter(corners);
+                Vector3f viewPos    = (viewTarget - dir);
+                Mat4f    lightView  = safeLookAt(viewPos, viewTarget, Vector3f::up(), Vector3f::backward());
+
+                Mat4f lightProjection  = getLightProjection(shadowFrustZMult, corners, lightView).scale(1.f, -1.f, 1.f);
+                lightSpaceMatrix = lightProjection * lightView;
+            }
+
+            auto& tex = csmTextures[i]; ASSERT(tex);
+            csmFbo.setTexture(*tex, FrameBufferAttachmentType::Depth);
+            csmFbo.bind();
+            Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)), Vector2f((float)shadowSize));
+            csmShader.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
+
+            shader3d.setMat4f(fmt::format("csmlightSpaceMatrices[{}]", i), lightSpaceMatrix);
+            shader3d.setFloat(fmt::format("csmEndClipSpace[{}]"      , i), zfar);
+
+            uint32_t texIndex = texStartIndex + i;
+            shader3d.setInt(fmt::format("csms[{}]", i), texIndex);
+            tex->bind(texIndex);
+
+            //shadowFbo.bind();
+            //shader3d.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
+
+            setCullMode(shadowFaceCullMode);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            for (auto& varCmd : cmds)
+            {
+                if (is<ModelDrawCmd>(varCmd))
+                {
+                    ModelDrawCmd& cmd = std::get<ModelDrawCmd>(varCmd);
+
+                    for (auto& mesh : cmd.model->getMeshes())
+                    {
+                        csmShader.setMat4f("model", cmd.transform.getMatrix());
+                        Renderer::draw(csmShader, *mesh.vertices);
+                    }
+                }
+            }
+
+            csmFbo.unbind();
         }
     }
 
@@ -448,7 +550,6 @@ private:
             }
 
             shadowFbo.unbind();
-            Renderer2D::setView(Renderer2D::getView());
         }
     }
 
@@ -508,6 +609,8 @@ private:
         shader3d.setInt ("material.diffuse",   0);
         shader3d.setInt ("material.roughness", 1);
         shader3d.setInt ("material.metallic",  2);
+
+        Renderer::setViewport(Recti(0, 0, Renderer::getFramebufferSize()));
 
         for (auto& varCmd : cmds)
         {

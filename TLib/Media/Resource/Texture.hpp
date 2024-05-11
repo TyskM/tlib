@@ -154,7 +154,7 @@ public:
 
     void create()
     {
-        reset();
+        if (created()) { return; }
         GL_CHECK(glGenTextures(1, &glHandle));
     }
 

@@ -171,6 +171,7 @@ add_custom_target(RunEmbedder WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR} COMMAN
 "TLib/Embed/Shaders/empty.frag"
 "TLib/Embed/Shaders/3d_primitive.vert"
 "TLib/Embed/Shaders/3d_primitive.frag"
+"TLib/Embed/Shaders/csm.vert"
 -o "TLib/Embed/Embed.hpp" --ow)
 add_dependencies(RunEmbedder CopyEmbedder)
 add_dependencies(TLib RunEmbedder)

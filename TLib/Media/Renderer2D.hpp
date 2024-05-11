@@ -63,16 +63,6 @@ public:
 
     static void setView(const View& view)
     {
-        // Projection uniform for shader is set in flushCurrent()
-
-        // TODO: Frustum is unused for now
-        //auto mat = camera.getMatrix();
-        //frustum  = Frustum(mat);
-
-        Vector2i viewportSize = Vector2i(view.viewport.width, view.viewport.height);
-        const Vector2f fbSize(Renderer::getFramebufferSize());
-
-        Renderer::setViewport(getViewportSizePixels(view, fbSize), fbSize);
         currentView = view;
     }
 
@@ -704,8 +694,15 @@ private:
     {
         if (drawCmds.empty()) { return; }
 
-        if (sort)
-        { std::sort(drawCmds.begin(), drawCmds.end()); }
+        if (sort) { std::sort(drawCmds.begin(), drawCmds.end()); }
+
+        // Projection uniform for shader is set in flushCurrent()
+        // TODO: Frustum is unused for now
+        //auto mat = camera.getMatrix();
+        //frustum  = Frustum(mat);
+        Vector2i viewportSize = Vector2i(currentView.viewport.width, currentView.viewport.height);
+        const Vector2f fbSize(Renderer::getFramebufferSize());
+        Renderer::setViewport(getViewportSizePixels(currentView, fbSize), fbSize);
 
         Texture*   lastTexture  = drawCmds[0].texture;
         Shader*    lastShader   = drawCmds[0].shader;

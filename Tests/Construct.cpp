@@ -438,6 +438,15 @@ void update(float delta)
         { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }, textEditFlags); }
         if (ImGui::CollapsingHeader("Shadow Map", headerFlags))
         { ImGui::Image(R3D::shadowTex, Vector2f(128.f, 128.f) * 4.f); }
+
+        if (ImGui::CollapsingHeader("CSMs", headerFlags))
+        {
+            for (auto& map : R3D::csmTextures)
+            {
+                ImGui::Image(*map, Vector2f(128.f, 128.f) * 4.f);
+            }
+        }
+
         ImGui::Dummy(dummySize);
         ImGui::Unindent();
     }

@@ -13,6 +13,11 @@ out vec3 vertWorldPos;
 out vec3 vertNormal;
 out vec2 vertTexCoords;
 out vec4 vertFragPosLightSpace;
+out vec3 vertClipPos;
+
+// Inject //! #define shadowMapCascadeCount 3
+uniform mat4 csmlightSpaceMatrices[shadowMapCascadeCount];
+out vec4     csmLightClipPos[shadowMapCascadeCount];
 
 void main()
 {
@@ -22,4 +27,11 @@ void main()
     vertTexCoords         = texCoords;
     vertFragPosLightSpace = lightSpaceMatrix * vec4(vertWorldPos, 1.0);
     gl_Position = projection * view * vec4(vertWorldPos, 1.0);
+    vertClipPos = gl_Position.xyz;
+
+    for (int i = 0; i < shadowMapCascadeCount; i++)
+    {
+        csmLightClipPos[i] =
+        csmlightSpaceMatrices[i] * vec4(vertWorldPos, 1.0);
+    }
 }

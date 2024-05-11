@@ -1,26 +1,6 @@
 #version 330 core
 #define PI 3.1415926535897932384626433832795
 
-out vec4 fragColor;
-
-in vec3 vertLocalPos;
-in vec3 vertWorldPos;
-in vec3 vertNormal;
-in vec2 vertTexCoords;
-in vec4 vertFragPosLightSpace;
-
-uniform vec3  cameraPos;
-uniform float ambientStrength = 0.1;
-uniform float viewDistance    = 50;
-
-uniform bool  shadowsEnabled = true;
-uniform int   pcfSteps       = 2;
-uniform float minShadowBias  = 0.1;
-uniform float maxShadowBias  = 2.0;
-
-uniform bool fogEnabled = false;
-uniform vec3 fogColor   = vec3(1, 1, 1);
-
 struct Material
 {
     sampler2D diffuse;
@@ -76,8 +56,34 @@ uniform PointLight       pointLights[maxPointLights];
 uniform int              spotLightCount;
 uniform SpotLight        spotLights[maxSpotLights];
 
+out vec4 fragColor;
+
+in vec3 vertLocalPos;
+in vec3 vertWorldPos;
+in vec3 vertNormal;
+in vec2 vertTexCoords;
+in vec4 vertFragPosLightSpace;
+in vec3 vertClipPos;
+
+uniform vec3  cameraPos;
+uniform float ambientStrength = 0.1;
+uniform float viewDistance    = 50;
+
+uniform bool fogEnabled = false;
+uniform vec3 fogColor   = vec3(1, 1, 1);
+
 uniform Material material;
-uniform sampler2D shadowMap;
+
+// Inject //! #define shadowMapCascadeCount 3
+uniform sampler2D csms            [shadowMapCascadeCount];
+uniform float     csmEndClipSpace [shadowMapCascadeCount];
+in vec4           csmLightClipPos [shadowMapCascadeCount];
+
+uniform sampler2D    _shadowMap;
+uniform bool         shadowsEnabled = true;
+uniform int          pcfSteps       = 2;
+uniform float        minShadowBias  = 0.1;
+uniform float        maxShadowBias  = 2.0;
 
 float getFogFactor(float dist, float nearPlane, float farPlane)
 {
@@ -116,7 +122,7 @@ float geomSmith(float dp)
     return dp / denom;
 }
 
-float calcShadow(vec4 lightSpace, vec3 lightDir, vec3 normal)
+float calcShadow(sampler2D shadowMap, vec4 lightSpace, vec3 lightDir, vec3 normal)
 {
     vec3 projCoords = lightSpace.xyz / lightSpace.w; // perform perspective divide
     projCoords = projCoords * 0.5 + 0.5; // transform to [0,1] range
@@ -142,6 +148,24 @@ float calcShadow(vec4 lightSpace, vec3 lightDir, vec3 normal)
     shadow /= s*s;
 
     return shadow;
+}
+
+float calcCSMShadowFactor(int cascadeIndex, vec4 lightClipPos, vec3 lightDir, vec3 normal)
+{
+    return calcShadow(csms[cascadeIndex], lightClipPos, lightDir, normal);
+    //vec3 ProjCoords = lightClipPos.xyz / lightClipPos.w;
+    //
+    //vec2 UVCoords;
+    //UVCoords.x = 0.5 * ProjCoords.x + 0.5;
+    //UVCoords.y = 0.5 * ProjCoords.y + 0.5;
+    //
+    //float z = 0.5 * ProjCoords.z + 0.5;
+    //float Depth = texture(csms[cascadeIndex], UVCoords).x;
+    //
+    //if (Depth < z + 0.00001)
+    //    return 0.5;
+    //else
+    //    return 1.0;
 }
 
 vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
@@ -201,8 +225,23 @@ vec3 calcPBRDirectionalLight(DirectionalLight light, vec3 normal)
 
     if (shadowsEnabled)
     {
-        float shadow = calcShadow(vertFragPosLightSpace, light.dir, normal);
-        ret *= (1.0 - shadow);
+        float shadow = 0.0;
+
+        for (int i = 0 ; i < shadowMapCascadeCount; i++)
+        {
+            if (vertClipPos.z <= csmEndClipSpace[i])
+            {
+                shadow = calcCSMShadowFactor(i, csmLightClipPos[i], light.dir, normal);
+                // Debug
+                //if      (i == 0) { ret = mix(ret, vec3(1,0,0), 0.5); }
+                //else if (i == 1) { ret = mix(ret, vec3(0,1,0), 0.5); }
+                //else if (i == 2) { ret = mix(ret, vec3(0,0,1), 0.5); }
+                break;
+            }
+        }
+
+        //float shadow = calcShadow(vertFragPosLightSpace, light.dir, normal);
+        //ret *= (1.0 - shadow);
     }
 
     return ret;
