@@ -38,7 +38,21 @@ public:
 
     static inline Vector<float> cascadeBreakpoints { 20.f, 60.f, 200.f };
 
-    using Frustum = Vector<Vector4f>;
+    struct Frustum
+    {
+        Array<Vector4f, 8> corners;
+
+        constexpr uint32_t size() const { return corners.size(); }
+
+        Vector4f nearBottomLeft () const { return corners[0]; }
+        Vector4f nearTopLeft    () const { return corners[2]; }
+        Vector4f nearTopRight   () const { return corners[6]; }
+        Vector4f nearBottomRight() const { return corners[4]; }
+        Vector4f farBottomLeft  () const { return corners[1]; }
+        Vector4f farTopLeft     () const { return corners[3]; }
+        Vector4f farTopRight    () const { return corners[7]; }
+        Vector4f farBottomRight () const { return corners[5]; }
+    };
 
     struct ModelDrawCmd
     {
@@ -140,8 +154,9 @@ public:
     {
         const auto inv = (proj * view).inverse();
 
-        Vector<Vector4f> frustumCorners;
+        Frustum frustum;
 
+        int i = 0;
         for (unsigned int x = 0; x < 2; ++x) {
         for (unsigned int y = 0; y < 2; ++y) {
         for (unsigned int z = 0; z < 2; ++z)
@@ -150,10 +165,11 @@ public:
                 inv * Vector4f(2.0f * x - 1.0f,
                                2.0f * y - 1.0f,
                                2.0f * z - 1.0f, 1.0f);
-            frustumCorners.push_back((pt / pt.w));
+            frustum.corners[i] = pt / pt.w;
+            ++i;
         }}}
 
-        return frustumCorners;
+        return frustum;
     }
 
     struct GLSLSource
@@ -434,6 +450,9 @@ private:
         return cascadeBreakpoints.size() + 1;
     }
 
+    static float snap(float f, float multiple)
+    { return round(f/multiple)*multiple; }
+
     static void renderCSMs()
     {
         _prevShadowCascadesCount = _shadowCascadesCount;
@@ -463,19 +482,35 @@ private:
             // Get vp
             Mat4f lightSpaceMatrix;
             {
-                View3D camCopy   = camera;
-                camCopy.zfar     = std::min(zfar  + overlap, camera.zfar);
-                camCopy.znear    = std::max(znear - overlap, camera.znear);
 
-                Vector3f dir     = directionalLights[0].dir;
-                Frustum frustum  = getFrustumCornersWorldSpace(
-                    camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
 
-                Vector3f frustCenter = getFrustumCenter(frustum);
-                Mat4f    lightView   = safeLookAt(frustCenter-dir, frustCenter, Vector3f::up(), Vector3f::backward());
+                View3D   camCopy         = camera;
+                camCopy.zfar             = std::min(zfar  + overlap, camera.zfar);
+                camCopy.znear            = std::max(znear - overlap, camera.znear);
+                Vector3f dir             = directionalLights[0].dir;
+                Frustum  frustum         = getFrustumCornersWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
+                Vector3f frustCenter     = getFrustumCenter(frustum);
                 
-                Mat4f lightProjection  = getLightProjection(shadowFrustZMult, frustum, lightView);
-                lightSpaceMatrix = lightProjection * lightView;
+                // https://alextardif.com/shadowmapping.html
+                float    frustRadius     = Vector3f(frustum.farTopRight() - frustum.nearBottomLeft()).length() / 2.f;
+                float    texelsPerUnit   = shadowSize / (frustRadius * 2.f);
+                Mat4f    scalar          = Mat4f(1.f).scale(texelsPerUnit, texelsPerUnit, texelsPerUnit);
+                Mat4f    baseLookAt      = safeLookAt(Vector3f(), dir, Vector3f::up(), Vector3f::backward());
+                Mat4f    lookAt          = baseLookAt * scalar;
+                Mat4f    lookAtInv       = lookAt.inverse();
+                frustCenter              = frustCenter * lookAt;
+                frustCenter              = frustCenter.floored();
+                frustCenter              = frustCenter * lookAtInv;
+                Vector3f eye             = frustCenter + (dir * frustRadius * 2.f);
+                Mat4f    lightView       = safeLookAt(frustCenter, eye, Vector3f::up(), Vector3f::backward());
+                Mat4f    lightProjection =
+                    glm::ortho(-frustRadius, frustRadius,
+                               -frustRadius, frustRadius,
+                               -frustRadius * shadowFrustZMult, frustRadius * shadowFrustZMult);
+
+                //Mat4f lightView       = safeLookAt(frustCenter-dir, frustCenter, Vector3f::up(), Vector3f::backward());
+                //Mat4f lightProjection = getLightProjection(shadowFrustZMult, frustum, lightView);
+                lightSpaceMatrix      = lightProjection * lightView;
             }
 
             auto& tex = csmTextures[i]; ASSERT(tex);
@@ -577,7 +612,7 @@ private:
         }
     }
 
-    static Mat4f getLightProjection(float zmult, const Vector<Vector4f>& corners, const Mat4f& lightView)
+    static Mat4f getLightProjection(float zmult, const Frustum& frustum, const Mat4f& lightView)
     {
         float minX = std::numeric_limits<float>::max();
         float maxX = std::numeric_limits<float>::lowest();
@@ -585,7 +620,11 @@ private:
         float maxY = std::numeric_limits<float>::lowest();
         float minZ = std::numeric_limits<float>::max();
         float maxZ = std::numeric_limits<float>::lowest();
-        for (const auto& v : corners)
+
+        const float texelScale    = 2.0f / shadowSize;
+        const float invTexelScale = 1.0f / texelScale;
+
+        for (const auto& v : frustum.corners)
         {
             const auto trf = lightView * v;
             minX = std::min(minX, trf.x);
@@ -604,12 +643,12 @@ private:
         return glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
     }
 
-    static Vector3f getFrustumCenter(const Vector<Vector4f>& corners)
+    static Vector3f getFrustumCenter(const Frustum& frustum)
     {
         Vector3f center;
-        for (const auto& v : corners)
+        for (const auto& v : frustum.corners)
         { center += Vector3f(v); }
-        center /= (float)corners.size();
+        center /= (float)frustum.size();
         return center;
     }
 

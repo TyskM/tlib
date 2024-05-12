@@ -229,6 +229,7 @@ float      spotAngle  = 10.f;
 float      spotOuterAngle = 30.f;
 
 R3D::Frustum frustum;
+bool frustumSet = false;
 
 float totalTime = 0.f;
 
@@ -464,6 +465,7 @@ void update(float delta)
         if (ImGui::Button("Snapshot Frustum"))
         {
             frustum = R3D::getCurrentCameraFrustum();
+            frustumSet = true;
         }
 
         int textEditFlags = ImGuiInputTextFlags_AllowTabInput;
@@ -513,18 +515,18 @@ void draw(float delta)
     Vector3f soffset = Vector3f::up() * 4.f + Vector3f::right() * 4;
     R3D::drawLines(std::initializer_list{ soffset, soffset + sunDir*2.f }, sunColor, GLDrawMode::Lines);
 
-    if (!frustum.empty())
+    if (frustumSet)
     {
         Vector<Vector3f> frustLines(24);
 
-        Vector3f nearBottomLeft  (frustum[0]);
-        Vector3f nearTopLeft     (frustum[2]);
-        Vector3f nearTopRight    (frustum[6]);
-        Vector3f nearBottomRight (frustum[4]);
-        Vector3f farBottomLeft   (frustum[1]);
-        Vector3f farTopLeft      (frustum[3]);
-        Vector3f farTopRight     (frustum[7]);
-        Vector3f farBottomRight  (frustum[5]);
+        Vector3f nearBottomLeft  (frustum.corners[0]);
+        Vector3f nearTopLeft     (frustum.corners[2]);
+        Vector3f nearTopRight    (frustum.corners[6]);
+        Vector3f nearBottomRight (frustum.corners[4]);
+        Vector3f farBottomLeft   (frustum.corners[1]);
+        Vector3f farTopLeft      (frustum.corners[3]);
+        Vector3f farTopRight     (frustum.corners[7]);
+        Vector3f farBottomRight  (frustum.corners[5]);
 
         frustLines.push_back(nearBottomLeft);
         frustLines.push_back( farBottomLeft);

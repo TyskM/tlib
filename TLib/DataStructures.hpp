@@ -854,6 +854,9 @@ Mat4f    operator*=(const Mat4f& a, const Mat4f& b)   { return a.toGlm() * b.toG
 Vector3f operator* (const Vector3f& v, const Quat& q) { return Vector3f(v.toGlm() * q.toGlm()); }
 Vector3f operator*=(const Vector3f& v, const Quat& q) { return Vector3f(v.toGlm() * q.toGlm()); }
 
+Vector3f operator* (const Vector3f& v, const Mat4f& m) { return Vector3f(glm::vec4(v.x, v.y, v.z, 1.f) * m.toGlm()); }
+Vector3f operator*=(const Vector3f& v, const Mat4f& m) { return Vector3f(glm::vec4(v.x, v.y, v.z, 1.f) * m.toGlm()); }
+
 Vector4f operator* (const Vector4f& v, const Mat4f& m) { return v.toGlm() * m.toGlm(); }
 Vector4f operator*=(const Vector4f& v, const Mat4f& m) { return v.toGlm() * m.toGlm(); }
 Vector4f operator* (const Mat4f& m, const Vector4f& v) { return m.toGlm() * v.toGlm(); }
