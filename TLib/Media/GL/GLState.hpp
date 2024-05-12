@@ -1,6 +1,5 @@
 #pragma once
-
-#include <vector>
+#include <TLib/Containers/Vector.hpp>
 
 struct Shader;
 struct Texture;
@@ -13,7 +12,7 @@ struct FrameBuffer;
 
 struct GLState
 {
-    std::vector<Texture*> boundTextures      = {0, 0, 0, 0, 0, 0, 0, 0};
+    Vector<Texture*>      boundTextures      { 64, nullptr };
     Shader*               boundShader        = nullptr;
     VertexArray*          boundVertexArray   = nullptr;
     VertexBuffer*         boundVertexBuffer  = nullptr;

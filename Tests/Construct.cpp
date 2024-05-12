@@ -13,6 +13,36 @@
 #include <TLib/Media/Renderer3D.hpp>
 #include <TLib/ECS/Scene.hpp>
 
+void imGuiVectorFloatEdit(const String& label, Vector<float>& v,
+    float vmin, float vmax, const char* format = "%.3f", ImGuiSliderFlags flags = 0)
+{
+    ImGui::BeginGroup();
+
+    ImGui::SeparatorText(label.c_str());
+    ImGui::Indent();
+    float itemWidth = ImGui::GetWindowSize().x / 2.5f;
+    ImGui::PushItemWidth(itemWidth);
+
+    size_t i = 0;
+    if (ImGui::Button("+##prepend"))
+    { v.insert(v.begin(), 0); }
+    for (auto& value : v)
+    {
+        if (ImGui::Button(String("-##" + std::to_string(i)).c_str()))
+        { v.erase(v.begin() + i + 1); }
+        ImGui::SameLine();
+        ImGui::SliderFloat(std::to_string(i).c_str(), &value, vmin, vmax, format, flags);
+        ImGui::SameLine();
+        if (ImGui::Button (String("+##" + std::to_string(i)).c_str()))
+        { v.insert(v.begin() + i + 1, 0); }
+        ++i;
+    }
+
+    ImGui::PopItemWidth();
+    ImGui::Unindent();
+    ImGui::EndGroup();
+}
+
 using R3D = Renderer3D;
 
 struct ModelInstance
@@ -197,6 +227,8 @@ float      sunPower   = 1.f;
 float      spotPower  = 200.f;
 float      spotAngle  = 10.f;
 float      spotOuterAngle = 30.f;
+
+R3D::Frustum frustum;
 
 float totalTime = 0.f;
 
@@ -419,6 +451,7 @@ void update(float delta)
             ImGui::SliderInt  ("PCF Steps", &R3D::shadowPcfSteps, 0, 6);
             ImGui::SliderFloat("Min Bias",  &R3D::minShadowBias, 0, 2.f);
             ImGui::SliderFloat("Max Bias",  &R3D::maxShadowBias, 0, 2.f);
+            imGuiVectorFloatEdit("CSM Breakpoints", R3D::cascadeBreakpoints, 0.1f, R3D::camera.zfar);
             ImGui::Dummy(dummySize);
             ImGui::Unindent();
         }
@@ -427,6 +460,11 @@ void update(float delta)
 
         auto ret = imguiEnumCombo("Face Cull Mode", R3D::faceCullMode);
         if (ret.first) { R3D::faceCullMode = ret.second; }
+
+        if (ImGui::Button("Snapshot Frustum"))
+        {
+            frustum = R3D::getCurrentCameraFrustum();
+        }
 
         int textEditFlags = ImGuiInputTextFlags_AllowTabInput;
 
@@ -474,6 +512,49 @@ void draw(float delta)
 
     Vector3f soffset = Vector3f::up() * 4.f + Vector3f::right() * 4;
     R3D::drawLines(std::initializer_list{ soffset, soffset + sunDir*2.f }, sunColor, GLDrawMode::Lines);
+
+    if (!frustum.empty())
+    {
+        Vector<Vector3f> frustLines(24);
+
+        Vector3f nearBottomLeft  (frustum[0]);
+        Vector3f nearTopLeft     (frustum[2]);
+        Vector3f nearTopRight    (frustum[6]);
+        Vector3f nearBottomRight (frustum[4]);
+        Vector3f farBottomLeft   (frustum[1]);
+        Vector3f farTopLeft      (frustum[3]);
+        Vector3f farTopRight     (frustum[7]);
+        Vector3f farBottomRight  (frustum[5]);
+
+        frustLines.push_back(nearBottomLeft);
+        frustLines.push_back( farBottomLeft);
+        frustLines.push_back(nearTopLeft);
+        frustLines.push_back( farTopLeft);
+        frustLines.push_back(nearTopRight);
+        frustLines.push_back( farTopRight);
+        frustLines.push_back(nearBottomRight);
+        frustLines.push_back(farBottomRight);
+
+        frustLines.push_back(farBottomLeft);
+        frustLines.push_back(farBottomRight);
+        frustLines.push_back(farBottomRight);
+        frustLines.push_back(farTopRight);
+        frustLines.push_back(farTopRight);
+        frustLines.push_back(farTopLeft);
+        frustLines.push_back(farTopLeft);
+        frustLines.push_back(farBottomLeft);
+
+        frustLines.push_back(nearBottomLeft);
+        frustLines.push_back(nearBottomRight);
+        frustLines.push_back(nearBottomRight);
+        frustLines.push_back(nearTopRight);
+        frustLines.push_back(nearTopRight);
+        frustLines.push_back(nearTopLeft);
+        frustLines.push_back(nearTopLeft);
+        frustLines.push_back(nearBottomLeft);
+
+        R3D::drawLines(frustLines, ColorRGBAf::white(), GLDrawMode::Lines);
+    }
 
     for (auto& modelInst : models)
     {

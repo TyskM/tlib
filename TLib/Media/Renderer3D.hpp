@@ -36,7 +36,9 @@ public:
     static inline ColorRGBAf   skyColor             = ColorRGBAf(0.1f, 0.1f, 0.1f);
     static inline float        ambientLightStrength = 0.1f;
 
-    static inline const uint32_t shadowCascadesCount = 3;
+    static inline Vector<float> cascadeBreakpoints { 20.f, 60.f, 200.f };
+
+    using Frustum = Vector<Vector4f>;
 
     struct ModelDrawCmd
     {
@@ -129,11 +131,17 @@ public:
         Renderer::drawIndices(shader, indices, rs);
     }
 
-    static Vector<Vector4f> getFrustumCornersWorldSpace(const Mat4f& proj, const Mat4f& view)
+    static Frustum getCurrentCameraFrustum()
+    {
+        return getFrustumCornersWorldSpace(camera.getPerspectiveMatrix(), camera.getViewMatrix());
+    }
+
+    static Frustum getFrustumCornersWorldSpace(const Mat4f& proj, const Mat4f& view)
     {
         const auto inv = (proj * view).inverse();
 
         Vector<Vector4f> frustumCorners;
+
         for (unsigned int x = 0; x < 2; ++x) {
         for (unsigned int y = 0; y < 2; ++y) {
         for (unsigned int z = 0; z < 2; ++z)
@@ -282,8 +290,8 @@ public:
         frag.inject(fmt::format("#define maxPointLights       {}", maxPointLights));
         frag.inject(fmt::format("#define maxSpotLights        {}", maxSpotLights));
 
-        frag.inject(fmt::format("#define shadowMapCascadeCount {}", shadowCascadesCount));
-        vert.inject(fmt::format("#define shadowMapCascadeCount {}", shadowCascadesCount));
+        frag.inject(fmt::format("#define shadowMapCascadeCount {}", getCascadeCount()));
+        vert.inject(fmt::format("#define shadowMapCascadeCount {}", getCascadeCount()));
 
         if (!shader3d.create(vert.string(), frag.string()))
         {
@@ -397,8 +405,9 @@ private:
                          myEmbeds["TLib/Embed/Shaders/empty.frag"].asString());
 
         csmFbo.create();
+        csmTextures.clear();
 
-        for (uint32_t i = 0; i < shadowCascadesCount; i++)
+        for (uint32_t i = 0; i < getCascadeCount(); i++)
         {
             auto& tex = csmTextures.emplace_back();
             GLint swizzle[4] = { GL_RED, GL_RED, GL_RED, GL_ONE };
@@ -416,38 +425,56 @@ private:
         }
     }
 
+    // use getCascadeCount() to see the cascadeCount
+    static inline uint32_t _prevShadowCascadesCount = 0; // Do not use
+    static inline uint32_t _shadowCascadesCount     = 0; // Do not use
+
+    static uint32_t getCascadeCount()
+    {
+        return cascadeBreakpoints.size() + 1;
+    }
+
     static void renderCSMs()
     {
-        if (shadowCascadesCount < 2)
+        _prevShadowCascadesCount = _shadowCascadesCount;
+        _shadowCascadesCount = cascadeBreakpoints.size();
+
+        if (_prevShadowCascadesCount != _shadowCascadesCount)
+        { create(); }
+
+        if (getCascadeCount() < 2)
         { return; }
 
-        const float maxDist  = camera.zfar;
-        const float minDist  = 20.f;
-        const float distDiff = maxDist - minDist;
-        const float distStep = distDiff / (shadowCascadesCount-1);
-
         const uint32_t texStartIndex = 4;
+        const float    overlap = 1.f;
 
-        if (maxDist < minDist) {  }
+        auto bpCopy = cascadeBreakpoints;
+        Vector<float> realCascadeBreakpoints = { 0.f, FLT_MAX };
+        realCascadeBreakpoints.insert(realCascadeBreakpoints.begin() + 1, cascadeBreakpoints.begin(), cascadeBreakpoints.end());
 
-        for (uint32_t i = 0; i < shadowCascadesCount; i++)
+        for (uint32_t i = 0; i < getCascadeCount(); i++)
         {
-            float zfar = minDist + i * distStep;
+            //float zfar = minDist + i * distStep;
+
+            int   distIndex = i+1;
+            float zfar  = realCascadeBreakpoints[distIndex];
+            float znear = realCascadeBreakpoints[distIndex-1];
 
             // Get vp
             Mat4f lightSpaceMatrix;
             {
                 View3D camCopy   = camera;
-                camCopy.zfar     = zfar;
+                camCopy.zfar     = std::min(zfar  + overlap, camera.zfar);
+                camCopy.znear    = std::max(znear - overlap, camera.znear);
 
                 Vector3f dir     = directionalLights[0].dir;
-                auto corners     = getFrustumCornersWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
+                Frustum frustum  = getFrustumCornersWorldSpace(
+                    camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
 
-                Vector3f viewTarget = getFrustumCenter(corners);
-                Vector3f viewPos    = (viewTarget - dir);
-                Mat4f    lightView  = safeLookAt(viewPos, viewTarget, Vector3f::up(), Vector3f::backward());
-
-                Mat4f lightProjection  = getLightProjection(shadowFrustZMult, corners, lightView).scale(1.f, -1.f, 1.f);
+                Vector3f frustCenter = getFrustumCenter(frustum);
+                Mat4f    lightView   = safeLookAt(frustCenter-dir, frustCenter, Vector3f::up(), Vector3f::backward());
+                
+                Mat4f lightProjection  = getLightProjection(shadowFrustZMult, frustum, lightView);
                 lightSpaceMatrix = lightProjection * lightView;
             }
 
@@ -463,9 +490,6 @@ private:
             uint32_t texIndex = texStartIndex + i;
             shader3d.setInt(fmt::format("csms[{}]", i), texIndex);
             tex->bind(texIndex);
-
-            //shadowFbo.bind();
-            //shader3d.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
 
             setCullMode(shadowFaceCullMode);
             glClear(GL_DEPTH_BUFFER_BIT);

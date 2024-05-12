@@ -58,7 +58,7 @@ public:
 
     void create()
     {
-        if (created()) { return; }
+        reset();
         GL_CHECK(glGenFramebuffers(1, &glHandle));
     }
 

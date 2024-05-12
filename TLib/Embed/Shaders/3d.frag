@@ -153,19 +153,6 @@ float calcShadow(sampler2D shadowMap, vec4 lightSpace, vec3 lightDir, vec3 norma
 float calcCSMShadowFactor(int cascadeIndex, vec4 lightClipPos, vec3 lightDir, vec3 normal)
 {
     return calcShadow(csms[cascadeIndex], lightClipPos, lightDir, normal);
-    //vec3 ProjCoords = lightClipPos.xyz / lightClipPos.w;
-    //
-    //vec2 UVCoords;
-    //UVCoords.x = 0.5 * ProjCoords.x + 0.5;
-    //UVCoords.y = 0.5 * ProjCoords.y + 0.5;
-    //
-    //float z = 0.5 * ProjCoords.z + 0.5;
-    //float Depth = texture(csms[cascadeIndex], UVCoords).x;
-    //
-    //if (Depth < z + 0.00001)
-    //    return 0.5;
-    //else
-    //    return 1.0;
 }
 
 vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
@@ -219,6 +206,18 @@ vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
     return finalColor;
 }
 
+const vec3 cascadeDebugColors[9] = vec3[](
+    vec3(1,0,0),
+    vec3(1,1,0),
+    vec3(1,0,1),
+    vec3(0,1,0),
+    vec3(1,1,0),
+    vec3(0,1,1),
+    vec3(0,0,1),
+    vec3(0,1,1),
+    vec3(1,0,1)
+);
+
 vec3 calcPBRDirectionalLight(DirectionalLight light, vec3 normal)
 {
     vec3 ret = calcPBRLighting(light.light, light.dir, true, normal);
@@ -233,15 +232,13 @@ vec3 calcPBRDirectionalLight(DirectionalLight light, vec3 normal)
             {
                 shadow = calcCSMShadowFactor(i, csmLightClipPos[i], light.dir, normal);
                 // Debug
-                //if      (i == 0) { ret = mix(ret, vec3(1,0,0), 0.5); }
-                //else if (i == 1) { ret = mix(ret, vec3(0,1,0), 0.5); }
-                //else if (i == 2) { ret = mix(ret, vec3(0,0,1), 0.5); }
+                ret = mix(ret, cascadeDebugColors[i], 0.03);
                 break;
             }
         }
 
         //float shadow = calcShadow(vertFragPosLightSpace, light.dir, normal);
-        //ret *= (1.0 - shadow);
+        ret *= (1.0 - shadow);
     }
 
     return ret;
