@@ -66,8 +66,11 @@ in vec4 vertFragPosLightSpace;
 in vec3 vertClipPos;
 
 uniform vec3  cameraPos;
-uniform float ambientStrength = 0.1;
 uniform float viewDistance    = 50;
+
+uniform float ambientStrength    = 0.1;
+uniform vec3  ambientColor       = vec3(1, 1, 1);
+uniform float ambientColorFactor = 0.0;
 
 uniform bool fogEnabled = false;
 uniform vec3 fogColor   = vec3(1, 1, 1);
@@ -122,6 +125,33 @@ float geomSmith(float dp)
     return dp / denom;
 }
 
+vec2 poissonDisk[18] = vec2[](
+vec2(-0.220147, 0.976896),
+vec2(-0.735514, 0.693436),
+vec2(-0.200476, 0.310353),
+vec2( 0.180822, 0.454146),
+vec2( 0.292754, 0.937414),
+vec2( 0.564255, 0.207879),
+vec2( 0.178031, 0.024583),
+vec2( 0.613912,-0.205936),
+vec2(-0.385540,-0.070092),
+vec2( 0.962838, 0.378319),
+vec2(-0.886362, 0.032122),
+vec2(-0.466531,-0.741458),
+vec2( 0.006773,-0.574796),
+vec2(-0.739828,-0.410584),
+vec2( 0.590785,-0.697557),
+vec2(-0.081436,-0.963262),
+vec2( 1.000000,-0.100160),
+vec2( 0.622430, 0.680868));
+
+
+float rand(vec4 seed4)
+{
+    float dot_product = dot(seed4, vec4(12.9898,78.233,45.164,94.673));
+    return fract(sin(dot_product) * 43758.5453);
+}
+
 float calcShadow(sampler2D shadowMap, vec4 lightSpace, vec3 lightDir, vec3 normal)
 {
     vec3 projCoords = lightSpace.xyz / lightSpace.w; // perform perspective divide
@@ -135,19 +165,37 @@ float calcShadow(sampler2D shadowMap, vec4 lightSpace, vec3 lightDir, vec3 norma
     float biasPx           = texelSize.x * biasDirInfluence; // Texels should be the same size both ways
 
     float shadow = 0.0;
+
+    // PCF
     for(int x = -pcfSteps; x <= pcfSteps; ++x)
     {
         for(int y = -pcfSteps; y <= pcfSteps; ++y)
         {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-            shadow += currentDepth - biasPx > pcfDepth ? 1.0 : 0.0;        
+            shadow += currentDepth - biasPx > pcfDepth ? 1.0 : 0.0;
         }    
     }
-
     int s = pcfSteps*2+1;
     shadow /= s*s;
 
+    // Poisson
+    float visibility   = 1.0;
+    float req = currentDepth - biasPx;
+    int poissonSteps = 4;
+    for (int i = 0; i < poissonSteps; i++)
+    {
+        int   index     = int( 16.0 * rand(vec4(gl_FragCoord.xyy, i))) % 16;
+        vec2  offset    = (poissonDisk[index] * 2) * texelSize;
+        vec2  samplePos = vec2(projCoords.xy) + offset;
+        float sample    = texture(shadowMap, samplePos).r;
+        if (sample > req)
+            visibility -= 1.0 / poissonSteps;
+    }
+
+    shadow *= visibility;
+
     return shadow;
+
 }
 
 float calcCSMShadowFactor(int cascadeIndex, vec4 lightClipPos, vec3 lightDir, vec3 normal)
@@ -232,7 +280,7 @@ vec3 calcPBRDirectionalLight(DirectionalLight light, vec3 normal)
             {
                 shadow = calcCSMShadowFactor(i, csmLightClipPos[i], light.dir, normal);
                 // Debug
-                ret = mix(ret, cascadeDebugColors[i], 0.03);
+                //ret = mix(ret, cascadeDebugColors[i], 0.03);
                 break;
             }
         }
@@ -293,7 +341,9 @@ vec3 calcTotalPBRLighting()
 void main()
 {
     vec3 color = calcTotalPBRLighting();
-    vec3 ambient = vec3(ambientStrength) * vec3(texture(material.diffuse, vertTexCoords));
+
+    vec3 diffuseSample = vec3(texture(material.diffuse, vertTexCoords));
+    vec3 ambient = vec3(ambientStrength) * mix(diffuseSample, ambientColor, ambientColorFactor);
     color += vec3(ambient);
 
     if (fogEnabled)

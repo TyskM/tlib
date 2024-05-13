@@ -11,6 +11,8 @@
 #include <TLib/Media/Transform3D.hpp>
 #include <TLib/Media/Renderer2D.hpp>
 
+#include <TLib/Media/ImGuiWidgets.hpp>
+
 class Renderer3D
 {
 public:
@@ -21,6 +23,7 @@ public:
 
     static inline bool         shadows              = true;
     static inline float        shadowDistance       = 50.f;
+    static inline uint32_t     shadowSize           = 1024*4;
     /* How far the shadow map camera is from the player camera.
     Values that are too low can make the camera clip with geometry.
     Values that are too high will make the camera too far away, and the shadow map will lose precision. */
@@ -35,6 +38,8 @@ public:
 
     static inline ColorRGBAf   skyColor             = ColorRGBAf(0.1f, 0.1f, 0.1f);
     static inline float        ambientLightStrength = 0.1f;
+    static inline ColorRGBf    ambientColor         = ColorRGBf(1.f, 1.f, 1.f);
+    static inline float        ambientColorFactor   = 0.f;
 
     static inline Vector<float> cascadeBreakpoints { 20.f, 60.f, 200.f };
 
@@ -114,14 +119,14 @@ public:
 
     static inline FrameBuffer shadowFbo;
     static inline Texture     shadowTex;
-    static inline uint32_t    shadowSize = 1024*4;
     static inline Shader      shadowShader;
+    static inline uint32_t    prevShadowSize = 0;
 
     static inline FrameBuffer           csmFbo;
     static inline Vector<UPtr<Texture>> csmTextures;
     static inline Shader                csmShader;
 
-    static inline uint32_t                 maxDirectionalLights = 2;
+    static inline uint32_t                 maxDirectionalLights = 1;
     static inline Vector<DirectionalLight> directionalLights;
 
     static inline uint32_t           maxPointLights = 32;
@@ -147,10 +152,31 @@ public:
 
     static Frustum getCurrentCameraFrustum()
     {
-        return getFrustumCornersWorldSpace(camera.getPerspectiveMatrix(), camera.getViewMatrix());
+        return getFrustumWorldSpace(camera.getPerspectiveMatrix(), camera.getViewMatrix());
     }
 
-    static Frustum getFrustumCornersWorldSpace(const Mat4f& proj, const Mat4f& view)
+    static Frustum getFrustumLocalSpace(const Mat4f& proj, const Mat4f& view)
+    {
+        const auto inv = (proj * view).inverse();
+        Frustum frustum;
+
+        int i = 0;
+        for (unsigned int x = 0; x < 2; ++x) {
+        for (unsigned int y = 0; y < 2; ++y) {
+        for (unsigned int z = 0; z < 2; ++z)
+        {
+            const Vector4f pt =
+                inv * Vector4f(2.0f * x - 1.0f,
+                               2.0f * y - 1.0f,
+                               2.0f * z - 1.0f, 1.0f);
+            frustum.corners[i] = pt;
+            ++i;
+        }}}
+
+        return frustum;
+    }
+
+    static Frustum getFrustumWorldSpace(const Mat4f& proj, const Mat4f& view)
     {
         const auto inv = (proj * view).inverse();
 
@@ -170,6 +196,15 @@ public:
         }}}
 
         return frustum;
+    }
+
+    static Frustum convertLightToWorldFrustum(Frustum f)
+    {
+        for (uint32_t i = 0; i < 8; i++)
+        {
+            f.corners[i] /= f.corners[i].w;
+        }
+        return f;
     }
 
     struct GLSLSource
@@ -347,6 +382,8 @@ public:
         shader3d.setInt  ("pcfSteps",        shadowPcfSteps);
         shader3d.setFloat("minShadowBias",   minShadowBias);
         shader3d.setFloat("maxShadowBias",   std::max(minShadowBias, maxShadowBias));
+        shader3d.setVec3f("ambientColor",    ambientColor.r, ambientColor.g, ambientColor.b);
+        shader3d.setFloat("ambientColorFactor", ambientColorFactor);
 
         defaultPrimitiveShader.setMat4f("projection", proj);
         defaultPrimitiveShader.setMat4f("view",       view);
@@ -442,24 +479,31 @@ private:
     }
 
     // use getCascadeCount() to see the cascadeCount
-    static inline uint32_t _prevShadowCascadesCount = 0; // Do not use
-    static inline uint32_t _shadowCascadesCount     = 0; // Do not use
+    static inline uint32_t prevShadowCascadesCount = 0; // Do not use
 
     static uint32_t getCascadeCount()
-    {
-        return cascadeBreakpoints.size() + 1;
-    }
+    { return cascadeBreakpoints.size() + 1; }
 
     static float snap(float f, float multiple)
     { return round(f/multiple)*multiple; }
 
+    static float floorMultiple(float f, float multiple)
+    { return floor(f/multiple)*multiple; }
+
+    static float ceilMultiple(float f, float multiple)
+    { return ceil(f/multiple)*multiple; }
+
+    static Vector3f snap(const Vector3f& v, float multiple)
+    { return Vector3f(snap(v.x, multiple), snap(v.y, multiple), snap(v.z, multiple)); }
+
     static void renderCSMs()
     {
-        _prevShadowCascadesCount = _shadowCascadesCount;
-        _shadowCascadesCount = cascadeBreakpoints.size();
-
-        if (_prevShadowCascadesCount != _shadowCascadesCount)
+        if (prevShadowCascadesCount != getCascadeCount() ||
+            prevShadowSize          != shadowSize)
         { create(); }
+
+        prevShadowCascadesCount = getCascadeCount();
+        prevShadowSize          = shadowSize;
 
         if (getCascadeCount() < 2)
         { return; }
@@ -482,35 +526,88 @@ private:
             // Get vp
             Mat4f lightSpaceMatrix;
             {
-
+                float texelSize = 1.f/shadowSize;
 
                 View3D   camCopy         = camera;
                 camCopy.zfar             = std::min(zfar  + overlap, camera.zfar);
                 camCopy.znear            = std::max(znear - overlap, camera.znear);
-                Vector3f dir             = directionalLights[0].dir;
-                Frustum  frustum         = getFrustumCornersWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
-                Vector3f frustCenter     = getFrustumCenter(frustum);
+                Vector3f dir             = directionalLights[0].dir.normalized();
+                Frustum  frustum         = getFrustumWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
                 
-                // https://alextardif.com/shadowmapping.html
-                float    frustRadius     = Vector3f(frustum.farTopRight() - frustum.nearBottomLeft()).length() / 2.f;
-                float    texelsPerUnit   = shadowSize / (frustRadius * 2.f);
-                Mat4f    scalar          = Mat4f(1.f).scale(texelsPerUnit, texelsPerUnit, texelsPerUnit);
-                Mat4f    baseLookAt      = safeLookAt(Vector3f(), dir, Vector3f::up(), Vector3f::backward());
-                Mat4f    lookAt          = baseLookAt * scalar;
-                Mat4f    lookAtInv       = lookAt.inverse();
-                frustCenter              = frustCenter * lookAt;
-                frustCenter              = frustCenter.floored();
-                frustCenter              = frustCenter * lookAtInv;
-                Vector3f eye             = frustCenter + (dir * frustRadius * 2.f);
-                Mat4f    lightView       = safeLookAt(frustCenter, eye, Vector3f::up(), Vector3f::backward());
-                Mat4f    lightProjection =
-                    glm::ortho(-frustRadius, frustRadius,
-                               -frustRadius, frustRadius,
-                               -frustRadius * shadowFrustZMult, frustRadius * shadowFrustZMult);
+                Vector3f frustCenter     = getFrustumCenter(frustum);
+                Mat4f    lightView       = safeLookAt(frustCenter-dir, frustCenter, Vector3f::up(), Vector3f::backward()).toGlm();
 
-                //Mat4f lightView       = safeLookAt(frustCenter-dir, frustCenter, Vector3f::up(), Vector3f::backward());
-                //Mat4f lightProjection = getLightProjection(shadowFrustZMult, frustum, lightView);
-                lightSpaceMatrix      = lightProjection * lightView;
+                // Get the longest radius in world space
+                float radius = (frustCenter - Vector3f(frustum.farTopRight())).length();
+                for (unsigned int i = 0; i < 8; ++i)
+                {
+                    float distance = (Vector3f(frustum.corners[i]) - frustCenter).length();
+                    radius = glm::max(radius, distance);
+                }
+                radius = std::ceil(radius);
+
+                //Store the far and near planes
+                float maxZ =  radius;
+                float minZ = -radius;
+
+                if (minZ < 0) { minZ *= shadowFrustZMult; }
+                else          { minZ /= shadowFrustZMult; }
+                if (maxZ < 0) { maxZ /= shadowFrustZMult; }
+                else          { maxZ *= shadowFrustZMult; }
+
+                auto lightOrthoMatrix = glm::ortho(-radius, radius, -radius, radius, minZ, maxZ);
+
+                // Offset to prevent shadow shimmering
+                // THANK YOU Ghost_RacCooN
+                // Create the rounding matrix, by projecting the world-space origin and determining
+                // the fractional offset in texel space
+                glm::mat4 shadowMatrix = lightOrthoMatrix * lightView.toGlm();
+                glm::vec4 shadowOrigin = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+                shadowOrigin = shadowMatrix * shadowOrigin;
+                shadowOrigin = shadowOrigin * (float)shadowSize / 2.0f;
+                glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+                glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
+                roundOffset = roundOffset *  2.0f / (float)shadowSize;
+                roundOffset.z = 0.0f;
+                roundOffset.w = 0.0f;
+                glm::mat4 shadowProj = lightOrthoMatrix;
+                shadowProj[3] += roundOffset;
+                lightOrthoMatrix = shadowProj;
+
+                lightSpaceMatrix = lightOrthoMatrix * lightView.toGlm();
+
+                // Some other attempts at fixing shadow shimmering
+                // I'll compare them later to figure out why they didn't work.
+                // TODO: pls understand
+                {
+                    //glm::mat4 proj = glm::ortho<float>(-shadowSize/2.f, shadowSize/2.f, -shadowSize/2.f, shadowSize/2.f, znear, zfar);
+                    //glm::mat4 direction = glm::lookAt((frustCenter-dir).toGlm(), frustCenter.toGlm(), glm::vec3(0, 1, 0));
+                    //glm::mat4 view = glm::scale(glm::mat4(1.0), glm::vec3(20, 20, 1.0)) * direction;
+                    //glm::vec4 spos = view * glm::vec4(glm::vec3(1,1,1), 1.0);
+                    //glm::vec2 off = -glm::round(glm::vec2(spos));
+                    //glm::mat4 offset = glm::translate(glm::mat4(1.0), glm::vec3(off, 0.0));
+                    //auto ShadowMatrix = proj * offset * view;
+                    //lightSpaceMatrix = lightSpaceMatrix * offset;
+                }
+                {
+                    // https://alextardif.com/shadowmapping.html
+                    //float    frustRadius     = Vector3f(frustum.farTopRight() - frustum.nearBottomLeft()).length() / 2.f;
+                    //float    texelsPerUnit   = shadowSize / (frustRadius * 2.f);
+                    //Mat4f    scalar          = Mat4f(1.f).scale(texelsPerUnit, texelsPerUnit, texelsPerUnit);
+                    //Mat4f    baseLookAt      = safeLookAt(Vector3f(), dir, Vector3f::up(), Vector3f::backward());
+                    //Mat4f    lookAt          = scalar * baseLookAt;
+                    //Mat4f    lookAtInv       = lookAt.inverse();
+                    //frustCenter              = frustCenter * lookAt;
+                    //frustCenter              = frustCenter = frustCenter.floored();
+                    //frustCenter              = frustCenter * lookAtInv;
+                    //Vector3f eye             = frustCenter + (dir * frustRadius * 2.f);
+                    //Mat4f    lightView       = safeLookAt(frustCenter, eye, Vector3f::up(), Vector3f::backward());
+                    //Mat4f    lightProjection =
+                    //    glm::ortho(-frustRadius, frustRadius,
+                    //               -frustRadius, frustRadius,
+                    //               -frustRadius * shadowFrustZMult, frustRadius * shadowFrustZMult);
+                }
+
             }
 
             auto& tex = csmTextures[i]; ASSERT(tex);
@@ -575,13 +672,13 @@ private:
             View3D   camCopy = camera;
             Vector3f dir     = directionalLights[0].dir;
             camCopy.zfar     = std::min(shadowDistance, camera.zfar);
-            auto corners     = getFrustumCornersWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
+            auto corners     = getFrustumWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
 
             Vector3f viewTarget = getFrustumCenter(corners);
             Vector3f viewPos    = (viewTarget - dir);
             Mat4f    lightView  = safeLookAt(viewPos, viewTarget, Vector3f::up(), Vector3f::backward());
 
-            Mat4f lightProjection  = getLightProjection(shadowFrustZMult, corners, lightView).scale(1.f, -1.f, 1.f);
+            Mat4f lightProjection  = getLightProjection(shadowFrustZMult, corners, lightView).scaled(1.f, -1.f, 1.f);
             Mat4f lightSpaceMatrix = lightProjection * lightView;
 
             Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)), Vector2f((float)shadowSize));
@@ -621,12 +718,10 @@ private:
         float minZ = std::numeric_limits<float>::max();
         float maxZ = std::numeric_limits<float>::lowest();
 
-        const float texelScale    = 2.0f / shadowSize;
-        const float invTexelScale = 1.0f / texelScale;
-
         for (const auto& v : frustum.corners)
         {
             const auto trf = lightView * v;
+
             minX = std::min(minX, trf.x);
             maxX = std::max(maxX, trf.x);
             minY = std::min(minY, trf.y);
@@ -640,8 +735,14 @@ private:
         if (maxZ < 0) { maxZ /= shadowFrustZMult; }
         else          { maxZ *= shadowFrustZMult; }
 
+        float minnest = std::min(minX, minY);
+        float maxxest = std::max(maxX, maxY);
+
+        // This makes the projections square, which reduces shadow map artifacts.
+        //return glm::ortho(minnest, maxxest, minnest, maxxest, minZ, maxZ);
         return glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
     }
+
 
     static Vector3f getFrustumCenter(const Frustum& frustum)
     {

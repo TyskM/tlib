@@ -29,7 +29,7 @@ void imGuiVectorFloatEdit(const String& label, Vector<float>& v,
     for (auto& value : v)
     {
         if (ImGui::Button(String("-##" + std::to_string(i)).c_str()))
-        { v.erase(v.begin() + i + 1); }
+        { v.erase(v.begin() + i); break; }
         ImGui::SameLine();
         ImGui::SliderFloat(std::to_string(i).c_str(), &value, vmin, vmax, format, flags);
         ImGui::SameLine();
@@ -222,11 +222,13 @@ ColorRGBAf lightColor ("#FFE082");
 ColorRGBAf sunColor   ("#6561FF");
 ColorRGBAf spotColor  ("#FFC182");
 Vector3f   sunDir     = Vector3f(-0.225, -1.f, 1.f);
+Vector3f   sunInterp  = Vector3f(0.f, 0.f, 0.f);
 float      lightPower = 1.f;
 float      sunPower   = 1.f;
 float      spotPower  = 200.f;
 float      spotAngle  = 10.f;
 float      spotOuterAngle = 30.f;
+bool       ambientColorSkySync = true;
 
 R3D::Frustum frustum;
 bool frustumSet = false;
@@ -419,10 +421,14 @@ void update(float delta)
             ImGui::Indent();
             ImGui::ColorEdit4 ("Sky Color",              &R3D::skyColor.r);
             ImGui::SliderFloat("Ambient Light Strength", &R3D::ambientLightStrength, 0.f, 1.f);
+            ImGui::SliderFloat("Ambient Color Factor",   &R3D::ambientColorFactor, 0.f, 1.f);
+            ImGui::ColorEdit3 ("Ambient Color",          &R3D::ambientColor.r);
+            ImGui::Checkbox   ("Ambient Color Sky Sync", &ambientColorSkySync);
             ImGui::ColorEdit3 ("Player Light",           &lightColor.r);
             ImGui::DragFloat  ("Player Light Power",     &lightPower);
             ImGui::ColorEdit3 ("Sun Light",              &sunColor.r);
-            ImGui::DragFloat3 ("Sun Dir",                &sunDir.x, 0.025f, -1.f, 1.f);
+            ImGui::DragFloat3 ("Sun Dir",                &sunDir.x,    0.005f, -1.f, 1.f);
+            ImGui::DragFloat3 ("Sun Interp",             &sunInterp.x, 0.001f, -1.f, 1.f);
             ImGui::DragFloat  ("Sun Power",              &sunPower);
             ImGui::ColorEdit3 ("Spot Light",             &spotColor.r);
             ImGui::DragFloat  ("Spot Power",             &spotPower);
@@ -447,6 +453,12 @@ void update(float delta)
             ImGui::Checkbox   ("Enabled",   &R3D::shadows);
             auto ret = imguiEnumCombo("Face Cull Mode##shadows", R3D::shadowFaceCullMode);
             if (ret.first) { R3D::shadowFaceCullMode = ret.second; }
+
+            uint32_t minRes = 1024;
+            uint32_t maxRes = 1024*8;
+            if (ImGui::SliderScalar("Resolution", ImGuiDataType_U32, &R3D::shadowSize, &minRes, &maxRes, 0, ImGuiSliderFlags_AlwaysClamp))
+            R3D::shadowSize = math::stepifyRound<uint32_t>(R3D::shadowSize, 1024);
+
             ImGui::SliderFloat("Frustum Z Multiplier", &R3D::shadowFrustZMult, 0.1f, 20.f);
             ImGui::SliderFloat("Distance",  &R3D::shadowDistance, 1.f, 200.f);
             ImGui::SliderInt  ("PCF Steps", &R3D::shadowPcfSteps, 0, 6);
@@ -502,6 +514,16 @@ void update(float delta)
 
         R3D::setCamera(controller.camera);
     }
+
+    if (ambientColorSkySync)
+    {
+        R3D::ambientColor = ColorRGBf(R3D::skyColor);
+    }
+
+    sunDir += sunInterp * delta;
+    sunDir.x = std::clamp(sunDir.x, -1.f, 1.f);
+    sunDir.y = std::clamp(sunDir.y, -1.f, 1.f);
+    sunDir.z = std::clamp(sunDir.z, -1.f, 1.f);
 }
 
 void draw(float delta)

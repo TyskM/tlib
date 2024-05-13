@@ -34,7 +34,7 @@ struct View3D
     {
         Mat4f rotate = rot.toMat4f();
         Mat4f translate(1.0f);
-        translate = translate.translate(-pos);
+        translate = translate.translated(-pos);
         return rotate * translate;
     }
 

@@ -15,9 +15,9 @@ struct Transform3D
     {
         // Scale, rotate, translate
         Mat4f mat(1.f);
-        mat  = mat.scale(scale);
+        mat  = mat.scaled(scale);
         mat *= rot.toMat4f();
-        mat  = mat.translate(pos);
+        mat  = mat.translated(pos);
         return mat;
     }
 

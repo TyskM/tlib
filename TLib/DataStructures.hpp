@@ -154,22 +154,22 @@ struct Vector2
     Vector2<T> operator-(const Vector2<T>& other)   const { return Vector2<T>(x - other.x, y - other.y); }
     Vector2<T> operator*(const Vector2<T>& other)   const { return Vector2<T>(x * other.x, y * other.y); }
     Vector2<T> operator/(const Vector2<T>& other)   const { return Vector2<T>(x / other.x, y / other.y); }
-    Vector2<T> operator+(const int   num)           const { return Vector2<T>(x + num, y + num); }
-    Vector2<T> operator-(const int   num)           const { return Vector2<T>(x - num, y - num); }
-    Vector2<T> operator*(const int   num)           const { return Vector2<T>(x * num, y * num); }
-    Vector2<T> operator/(const int   num)           const { return Vector2<T>(x / num, y / num); }
-    Vector2<T> operator+(const float num)           const { return Vector2<T>(x + num, y + num); }
-    Vector2<T> operator-(const float num)           const { return Vector2<T>(x - num, y - num); }
-    Vector2<T> operator*(const float num)           const { return Vector2<T>(x * num, y * num); }
-    Vector2<T> operator/(const float num)           const { return Vector2<T>(x / num, y / num); }
-    Vector2<T> operator+=(const Vector2<T>& other)        { return Vector2<T>(x += other.x, y += other.y); }
-    Vector2<T> operator-=(const Vector2<T>& other)        { return Vector2<T>(x -= other.x, y -= other.y); }
-    Vector2<T> operator*=(const Vector2<T>& other)        { return Vector2<T>(x *= other.x, y *= other.y); }
-    Vector2<T> operator/=(const Vector2<T>& other)        { return Vector2<T>(x /= other.x, y /= other.y); }
-    Vector2<T> operator*=(const int num)                  { return Vector2<T>(x *= num, y *= num); }
-    Vector2<T> operator/=(const int num)                  { return Vector2<T>(x /= num, y /= num); }
-    Vector2<T> operator*=(const float num)                { return Vector2<T>(x *= num, y *= num); }
-    Vector2<T> operator/=(const float num)                { return Vector2<T>(x /= num, y /= num); }
+    Vector2<T> operator+(const int   v)             const { return Vector2<T>(x + v, y + v); }
+    Vector2<T> operator-(const int   v)             const { return Vector2<T>(x - v, y - v); }
+    Vector2<T> operator*(const int   v)             const { return Vector2<T>(x * v, y * v); }
+    Vector2<T> operator/(const int   v)             const { return Vector2<T>(x / v, y / v); }
+    Vector2<T> operator+(const float v)             const { return Vector2<T>(x + v, y + v); }
+    Vector2<T> operator-(const float v)             const { return Vector2<T>(x - v, y - v); }
+    Vector2<T> operator*(const float v)             const { return Vector2<T>(x * v, y * v); }
+    Vector2<T> operator/(const float v)             const { return Vector2<T>(x / v, y / v); }
+    Vector2<T> operator+=(const Vector2<T>& v)            { x += v.x, y += v.y; return *this; }
+    Vector2<T> operator-=(const Vector2<T>& v)            { x -= v.x, y -= v.y; return *this; }
+    Vector2<T> operator*=(const Vector2<T>& v)            { x *= v.x, y *= v.y; return *this; }
+    Vector2<T> operator/=(const Vector2<T>& v)            { x /= v.x, y /= v.y; return *this; }
+    Vector2<T> operator*=(const int   v)                  { x *= v,   y *= v;   return *this; }
+    Vector2<T> operator/=(const int   v)                  { x /= v,   y /= v;   return *this; }
+    Vector2<T> operator*=(const float v)                  { x *= v,   y *= v;   return *this; }
+    Vector2<T> operator/=(const float v)                  { x /= v,   y /= v;   return *this; }
 
 };
 using Vector2f  = Vector2<float>;
@@ -277,25 +277,25 @@ struct Vector3
     operator std::string() const
     { return std::string("(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ")"); }
 
-    bool operator==(const Vector3<T> other)       const { return x == other.x && y == other.y && z == other.z; }
-    bool operator!=(const Vector3<T> other)       const { return !(operator==(other)); }
-    Vector3<T> operator-()                        const { return Vector3<T>(-x, -y, -z); }
-    Vector3<T> operator+(const Vector3<T>& other) const { return Vector3<T>(x + other.x, y + other.y, z + other.z); }
-    Vector3<T> operator-(const Vector3<T>& other) const { return Vector3<T>(x - other.x, y - other.y, z - other.z); }
-    Vector3<T> operator*(const Vector3<T>& other) const { return Vector3<T>(x * other.x, y * other.y, z * other.z); }
-    Vector3<T> operator/(const Vector3<T>& other) const { return Vector3<T>(x / other.x, y / other.y, z / other.z); }
-    Vector3<T> operator*(const int& num)          const { return Vector3<T>(x * num, y * num, z * num); }
-    Vector3<T> operator/(const int& num)          const { return Vector3<T>(x / num, y / num, z / num); }
-    Vector3<T> operator*(const float& num)        const { return Vector3<T>(x * num, y * num, z * num); }
-    Vector3<T> operator/(const float& num)        const { return Vector3<T>(x / num, y / num, z / num); }
-    Vector3<T> operator+=(const Vector3<T>& other)      { return Vector3<T>(x += other.x, y += other.y, z += other.z); }
-    Vector3<T> operator-=(const Vector3<T>& other)      { return Vector3<T>(x -= other.x, y -= other.y, z -= other.z); }
-    Vector3<T> operator*=(const Vector3<T>& other)      { return Vector3<T>(x *= other.x, y *= other.y, z *= other.z); }
-    Vector3<T> operator/=(const Vector3<T>& other)      { return Vector3<T>(x /= other.x, y /= other.y, z /= other.z); }
-    Vector3<T> operator*=(const int& num)               { return Vector3<T>(x *= num, y *= num, z *= num); }
-    Vector3<T> operator/=(const int& num)               { return Vector3<T>(x /= num, y /= num, z /= num); }
-    Vector3<T> operator*=(const float& num)             { return Vector3<T>(x *= num, y *= num, z *= num); }
-    Vector3<T> operator/=(const float& num)             { return Vector3<T>(x /= num, y /= num, z /= num); }
+    bool       operator==(const Vector3<T>   v) const { return x == v.x && y == v.y && z == v.z; }
+    bool       operator!=(const Vector3<T>   v) const { return !(operator==(v)); }
+    Vector3<T> operator- ()                     const { return Vector3<T>(-x, -y, -z); }
+    Vector3<T> operator+ (const Vector3<T>&  v) const { return Vector3<T>(x + v.x, y + v.y, z + v.z); }
+    Vector3<T> operator- (const Vector3<T>&  v) const { return Vector3<T>(x - v.x, y - v.y, z - v.z); }
+    Vector3<T> operator* (const Vector3<T>&  v) const { return Vector3<T>(x * v.x, y * v.y, z * v.z); }
+    Vector3<T> operator/ (const Vector3<T>&  v) const { return Vector3<T>(x / v.x, y / v.y, z / v.z); }
+    Vector3<T> operator* (const int          v) const { return Vector3<T>(x * v, y * v, z * v); }
+    Vector3<T> operator/ (const int          v) const { return Vector3<T>(x / v, y / v, z / v); }
+    Vector3<T> operator* (const float        v) const { return Vector3<T>(x * v, y * v, z * v); }
+    Vector3<T> operator/ (const float        v) const { return Vector3<T>(x / v, y / v, z / v); }
+    Vector3<T> operator+=(const Vector3<T>&  v)       { x += v.x; y += v.y; z += v.z; return *this; }
+    Vector3<T> operator-=(const Vector3<T>&  v)       { x -= v.x; y -= v.y; z -= v.z; return *this; }
+    Vector3<T> operator*=(const Vector3<T>&  v)       { x *= v.x; y *= v.y; z *= v.z; return *this; }
+    Vector3<T> operator/=(const Vector3<T>&  v)       { x /= v.x; y /= v.y; z /= v.z; return *this; }
+    Vector3<T> operator*=(const int          v)       { x *=   v; y *=   v; z *=   v; return *this; }
+    Vector3<T> operator/=(const int          v)       { x /=   v; y /=   v; z /=   v; return *this; }
+    Vector3<T> operator*=(const float        v)       { x *=   v; y *=   v; z *=   v; return *this; }
+    Vector3<T> operator/=(const float        v)       { x /=   v; y /=   v; z /=   v; return *this; }
 
 
 
@@ -335,18 +335,18 @@ struct Vector4
     }
 
     Vector4<T> operator+ (const Vector4<T>& v) const { return Vector4<T>(x+v.x, y+v.y, z+v.z, w+v.w); }
-    Vector4<T> operator+=(const Vector4<T>& v) const { return Vector4<T>(x+v.x, y+v.y, z+v.z, w+v.w); }
     Vector4<T> operator- (const Vector4<T>& v) const { return Vector4<T>(x-v.x, y-v.y, z-v.z, w-v.w); }
-    Vector4<T> operator-=(const Vector4<T>& v) const { return Vector4<T>(x-v.x, y-v.y, z-v.z, w-v.w); }
     Vector4<T> operator* (const Vector4<T>& v) const { return Vector4<T>(x*v.x, y*v.y, z*v.z, w*v.w); }
-    Vector4<T> operator*=(const Vector4<T>& v) const { return Vector4<T>(x*v.x, y*v.y, z*v.z, w*v.w); }
     Vector4<T> operator/ (const Vector4<T>& v) const { return Vector4<T>(x/v.x, y/v.y, z/v.z, w/v.w); }
-    Vector4<T> operator/=(const Vector4<T>& v) const { return Vector4<T>(x/v.x, y/v.y, z/v.z, w/v.w); }
+    Vector4<T> operator+=(const Vector4<T>& v)       { x+=v.x; y+=v.y; z+=v.z; w+=v.w; return *this; }
+    Vector4<T> operator-=(const Vector4<T>& v)       { x-=v.x; y-=v.y; z-=v.z; w-=v.w; return *this; }
+    Vector4<T> operator*=(const Vector4<T>& v)       { x*=v.x; y*=v.y; z*=v.z; w*=v.w; return *this; }
+    Vector4<T> operator/=(const Vector4<T>& v)       { x/=v.x; y/=v.y; z/=v.z; w/=v.w; return *this; }
 
     Vector4<T> operator* (const T v) const { return Vector4<T>(x*v, y*v, z*v, w*v); }
-    Vector4<T> operator*=(const T v) const { return Vector4<T>(x*v, y*v, z*v, w*v); }
     Vector4<T> operator/ (const T v) const { return Vector4<T>(x/v, y/v, z/v, w/v); }
-    Vector4<T> operator/=(const T v) const { return Vector4<T>(x/v, y/v, z/v, w/v); }
+    Vector4<T> operator*=(const T v)       { x*=v; y*=v; z*=v; w*=v; return *this; }
+    Vector4<T> operator/=(const T v)       { x/=v; y/=v; z/=v; w/=v; return *this; }
 };
 
 using Vector4f = Vector4<float>;
@@ -750,24 +750,34 @@ using Recti = Rect<int>;
 
 struct Mat4f
 {
-private:
     glm::mat4 matrix;
 
-public:
     Mat4f() = default;
     Mat4f(float x) { matrix = glm::mat4(x); }
     Mat4f(const glm::mat4& m) : matrix{ m } { }
 
+    String toString() const
+    {
+        return fmt::format(fmt::runtime("[{}][{}][{}][{}]\n[{}][{}][{}][{}]\n[{}][{}][{}][{}]\n[{}][{}][{}][{}]"),
+            matrix[0][0], matrix[0][1], matrix[0][2], matrix[0][3],
+            matrix[1][0], matrix[1][1], matrix[1][2], matrix[1][3],
+            matrix[2][0], matrix[2][1], matrix[2][2], matrix[2][3],
+            matrix[3][0], matrix[3][1], matrix[3][2], matrix[3][3]);
+    }
+
     const float* data() const
     { return glm::value_ptr(matrix); }
 
-    Mat4f translate(const Vector3f& transform) const
+    Mat4f translated(const Vector3f& transform) const
     { return glm::translate(matrix, glm::vec3(transform.x, transform.y, transform.z)); }
 
-    Mat4f scale(const Vector3f& _scale) const
+    Mat4f translated(const Vector4f& transform) const
+    { return glm::translate(matrix, glm::vec3(transform.toGlm())); }
+
+    Mat4f scaled(const Vector3f& _scale) const
     { return glm::scale(matrix, glm::vec3(_scale.x, _scale.y, _scale.z)); }
 
-    Mat4f scale(float x, float y, float z) const
+    Mat4f scaled(float x, float y, float z) const
     { return glm::scale(matrix, glm::vec3(x, y, z)); }
 
     Mat4f inverse() const
@@ -775,8 +785,8 @@ public:
 
     glm::mat4 toGlm() const { return matrix; }
 
-    Mat4f operator* (const Mat4f& other) { return matrix * other.matrix; }
-    Mat4f operator*=(const Mat4f& other) { return matrix * other.matrix; }
+    Mat4f operator* (const Mat4f& other) const { return matrix * other.matrix; }
+    Mat4f operator*=(const Mat4f& other)       { matrix *= other.matrix; return *this; }
 };
 
 struct Quat
@@ -848,16 +858,13 @@ struct Quat
     Quat operator*=(const Quat& other) { return toGlm() * other.toGlm(); }
 };
 
-Mat4f    operator* (const Mat4f& a, const Mat4f& b)   { return a.toGlm() * b.toGlm(); }
-Mat4f    operator*=(const Mat4f& a, const Mat4f& b)   { return a.toGlm() * b.toGlm(); }
+Vector3f operator* (const Vector3f& a, const Quat& b) { return Vector3f(a.toGlm() * b.toGlm()); }
+Vector3f operator*=(      Vector3f& a, const Quat& b) {    a = Vector3f(a.toGlm() * b.toGlm()); return a; }
 
-Vector3f operator* (const Vector3f& v, const Quat& q) { return Vector3f(v.toGlm() * q.toGlm()); }
-Vector3f operator*=(const Vector3f& v, const Quat& q) { return Vector3f(v.toGlm() * q.toGlm()); }
+Vector3f operator* (const Vector3f& a, const Mat4f& b) { return Vector3f(glm::vec4(a.x, a.y, a.z, 1.f) * b.toGlm()); }
+Vector3f operator*=(      Vector3f& a, const Mat4f& b) {    a = Vector3f(glm::vec4(a.x, a.y, a.z, 1.f) * b.toGlm()); return a; }
 
-Vector3f operator* (const Vector3f& v, const Mat4f& m) { return Vector3f(glm::vec4(v.x, v.y, v.z, 1.f) * m.toGlm()); }
-Vector3f operator*=(const Vector3f& v, const Mat4f& m) { return Vector3f(glm::vec4(v.x, v.y, v.z, 1.f) * m.toGlm()); }
+Vector4f operator* (const Vector4f& a, const Mat4f& b) { return a.toGlm() * b.toGlm(); }
+Vector4f operator*=(      Vector4f& a, const Mat4f& b) {    a = a.toGlm() * b.toGlm(); return a; }
 
-Vector4f operator* (const Vector4f& v, const Mat4f& m) { return v.toGlm() * m.toGlm(); }
-Vector4f operator*=(const Vector4f& v, const Mat4f& m) { return v.toGlm() * m.toGlm(); }
 Vector4f operator* (const Mat4f& m, const Vector4f& v) { return m.toGlm() * v.toGlm(); }
-Vector4f operator*=(const Mat4f& m, const Vector4f& v) { return m.toGlm() * v.toGlm(); }
