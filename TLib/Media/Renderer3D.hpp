@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <TLib/Types/Types.hpp>
 #include <TLib/DataStructures.hpp>
 #include <TLib/Embed/Embed.hpp>
 #include <TLib/Containers/Stack.hpp>
@@ -41,7 +42,7 @@ public:
     static inline ColorRGBf    ambientColor         = ColorRGBf(1.f, 1.f, 1.f);
     static inline float        ambientColorFactor   = 0.f;
 
-    static inline Vector<float> cascadeBreakpoints { 20.f, 60.f, 200.f };
+    static inline Vector<float> cascadeBreakpoints { 10.f, 20.f, 40.f, 80.f, 160.f };
 
     struct Frustum
     {
@@ -117,14 +118,15 @@ public:
     static inline View3D          camera;
     static inline Shader          shader3d;
 
-    static inline FrameBuffer shadowFbo;
-    static inline Texture     shadowTex;
-    static inline Shader      shadowShader;
-    static inline uint32_t    prevShadowSize = 0;
+    // Reference
+    //static inline FrameBuffer shadowFbo;
+    //static inline Texture     shadowTex;
+    //static inline Shader      shadowShader;
 
     static inline FrameBuffer           csmFbo;
     static inline Vector<UPtr<Texture>> csmTextures;
     static inline Shader                csmShader;
+    static inline uint32_t              prevShadowSize = 0;
 
     static inline uint32_t                 maxDirectionalLights = 1;
     static inline Vector<DirectionalLight> directionalLights;
@@ -389,7 +391,6 @@ public:
         defaultPrimitiveShader.setMat4f("view",       view);
 
         uploadLights();
-        renderShadows();
         renderCSMs();
         renderMeshes();
 
@@ -424,7 +425,6 @@ public:
         }
 
         // Setup shadows
-        initShadows();
         initCSMs();
     }
 
@@ -498,6 +498,9 @@ private:
 
     static void renderCSMs()
     {
+        if (directionalLights.empty())
+        { return; }
+
         if (prevShadowCascadesCount != getCascadeCount() ||
             prevShadowSize          != shadowSize)
         { create(); }
@@ -514,6 +517,7 @@ private:
         auto bpCopy = cascadeBreakpoints;
         Vector<float> realCascadeBreakpoints = { 0.f, FLT_MAX };
         realCascadeBreakpoints.insert(realCascadeBreakpoints.begin() + 1, cascadeBreakpoints.begin(), cascadeBreakpoints.end());
+        Vector3f dir = directionalLights[0].dir.normalized();
 
         for (uint32_t i = 0; i < getCascadeCount(); i++)
         {
@@ -531,7 +535,7 @@ private:
                 View3D   camCopy         = camera;
                 camCopy.zfar             = std::min(zfar  + overlap, camera.zfar);
                 camCopy.znear            = std::max(znear - overlap, camera.znear);
-                Vector3f dir             = directionalLights[0].dir.normalized();
+                
                 Frustum  frustum         = getFrustumWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
                 
                 Vector3f frustCenter     = getFrustumCenter(frustum);
@@ -643,71 +647,73 @@ private:
         }
     }
 
-    static void initShadows()
-    {
-        shadowTex.create();
-        shadowTex.setData(NULL, shadowSize, shadowSize, TexPixelFormats::DEPTH_COMPONENT, TexInternalFormats::DEPTH_COMPONENT, TexPixelType::Float);
-        shadowTex.setFilter(TextureMinFilter::Linear, TextureMagFilter::Linear);
-        shadowTex.setUVMode(UVMode::ClampToBorder);
-        shadowTex.setBorderColor(ColorRGBAf::white());
-        GLint swizzle[4] = { GL_RED, GL_RED, GL_RED, GL_ONE };
-        shadowTex.setSwizzle(swizzle); // To make debugging easier on the eyes
-        shadowTex.bind();
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 8.f); // TODO: extend tex class
-        //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE));
-        //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL));
-        shadowFbo.create();
-        shadowFbo.setTexture(shadowTex, FrameBufferAttachmentType::Depth);
-        shadowShader.create(myEmbeds.at("TLib/Embed/Shaders/light.vert").asString(),
-                            myEmbeds.at("TLib/Embed/Shaders/empty.frag").asString());
-    }
-
-    static void renderShadows()
-    {
-        if (!shadows) { return; }
-
-        {
-            shader3d.setInt("shadowMap", 3);
-
-            View3D   camCopy = camera;
-            Vector3f dir     = directionalLights[0].dir;
-            camCopy.zfar     = std::min(shadowDistance, camera.zfar);
-            auto corners     = getFrustumWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
-
-            Vector3f viewTarget = getFrustumCenter(corners);
-            Vector3f viewPos    = (viewTarget - dir);
-            Mat4f    lightView  = safeLookAt(viewPos, viewTarget, Vector3f::up(), Vector3f::backward());
-
-            Mat4f lightProjection  = getLightProjection(shadowFrustZMult, corners, lightView).scaled(1.f, -1.f, 1.f);
-            Mat4f lightSpaceMatrix = lightProjection * lightView;
-
-            Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)), Vector2f((float)shadowSize));
-            shadowFbo.bind();
-            shadowShader.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
-            shader3d.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
-        }
-
-        // Render Scene
-        setCullMode(shadowFaceCullMode);
-        {
-            glClear(GL_DEPTH_BUFFER_BIT);
-            for (auto& varCmd : cmds)
-            {
-                if (is<ModelDrawCmd>(varCmd))
-                {
-                    ModelDrawCmd& cmd = std::get<ModelDrawCmd>(varCmd);
-
-                    for (auto& mesh : cmd.model->getMeshes())
-                    {
-                        shadowShader.setMat4f("model", cmd.transform.getMatrix());
-                        Renderer::draw(shadowShader, *mesh.vertices);
-                    }
-                }
-            }
-
-            shadowFbo.unbind();
-        }
-    }
+    // Reference
+    //static void initShadows()
+    //{
+    //    shadowTex.create();
+    //    shadowTex.setData(NULL, shadowSize, shadowSize, TexPixelFormats::DEPTH_COMPONENT, TexInternalFormats::DEPTH_COMPONENT, TexPixelType::Float);
+    //    shadowTex.setFilter(TextureMinFilter::Linear, TextureMagFilter::Linear);
+    //    shadowTex.setUVMode(UVMode::ClampToBorder);
+    //    shadowTex.setBorderColor(ColorRGBAf::white());
+    //    GLint swizzle[4] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+    //    shadowTex.setSwizzle(swizzle); // To make debugging easier on the eyes
+    //    shadowTex.bind();
+    //    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY, 8.f); // TODO: extend tex class
+    //    //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE));
+    //    //GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL));
+    //    shadowFbo.create();
+    //    shadowFbo.setTexture(shadowTex, FrameBufferAttachmentType::Depth);
+    //    shadowShader.create(myEmbeds.at("TLib/Embed/Shaders/light.vert").asString(),
+    //                        myEmbeds.at("TLib/Embed/Shaders/empty.frag").asString());
+    //}
+    //
+    // Old non-csm method. Use as reference later for spotlights
+    //static void renderShadows()
+    //{
+    //    if (!shadows) { return; }
+    //
+    //    {
+    //        shader3d.setInt("shadowMap", 3);
+    //
+    //        View3D   camCopy = camera;
+    //        Vector3f dir     = directionalLights[0].dir;
+    //        camCopy.zfar     = std::min(shadowDistance, camera.zfar);
+    //        auto corners     = getFrustumWorldSpace(camCopy.getPerspectiveMatrix(), camCopy.getViewMatrix());
+    //
+    //        Vector3f viewTarget = getFrustumCenter(corners);
+    //        Vector3f viewPos    = (viewTarget - dir);
+    //        Mat4f    lightView  = safeLookAt(viewPos, viewTarget, Vector3f::up(), Vector3f::backward());
+    //
+    //        Mat4f lightProjection  = getLightProjection(shadowFrustZMult, corners, lightView).scaled(1.f, -1.f, 1.f);
+    //        Mat4f lightSpaceMatrix = lightProjection * lightView;
+    //
+    //        Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)), Vector2f((float)shadowSize));
+    //        shadowFbo.bind();
+    //        shadowShader.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
+    //        shader3d.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
+    //    }
+    //
+    //    // Render Scene
+    //    setCullMode(shadowFaceCullMode);
+    //    {
+    //        glClear(GL_DEPTH_BUFFER_BIT);
+    //        for (auto& varCmd : cmds)
+    //        {
+    //            if (is<ModelDrawCmd>(varCmd))
+    //            {
+    //                ModelDrawCmd& cmd = std::get<ModelDrawCmd>(varCmd);
+    //
+    //                for (auto& mesh : cmd.model->getMeshes())
+    //                {
+    //                    shadowShader.setMat4f("model", cmd.transform.getMatrix());
+    //                    Renderer::draw(shadowShader, *mesh.vertices);
+    //                }
+    //            }
+    //        }
+    //
+    //        shadowFbo.unbind();
+    //    }
+    //}
 
     static Mat4f getLightProjection(float zmult, const Frustum& frustum, const Mat4f& lightView)
     {
@@ -742,7 +748,6 @@ private:
         //return glm::ortho(minnest, maxxest, minnest, maxxest, minZ, maxZ);
         return glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
     }
-
 
     static Vector3f getFrustumCenter(const Frustum& frustum)
     {
@@ -801,7 +806,6 @@ private:
                     mesh.material.textures[(int32_t)TextureType::Diffuse]  ->bind(0);
                     mesh.material.textures[(int32_t)TextureType::Roughness]->bind(1);
                     mesh.material.textures[(int32_t)TextureType::Metalness]->bind(2);
-                    shadowTex.bind(3);
 
                     shader3d.setMat4f("model", cmd.transform.getMatrix());
                     Renderer::draw(shader3d, *mesh.vertices);

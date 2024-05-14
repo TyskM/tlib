@@ -13,16 +13,20 @@ enable_testing()
 add_subdirectory("Tests")
 add_subdirectory("Demos")
 
-file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h pmp/*.cpp pmp/*.hpp pmp/*.h)
+file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h)
+message("Found source files: ")
+foreach(src IN ITEMS ${SOURCE_FILES})
+    message("${src}")
+endforeach()
 
 # Remove PMP sources
-file(GLOB_RECURSE PMP_FILES CONFIGURE_DEPENDS
-TLib/thirdparty/pmp/*.cpp TLib/thirdparty/pmp/*.hpp TLib/thirdparty/pmp/*.h)
-list(REMOVE_ITEM SOURCE_FILES ${PMP_FILES})
+#file(GLOB_RECURSE PMP_FILES CONFIGURE_DEPENDS
+#TLib/thirdparty/pmp/*.cpp TLib/thirdparty/pmp/*.hpp TLib/thirdparty/pmp/*.h)
+#list(REMOVE_ITEM SOURCE_FILES ${PMP_FILES})
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-add_library(TLib "TLib.cpp" ${SOURCE_FILES})
+add_library(TLib STATIC ${SOURCE_FILES})
 add_library(TLib::TLib ALIAS TLib)
 target_compile_features(TLib PUBLIC cxx_std_20)
 

@@ -224,11 +224,13 @@ ColorRGBAf spotColor  ("#FFC182");
 Vector3f   sunDir     = Vector3f(-0.225, -1.f, 1.f);
 Vector3f   sunInterp  = Vector3f(0.f, 0.f, 0.f);
 float      lightPower = 1.f;
+bool       sunEnabled = true;
 float      sunPower   = 1.f;
 float      spotPower  = 200.f;
 float      spotAngle  = 10.f;
 float      spotOuterAngle = 30.f;
-bool       ambientColorSkySync = true;
+bool       ambientColorSkySync    = true;
+bool       ambientStrSkyValueSync = true;
 
 R3D::Frustum frustum;
 bool frustumSet = false;
@@ -424,8 +426,10 @@ void update(float delta)
             ImGui::SliderFloat("Ambient Color Factor",   &R3D::ambientColorFactor, 0.f, 1.f);
             ImGui::ColorEdit3 ("Ambient Color",          &R3D::ambientColor.r);
             ImGui::Checkbox   ("Ambient Color Sky Sync", &ambientColorSkySync);
+            ImGui::Checkbox   ("Ambient Color Str Sky Value Sync", &ambientStrSkyValueSync);
             ImGui::ColorEdit3 ("Player Light",           &lightColor.r);
             ImGui::DragFloat  ("Player Light Power",     &lightPower);
+            ImGui::Checkbox   ("Sun Enabled",            &sunEnabled);
             ImGui::ColorEdit3 ("Sun Light",              &sunColor.r);
             ImGui::DragFloat3 ("Sun Dir",                &sunDir.x,    0.005f, -1.f, 1.f);
             ImGui::DragFloat3 ("Sun Interp",             &sunInterp.x, 0.001f, -1.f, 1.f);
@@ -488,8 +492,6 @@ void update(float delta)
         { ImGui::InputTextMultiline("#VertShaderEdit", &vertShaderStr, { ImGui::GetContentRegionAvail().x, 600 }, textEditFlags); }
         if (ImGui::CollapsingHeader("Frag Shader", headerFlags))
         { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }, textEditFlags); }
-        if (ImGui::CollapsingHeader("Shadow Map", headerFlags))
-        { ImGui::Image(R3D::shadowTex, Vector2f(128.f, 128.f) * 4.f); }
 
         if (ImGui::CollapsingHeader("CSMs", headerFlags))
         {
@@ -519,6 +521,11 @@ void update(float delta)
     {
         R3D::ambientColor = ColorRGBf(R3D::skyColor);
     }
+    if (ambientStrSkyValueSync)
+    {
+        auto skyColorHsv = ColorHSVf(ColorRGBf(R3D::skyColor));
+        R3D::ambientLightStrength = skyColorHsv.v;
+    }
 
     sunDir += sunInterp * delta;
     sunDir.x = std::clamp(sunDir.x, -1.f, 1.f);
@@ -531,7 +538,10 @@ void draw(float delta)
     //sunDir = Vector3f::forward() * controller.camera.rot;
     Vector3f lightPos  = controller.getPos();
     R3D::addPointLight(lightPos, ColorRGBf(lightColor), lightPower);
-    R3D::addDirectionalLight(sunDir, ColorRGBf(sunColor), sunPower);
+
+    if (sunEnabled)
+        R3D::addDirectionalLight(sunDir, ColorRGBf(sunColor), sunPower);
+
     //R3D::addSpotLight(lightPos, Vector3f(controller.forward), spotAngle, spotOuterAngle, ColorRGBf(spotColor), spotPower);
 
     Vector3f soffset = Vector3f::up() * 4.f + Vector3f::right() * 4;

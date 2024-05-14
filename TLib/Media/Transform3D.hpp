@@ -5,7 +5,7 @@
 struct Transform3D
 {
     Vector3f  pos;
-    Vector3f  scale ={ 1, 1, 1 };
+    Vector3f  scale = { 1, 1, 1 };
     Quat      rot{ glm::vec3(0.f, 0.f, 0.f) };
 
     Transform3D() = default;

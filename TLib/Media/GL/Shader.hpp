@@ -12,6 +12,7 @@
 #include <TLib/Media/GL/UniformBuffer.hpp>
 #include <TLib/Containers/Array.hpp>
 #include <TLib/Containers/UnorderedMap.hpp>
+#include <TLib/Types/ColorRGBf.hpp>
 
 class Shader : NonCopyable
 {

@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <string>
@@ -14,15 +15,11 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
-// There's always a min/max macro somewhere. Make it stop!!!
-#undef min
-#undef max
+#include <TLib/Convert.hpp>
 
-constexpr float uint8ToFloat(uint8_t value)
-{ return value / 255.f; }
-
-constexpr uint8_t floatToUint8(float value)
-{ return static_cast<uint8_t>(value * 255.f); }
+// TODO: All these types need to be move to their own header/source files
+// Managing their operators and conversions
+// all in one file is a nightmare.
 
 template <typename T>
 struct Vector2
@@ -535,30 +532,6 @@ struct ColorRGBAf
     static constexpr inline ColorRGBAf whiteSmoke               () { return ColorRGBAf(245,245,245) ; };
 };
 
-// Represents a RGB color with values 0f-1f
-struct ColorRGBf
-{
-    constexpr ColorRGBf() = default;
-
-    constexpr ColorRGBf(float rv, float gv, float bv) :
-        r{rv}, g{gv}, b{bv} { }
-
-    explicit constexpr ColorRGBf(int rv, int gv, int bv) :
-        r{uint8ToFloat(rv)}, g{uint8ToFloat(gv)}, b{uint8ToFloat(bv)} { }
-
-    explicit constexpr ColorRGBf(const ColorRGBAf& rgba) :
-        r{rgba.r}, g{rgba.g}, b{rgba.b} { }
-
-    operator Vector3f() const { return Vector3f(r, g, b); }
-
-    float r = 0;
-    float g = 0;
-    float b = 0;
-
-    bool operator==(const ColorRGBf& other) { return r == other.r && g == other.g && b == other.b; }
-    bool operator!=(const ColorRGBf& other) { return !(operator==(other)); }
-};
-
 // Represents a RGBA color with values 0-255
 struct ColorRGBAi
 {
@@ -858,13 +831,13 @@ struct Quat
     Quat operator*=(const Quat& other) { return toGlm() * other.toGlm(); }
 };
 
-Vector3f operator* (const Vector3f& a, const Quat& b) { return Vector3f(a.toGlm() * b.toGlm()); }
-Vector3f operator*=(      Vector3f& a, const Quat& b) {    a = Vector3f(a.toGlm() * b.toGlm()); return a; }
+static Vector3f operator* (const Vector3f& a, const Quat& b) { return Vector3f(a.toGlm() * b.toGlm()); }
+static Vector3f operator*=(      Vector3f& a, const Quat& b) {    a = Vector3f(a.toGlm() * b.toGlm()); return a; }
 
-Vector3f operator* (const Vector3f& a, const Mat4f& b) { return Vector3f(glm::vec4(a.x, a.y, a.z, 1.f) * b.toGlm()); }
-Vector3f operator*=(      Vector3f& a, const Mat4f& b) {    a = Vector3f(glm::vec4(a.x, a.y, a.z, 1.f) * b.toGlm()); return a; }
+static Vector3f operator* (const Vector3f& a, const Mat4f& b) { return Vector3f(glm::vec4(a.x, a.y, a.z, 1.f) * b.toGlm()); }
+static Vector3f operator*=(      Vector3f& a, const Mat4f& b) {    a = Vector3f(glm::vec4(a.x, a.y, a.z, 1.f) * b.toGlm()); return a; }
 
-Vector4f operator* (const Vector4f& a, const Mat4f& b) { return a.toGlm() * b.toGlm(); }
-Vector4f operator*=(      Vector4f& a, const Mat4f& b) {    a = a.toGlm() * b.toGlm(); return a; }
+static Vector4f operator* (const Vector4f& a, const Mat4f& b) { return a.toGlm() * b.toGlm(); }
+static Vector4f operator*=(      Vector4f& a, const Mat4f& b) {    a = a.toGlm() * b.toGlm(); return a; }
 
-Vector4f operator* (const Mat4f& m, const Vector4f& v) { return m.toGlm() * v.toGlm(); }
+static Vector4f operator* (const Mat4f& m, const Vector4f& v) { return m.toGlm() * v.toGlm(); }
