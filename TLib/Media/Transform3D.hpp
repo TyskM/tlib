@@ -1,6 +1,6 @@
 
 #pragma once
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 
 struct Transform3D
 {

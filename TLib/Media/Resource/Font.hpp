@@ -5,7 +5,7 @@
 
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/Resource/Texture.hpp>
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Containers/Vector.hpp>
 #include <TLib/thirdparty/RectPack2D.hpp>
 using namespace rectpack2D;

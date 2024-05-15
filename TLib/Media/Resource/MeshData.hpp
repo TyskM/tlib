@@ -1,6 +1,6 @@
 #pragma once
 
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Pointers.hpp>
 #include <TLib/Media/Resource/TextureData.hpp>
 #include <TLib/Files.hpp>

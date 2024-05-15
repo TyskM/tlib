@@ -1,7 +1,7 @@
 
 // TODO: Finish model example
 
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/View.hpp>
 #include <TLib/RNG.hpp>

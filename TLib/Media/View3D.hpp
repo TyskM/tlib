@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Media/Renderer.hpp>
 
 struct View3D

@@ -2,7 +2,7 @@
 
 // TODO: controller support
 
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Media/Platform/SDL2.hpp>
 #include <TLib/String.hpp>
 #include <TLib/Containers/Vector.hpp>

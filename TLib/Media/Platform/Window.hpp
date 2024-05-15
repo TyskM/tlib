@@ -6,7 +6,7 @@
 #include <TLib/Media/Platform/SDL2.hpp>
 #include <TLib/Media/Logging.hpp>
 #include <TLib/NonAssignable.hpp>
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Macros.hpp>
 #include <TLib/String.hpp>
 

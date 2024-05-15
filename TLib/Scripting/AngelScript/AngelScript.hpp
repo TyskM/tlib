@@ -9,7 +9,7 @@
 #include <magic_enum.hpp>
 
 // For registering only
-#include "../../DataStructures.hpp"
+#include "../../Types/Types.hpp"
 #include "../../Media/Window.hpp" // TODO: Make these separate headers
 #include "../../Media/Texture.hpp"
 

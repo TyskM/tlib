@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 
 static inline Rectf getBestImageRect(Vector2f targetSize, Vector2f imgSize)
 {

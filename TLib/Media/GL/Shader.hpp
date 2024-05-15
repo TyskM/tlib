@@ -5,7 +5,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/mat4x4.hpp>
 #include <unordered_map>
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/NonAssignable.hpp>
 #include <TLib/Macros.hpp>
 #include <TLib/Media/GL/GLState.hpp>

@@ -5,7 +5,7 @@
 #pragma once
 
 #include <TLib/Media/GL/GLHelpers.hpp>
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Containers/Vector.hpp>
 
 /**

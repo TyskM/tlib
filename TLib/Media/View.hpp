@@ -1,6 +1,6 @@
 #pragma once
 
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Math.hpp>
 #include <glm/ext.hpp>
 

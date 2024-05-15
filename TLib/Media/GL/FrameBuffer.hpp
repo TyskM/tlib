@@ -3,7 +3,7 @@
 #include <TLib/Media/GL/GLHelpers.hpp>
 #include <TLib/Media/Resource/Texture.hpp>
 #include <TLib/Media/GL/GLState.hpp>
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Misc.hpp>
 
 enum class FrameBufferAttachmentType : GLenum

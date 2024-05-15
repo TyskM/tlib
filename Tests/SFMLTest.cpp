@@ -1,6 +1,6 @@
 
 #include <SFML/Graphics.hpp>
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 
 // For comparison to SimpleSpriteTest
 struct SFMLTest

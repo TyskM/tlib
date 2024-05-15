@@ -2,7 +2,7 @@
 #pragma once
 
 #include <TLib/Types/Types.hpp>
-#include <TLib/DataStructures.hpp>
+#include <TLib/Types/Types.hpp>
 #include <TLib/Embed/Embed.hpp>
 #include <TLib/Containers/Stack.hpp>
 #include <TLib/Containers/Variant.hpp>
