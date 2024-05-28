@@ -385,8 +385,8 @@ private:
     static inline bool _verifyControl(const ActionControl& ctrl)
     {
         const auto modkeys = KMOD_CTRL | KMOD_SHIFT | KMOD_ALT | KMOD_GUI;
-        const bool MOD_NONE = !(SDL_GetModState() & modkeys);
-
-        return ctrl.modifier == (SDL_GetModState() & modkeys);
+        const auto modState = SDL_GetModState();
+        const bool MOD_NONE = !(modState & modkeys);
+        return ctrl.modifier == (modState & modkeys);
     }
 }; 

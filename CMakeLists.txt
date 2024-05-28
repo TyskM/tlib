@@ -13,54 +13,43 @@ enable_testing()
 add_subdirectory("Tests")
 add_subdirectory("Demos")
 
-include(CMakeParseArguments)
+# Like file(glob) but appends, not overwrites
+macro(GLOB_APPEND out pattern)
+    file (GLOB temp LIST_DIRECTORIES false CONFIGURE_DEPENDS ${pattern})
+    if(NOT DEFINED ${out})
+        set(${out} "")
+    endif()
+    set(${out} "${${out}};${temp}") # lmao this works
+endmacro()
 
-function(glob_append out pattern)
-    file (GLOB temp LIST_DIRECTORIES false ${pattern})
-    list (APPEND temp ${out})
-endfunction()
+macro(GLOB_RECURSE_APPEND out pattern)
+    file (GLOB_RECURSE temp CONFIGURE_DEPENDS ${pattern})
+    if(NOT DEFINED ${out})
+        set(${out} "")
+    endif()
+    set(${out} "${${out}};${temp}")
+endmacro()
 
-GLOB_APPEND(SOURCE_FILES "TLib/*.cpp;TLib/*.hpp;TLib/*.h")
-#file(GLOB         SOURCE_FILES LIST_DIRECTORIES false CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h)
-#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Containers/*.hpp)
-#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/ECS/*.hpp)
-#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Embed/*.hpp)
-#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Game/*.hpp)
-#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Media/*.hpp)
-#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Scripting/*.hpp)
-#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Types/*.hpp)
-#
-## Third party
-#file(GLOB         SOURCE_FILES LIST_DIRECTORIES false CONFIGURE_DEPENDS
-#TLib/thirdparty/*.cpp
-#TLib/thirdparty/*.hpp
-#TLib/thirdparty/*.h)
-#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
-#TLib/thirdparty/angelscript/*.hpp
-#TLib/thirdparty/angelscript/*.cpp
-#TLib/thirdparty/angelscript/*.h)
-#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
-#TLib/thirdparty/angelscript-docgen/*.hpp
-#TLib/thirdparty/angelscript-docgen/*.cpp
-#TLib/thirdparty/angelscript-docgen/*.h)
-#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
-#TLib/thirdparty/cute_headers/*.hpp
-#TLib/thirdparty/cute_headers/*.cpp
-#TLib/thirdparty/cute_headers/*.h)
-#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
-#TLib/thirdparty/multiarray/*.hpp
-#TLib/thirdparty/multiarray/*.cpp
-#TLib/thirdparty/multiarray/*.h)
-#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
-#TLib/thirdparty/plf/*.hpp
-#TLib/thirdparty/plf/*.cpp
-#TLib/thirdparty/plf/*.h)
-#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
-#TLib/thirdparty/rectpack2d/*.hpp
-#TLib/thirdparty/rectpack2d/*.cpp
-#TLib/thirdparty/rectpack2d/*.h)
+GLOB_APPEND        (SOURCE_FILES "TLib/*.cpp;TLib/*.hpp;TLib/*.h")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Containers/*.hpp")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/ECS/*.hpp")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Embed/*.hpp")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Game/*.hpp")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Media/*.hpp")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Scripting/*.hpp")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Types/*.hpp")
 
-### AngelScript
+# Third party
+GLOB_APPEND        (SOURCE_FILES "TLib/thirdparty/*.cpp;TLib/thirdparty/*.hpp;TLib/thirdparty/*.h")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/thirdparty/angelscript/*.hpp;TLib/thirdparty/angelscript/*.cpp;TLib/thirdparty/angelscript/*.h")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/thirdparty/angelscript-docgen/*.hpp;TLib/thirdparty/angelscript-docgen/*.cpp;TLib/thirdparty/angelscript-docgen/*.h")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/thirdparty/cute_headers/*.hpp;TLib/thirdparty/cute_headers/*.cpp;TLib/thirdparty/cute_headers/*.h")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/thirdparty/multiarray/*.hpp;TLib/thirdparty/multiarray/*.cpp;TLib/thirdparty/multiarray/*.h")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/thirdparty/plf/*.hpp;TLib/thirdparty/plf/*.cpp;TLib/thirdparty/plf/*.h")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/thirdparty/rectpack2d/*.hpp;TLib/thirdparty/rectpack2d/*.cpp;TLib/thirdparty/rectpack2d/*.h")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/thirdparty/ImGuiColorTextEdit/*.hpp;TLib/thirdparty/ImGuiColorTextEdit/*.cpp;TLib/thirdparty/ImGuiColorTextEdit/*.h")
+
+# AngelScript
 if(MSVC AND CMAKE_CL_64)
     enable_language(ASM_MASM)
     set(SOURCE_FILES "${SOURCE_FILES};TLib/thirdparty/angelscript/as_callfunc_x64_msvc_asm.asm")
@@ -78,11 +67,11 @@ endforeach()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-add_library(TLib STATIC ${SOURCE_FILES})
+add_library(TLib STATIC ${SOURCE_FILES} "TLib/thirdparty/zep/config_app.h")
 add_library(TLib::TLib ALIAS TLib)
 target_compile_features(TLib PUBLIC cxx_std_20)
 
-add_executable(TLibTest "TLib/main.cpp")
+add_executable(TLibTest "TLib/main.cpp" "TLib/thirdparty/zep/config_app.h")
 target_link_libraries(TLibTest PUBLIC TLib)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
@@ -197,7 +186,7 @@ target_link_libraries(TLib PUBLIC freetype)
 ##
 #### Embedder
 enable_testing()
-add_executable(Embedder "Embedder/embedder.cpp")
+add_executable(Embedder "Embedder/embedder.cpp" "TLib/thirdparty/zep/config_app.h")
 target_compile_features(Embedder PUBLIC cxx_std_20)
 set_target_properties(Embedder PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 
