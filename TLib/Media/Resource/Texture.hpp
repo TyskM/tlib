@@ -11,6 +11,7 @@
 #include <TLib/Macros.hpp>
 #include <TLib/String.hpp>
 #include <TLib/thirdparty/stbi.hpp>
+#include <magic_enum.hpp>
 
 #include "IResource.hpp"
 #include "TextureData.hpp"
@@ -32,10 +33,10 @@ enum class TextureMagFilter : GLenum
 };
 
 // TODO: Deprecated
-enum class TextureFiltering
+enum class TextureFiltering : uint8_t
 {
-    Nearest = GL_NEAREST,
-    Linear  = GL_LINEAR
+    Nearest,
+    Linear
 };
 
 // TODO: add the rest of the formats
@@ -105,6 +106,12 @@ static inline int32_t getFormatSize(TexInternalFormats format)
     case TexInternalFormats::RGBA: return 4; break;
     default: break;
     }
+}
+
+static GLenum toGLFlag(TextureFiltering flag)
+{
+    constexpr Array<GLenum, 2> map = { GL_NEAREST, GL_LINEAR };
+    return map[(int)flag];
 }
 
 // OpenGL Texture
@@ -352,8 +359,8 @@ public:
     void setFilter(TextureFiltering min, TextureFiltering max)
     {
         bind();
-        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<int>(min)) );
-        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<int>(max)) );
+        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, toGLFlag(min)) );
+        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, toGLFlag(max)) );
     }
 
     void setFilter(TextureMinFilter min, TextureMagFilter mag)

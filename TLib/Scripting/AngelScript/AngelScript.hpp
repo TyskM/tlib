@@ -1,19 +1,20 @@
 #pragma once
-#include "../../Logging.hpp"
-#include "../../Pointers.hpp"
-#include "../../NonAssignable.hpp"
-#include "../../String.hpp"
-#include "../../Files.hpp"
-#include "../../Macros.hpp"
-#include "../../Resolve.hpp"
+
+#include <TLib/Pointers.hpp>
+#include <TLib/NonAssignable.hpp>
+#include <TLib/String.hpp>
+#include <TLib/Files.hpp>
+#include <TLib/Macros.hpp>
+#include <TLib/Resolve.hpp>
 #include <magic_enum.hpp>
 
 // For registering only
-#include "../../Types/Types.hpp"
-#include "../../Media/Window.hpp" // TODO: Make these separate headers
-#include "../../Media/Texture.hpp"
+#include <TLib/Types/Types.hpp>
+#include <TLib/Media/Platform/Window.hpp> // TODO: Make these separate headers
+#include <TLib/Media/Resource/Texture.hpp>
 
 /*
+    These instruction are for before i used CMake, but they will stay, just in case.
     HOW TO UNFRICK ANGELSCRIPT:
     https://stackoverflow.com/questions/4548763/compiling-assembly-in-visual-studio
     1. Don't use vcpkg its trash
@@ -24,13 +25,13 @@
     5. Profit
 */
 #define AS_GENERATE_DOCUMENTATION 1
-#include "../../thirdparty/angelscript/angelscript.h"
-#include "../../thirdparty/angelscript/as_scriptengine.h"
-#include "../../thirdparty/angelscript/scriptstdstring/scriptstdstring.h"
-#include "../../thirdparty/angelscript/scriptstdstring/scriptstdstring.h"
-#include "../../thirdparty/angelscript-docgen/docgen.h"
-#include "ScriptBuilder.hpp"
-#include "../Logging.hpp"
+#include <TLib/thirdparty/angelscript/angelscript.h>
+#include <TLib/thirdparty/angelscript/as_scriptengine.h>
+#include <TLib/thirdparty/angelscript/scriptstdstring/scriptstdstring.h>
+#include <TLib/thirdparty/angelscript/scriptstdstring/scriptstdstring.h>
+#include <TLib/thirdparty/angelscript-docgen/docgen.h>
+#include <TLib/Scripting/AngelScript/ScriptBuilder.hpp>
+#include <TLib/Scripting/AngelScript/Logging.hpp>
 
 #include <new>
 
@@ -39,12 +40,12 @@ using asDocGen::ScriptDocumentationOptions;
 
 struct ScriptingEngine
 {
-    String defaultNamespace = "___DEFAULT_NAMESPACE__";
-    asIScriptEngine* engine = nullptr;
+    String                       defaultNamespace = "___DEFAULT_NAMESPACE__";
+    asIScriptEngine*             engine = nullptr;
     UPtr<DocumentationGenerator> docGen;
-    fs::path docsOutDir = "mods/Documentation.html";
-    fs::path stubsOutDir = "mods/Stubs.hpp";
-    ScriptDocumentationOptions _docgenOptions; // Read only
+    Path                         docsOutDir  = "mods/Documentation.html";
+    Path                         stubsOutDir = "mods/Stubs.hpp";
+    ScriptDocumentationOptions  _docgenOptions; // Read only
 
     bool created() { return engine != nullptr; }
 
@@ -136,7 +137,8 @@ struct ScriptingEngine
     {
         selog->info("Registering enum: {}", name);
         int rr = engine->RegisterEnum(name.c_str()); ASSERT(rr >= 0);
-        for (auto& v : magic_enum::enum_entries<EnumType>())
+        auto enumEntries = magic_enum::enum_entries<EnumType>();
+        for (auto& v : enumEntries)
         {
             int r = engine->RegisterEnumValue(name.c_str(), String(v.second).c_str(), static_cast<int>(v.first));
             ASSERT(r >= 0);
@@ -157,6 +159,11 @@ struct ScriptingEngine
     int registerObjectValueType(const String& name)
     {
         selog->info("Registering object value type: {}", name);
+
+        auto duplicateType = engine->GetTypeInfoByName(name.c_str());
+        if (duplicateType)
+        { tlog::error("A type with the name '{}' already exists!", name); return -13; }
+
         int rr = engine->RegisterObjectType(name.c_str(),
                                            sizeof(ObjectType), asOBJ_VALUE | asGetTypeTraits<ObjectType>());
         ASSERT(rr >= 0);
@@ -356,53 +363,53 @@ struct ScriptingEngine
 
         registerObjectValueType<T>(type);
         registerObjectConstructor<T, float, float>(type, f("void new({wrapped} x, {wrapped} y)"));
-        registerObjectProperty (type, f("{wrapped} x"), &T::x);
-        registerObjectProperty (type, f("{wrapped} y"), &T::y);
-        registerObjectMethod<T>(type, f("{wrapped} angle()"), &T::angle);
-        registerObjectMethod<T>(type, f("{wrapped} angleTo({type}&in other)"), &T::angleTo);
-        registerObjectMethod<T>(type, f("{wrapped} angleToRel({type}&in other)"), &T::angleToRel);
-        registerObjectMethod<T>(type, f("void      rotate({wrapped} radians)"), &T::rotate);
-        registerObjectMethod<T>(type, f("{type}    rotated({wrapped})"), resolve<const wrappedType>(&T::rotated));
+        registerObjectProperty (type, f("{wrapped} x"),                                  &T::x);
+        registerObjectProperty (type, f("{wrapped} y"),                                  &T::y);
+        registerObjectMethod<T>(type, f("{wrapped} angle()"),                            &T::angle);
+        registerObjectMethod<T>(type, f("{wrapped} angleTo({type}&in other)"),           &T::angleTo);
+        registerObjectMethod<T>(type, f("void      rotate({wrapped} radians)"),          &T::rotate);
+        registerObjectMethod<T>(type, f("{type}    rotated({wrapped})"),                 resolve<const wrappedType>(&T::rotated));
         registerObjectMethod<T>(type, f("{type}    rotated({wrapped} radians, {type}&in origin)"), resolve<const wrappedType, const T&>(&T::rotated));
-        registerObjectMethod<T>(type, f("void      normalize()"), &T::normalize);
-        registerObjectMethod<T>(type, f("{type}    normalized()"), &T::normalized);
-        registerObjectMethod<T>(type, f("{wrapped} dot({type}&in other)"), &T::dot);
-        registerObjectMethod<T>(type, f("{wrapped} cross({type}&in other)"), &T::cross);
-        registerObjectMethod<T>(type, f("{type}    reflect({type}&in normal)"), &T::reflect);
-        registerObjectMethod<T>(type, f("{wrapped} length()"), &T::length);
-        registerObjectMethod<T>(type, f("{wrapped} lengthSquared()"), &T::lengthSquared);
-        registerObjectMethod<T>(type, f("{wrapped} distanceTo({type}&in other)"), &T::distanceTo);
+        registerObjectMethod<T>(type, f("void      normalize()"),                        &T::normalize);
+        registerObjectMethod<T>(type, f("{type}    normalized()"),                       &T::normalized);
+        registerObjectMethod<T>(type, f("{wrapped} dot({type}&in other)"),               &T::dot);
+        registerObjectMethod<T>(type, f("{wrapped} cross({type}&in other)"),             &T::cross);
+        registerObjectMethod<T>(type, f("{type}    reflect({type}&in normal)"),          &T::reflect);
+        registerObjectMethod<T>(type, f("{wrapped} length()"),                           &T::length);
+        registerObjectMethod<T>(type, f("{wrapped} lengthSquared()"),                    &T::lengthSquared);
+        registerObjectMethod<T>(type, f("{wrapped} distanceTo({type}&in other)"),        &T::distanceTo);
         registerObjectMethod<T>(type, f("{wrapped} distanceToSquared({type}&in other)"), &T::distanceToSquared);
-        registerObjectMethod<T>(type, f("{type}    floored()"), &T::floored);
-        registerObjectMethod<T>(type, f("{type}    ceiled()"), &T::ceiled);
-        registerObjectMethod<T>(type, f("{type}    rounded()"), &T::rounded);
-        registerObjectMethod<T>(type, f("{type}    abs()"), &T::abs);
-        registerObjectMethod<T>(type, f("{type}    sqrt()"), &T::sqrt);
-        registerObjectMethod<T>(type, f("{type}    pow({wrapped} value)"), &T::pow);
-        registerObjectMethod<T>(type, f("String    toString()"), &T::toString);
-        registerObjectMethod<T>(type, f("{type}&   opAssign({type}&in other)"), resolve<const T&>(&T::operator=));
-        registerObjectMethod<T>(type, f("bool      opEquals({type}&in other)"), &Vector2f::operator==);
-        registerObjectMethod<T>(type, f("{type}    opNeg()"), resolve< >(&T::operator-));
-        registerObjectMethod<T>(type, f("{type}    opAdd(const {type}&in other)"), &Vector2f::operator+);
-        registerObjectMethod<T>(type, f("{type}    opSub(const {type}&in other)"), resolve<const T&>(&T::operator-));
-        registerObjectMethod<T>(type, f("{type}    opMul(const {type}&in other)"), resolve<const T&>(&T::operator*));
-        registerObjectMethod<T>(type, f("{type}    opDiv(const {type}&in other)"), resolve<const T&>(&T::operator/));
-        registerObjectMethod<T>(type, f("{type}    opMul(const int&in other)"), resolve<const int&>(&T::operator*));
-        registerObjectMethod<T>(type, f("{type}    opDiv(const int&in other)"), resolve<const int&>(&T::operator/));
-        registerObjectMethod<T>(type, f("{type}    opMul(const float&in other)"), resolve<const float&>(&T::operator*));
-        registerObjectMethod<T>(type, f("{type}    opDiv(const float&in other)"), resolve<const float&>(&T::operator/));
-        registerObjectMethod<T>(type, f("{type}    opAddAssign(const {type}&in other)"), &T::operator+=);
-        registerObjectMethod<T>(type, f("{type}    opSubAssign(const {type}&in other)"), &T::operator-=);
-        registerObjectMethod<T>(type, f("{type}    opMulAssign(const {type}&in other)"), resolve<const T&>(&T::operator*=));
-        registerObjectMethod<T>(type, f("{type}    opDivAssign(const {type}&in other)"), resolve<const T&>(&T::operator/=));
-        registerObjectMethod<T>(type, f("{type}    opMulAssign(const int&in other)"), resolve<const int&>(&T::operator*=));
-        registerObjectMethod<T>(type, f("{type}    opDivAssign(const int&in other)"), resolve<const int&>(&T::operator/=));
-        registerObjectMethod<T>(type, f("{type}    opMulAssign(const float&in other)"), resolve<const float&>(&T::operator*=));
-        registerObjectMethod<T>(type, f("{type}    opDivAssign(const float&in other)"), resolve<const float&>(&T::operator/=));
+        registerObjectMethod<T>(type, f("{type}    floored()"),                          &T::floored);
+        registerObjectMethod<T>(type, f("{type}    ceiled()"),                           &T::ceiled);
+        registerObjectMethod<T>(type, f("{type}    rounded()"),                          &T::rounded);
+        registerObjectMethod<T>(type, f("{type}    abs()"),                              &T::abs);
+        registerObjectMethod<T>(type, f("{type}    sqrt()"),                             &T::sqrt);
+        registerObjectMethod<T>(type, f("{type}    pow({wrapped} value)"),               &T::pow);
+        registerObjectMethod<T>(type, f("String    toString()"),                         &T::toString);
+        registerObjectMethod<T>(type, f("{type}&   opAssign({type}&in other)"),          resolve<const T&>(&T::operator=));
+        registerObjectMethod<T>(type, f("bool      opEquals({type}&in other)"),          &T::operator==);
+        registerObjectMethod<T>(type, f("{type}    opNeg()"),                            resolve< >          (&T::operator-));
+        registerObjectMethod<T>(type, f("{type}    opAdd(const {type}&in other)"),       resolve<const T&>   (&T::operator+));
+        registerObjectMethod<T>(type, f("{type}    opSub(const {type}&in other)"),       resolve<const T&>   (&T::operator-));
+        registerObjectMethod<T>(type, f("{type}    opMul(const {type}&in other)"),       resolve<const T&>   (&T::operator*));
+        registerObjectMethod<T>(type, f("{type}    opDiv(const {type}&in other)"),       resolve<const T&>   (&T::operator/));
+        registerObjectMethod<T>(type, f("{type}    opMul(const int&in other)"),          resolve<const int>  (&T::operator*));
+        registerObjectMethod<T>(type, f("{type}    opDiv(const int&in other)"),          resolve<const int>  (&T::operator/));
+        registerObjectMethod<T>(type, f("{type}    opMul(const float&in other)"),        resolve<const float>(&T::operator*));
+        registerObjectMethod<T>(type, f("{type}    opDiv(const float&in other)"),        resolve<const float>(&T::operator/));
+        registerObjectMethod<T>(type, f("{type}    opAddAssign(const {type}&in other)"), resolve<const T&>   (&T::operator+=));
+        registerObjectMethod<T>(type, f("{type}    opSubAssign(const {type}&in other)"), resolve<const T&>   (&T::operator-=));
+        registerObjectMethod<T>(type, f("{type}    opMulAssign(const {type}&in other)"), resolve<const T&>   (&T::operator*=));
+        registerObjectMethod<T>(type, f("{type}    opDivAssign(const {type}&in other)"), resolve<const T&>   (&T::operator/=));
+        registerObjectMethod<T>(type, f("{type}    opMulAssign(const int&in other)"),    resolve<const int>  (&T::operator*=));
+        registerObjectMethod<T>(type, f("{type}    opDivAssign(const int&in other)"),    resolve<const int>  (&T::operator/=));
+        registerObjectMethod<T>(type, f("{type}    opMulAssign(const float&in other)"),  resolve<const float>(&T::operator*=));
+        registerObjectMethod<T>(type, f("{type}    opDivAssign(const float&in other)"),  resolve<const float>(&T::operator/=));
     }
 
     void registerGraphics()
     {
+        registerEnum<TextureFiltering>("TextureFiltering");
         registerEnum<WindowFlags>("WindowFlags");
 
         const String winCreateParams = "WindowCreateParams";
@@ -418,7 +425,6 @@ struct ScriptingEngine
         registerObjectMethod<Window>(winName, "void create(const WindowCreateParams&in params)", &Window::create);
         registerObjectMethod<Window>(winName, "Vector2i getSize() const", &Window::getSize);
 
-        registerEnum<TextureFiltering>("TextureFiltering");
         const String texName = "Texture";
         registerObjectRefType<Texture>(texName);
         registerObjectMethod<Texture>(texName, "bool loadFromFile(String path)", &Texture::loadFromFile);
@@ -491,8 +497,8 @@ struct ScriptingEngine
     // Then all methods are valid :)))
     struct ScriptModule
     {
-        String name;
-        ScriptBuilder builder;
+        String           name;
+        ScriptBuilder    builder;
         ScriptingEngine* engine = nullptr;
         asIScriptModule* module = nullptr;
 
@@ -500,7 +506,7 @@ struct ScriptingEngine
 
         void create(ScriptingEngine& engine, const String& name)
         {
-            this->name = name;
+            this->name   = name;
             this->engine = &engine;
             int r = builder.startNewModule(engine.engine, name.c_str());
             if (r < 0)
@@ -573,7 +579,6 @@ struct ScriptingEngine
         ctx.execute();
     }
 
-
     #pragma endregion
 
     #pragma region Misc
@@ -637,7 +642,12 @@ struct ScriptingEngine
     };
 
     void generateDocs()
-    { docGen->Generate(); }
+    {
+        selog->info("Generating docs");
+        int ret = docGen->Generate();
+        if (ret != asDocGen::asDOCGEN_Success)
+        { selog->error("Failed to generate docs. Error Code: {}", ret); }
+    }
 
     void generateStubs()
     {
@@ -755,7 +765,7 @@ struct ScriptingEngine
                 // Generate a not equals op, because AS doesn't have one.
                 if (opStr == "operator==")
                 {
-                    strhelp::replaceFirst(sigStr, "operator==", "operator!=");
+                    strhelp::replaceFirst<String>(sigStr, "operator==", "operator!=");
                     ss << indent(4) << sigStr << ";\n";
                 }
 
@@ -834,101 +844,101 @@ struct ScriptingEngine
     // "DROP" if should not parse
     static String cppOpToASOp(String cppOp, bool hasParams)
     {
-        if (cppOp == "operator[]") { return "opIndex"; }
+        if      (cppOp == "operator[]")   { return "opIndex"; }
         else if (cppOp == "operator-" && !hasParams) { return "opNeg"; }
-        else if (cppOp == "operator~") { return "opCom"; }
-        else if (cppOp == "operator++") { return "opPreInc"; }
-        else if (cppOp == "operator--") { return "opPreDec"; }
-        else if (cppOp == "operator++") { return "opPostInc"; }
-        else if (cppOp == "operator--") { return "opPostDec"; }
-        else if (cppOp == "operator==") { return "opEquals"; }
-        else if (cppOp == "operator!=") { return "DROP" /*"opEquals"*/; } // TODO: Handle duped operators
-        else if (cppOp == "operator<") { return "opCmp"; }
-        else if (cppOp == "operator<=") { return "DROP" /*"opCmp"*/; }
-        else if (cppOp == "operator>") { return "DROP" /*"opCmp"*/; }
-        else if (cppOp == "operator>=") { return "DROP" /*"opCmp"*/; }
-        else if (cppOp == "operator=") { return "opAssign"; }
-        else if (cppOp == "operator+=") { return "opAddAssign"; }
-        else if (cppOp == "operator-=") { return "opSubAssign"; }
-        else if (cppOp == "operator*=") { return "opMulAssign"; }
-        else if (cppOp == "operator/=") { return "opDivAssign"; }
-        else if (cppOp == "operator%=") { return "opModAssign"; }
-        else if (cppOp == "operator**=") { return "opPowAssign"; }
-        else if (cppOp == "operator&=") { return "opAndAssign"; }
-        else if (cppOp == "operator|=") { return "opOrAssign"; }
-        else if (cppOp == "operator^=") { return "opXorAssign"; }
-        else if (cppOp == "operator<<=") { return "opShlAssign"; }
-        else if (cppOp == "operator>>=") { return "opShrAssign"; }
+        else if (cppOp == "operator~")    { return "opCom"; }
+        else if (cppOp == "operator++")   { return "opPreInc"; }
+        else if (cppOp == "operator--")   { return "opPreDec"; }
+        else if (cppOp == "operator++")   { return "opPostInc"; }
+        else if (cppOp == "operator--")   { return "opPostDec"; }
+        else if (cppOp == "operator==")   { return "opEquals"; }
+        else if (cppOp == "operator!=")   { return "DROP" /*"opEquals"*/; } // TODO: Handle duped operators
+        else if (cppOp == "operator<")    { return "opCmp"; }
+        else if (cppOp == "operator<=")   { return "DROP" /*"opCmp"*/; }
+        else if (cppOp == "operator>")    { return "DROP" /*"opCmp"*/; }
+        else if (cppOp == "operator>=")   { return "DROP" /*"opCmp"*/; }
+        else if (cppOp == "operator=")    { return "opAssign"; }
+        else if (cppOp == "operator+=")   { return "opAddAssign"; }
+        else if (cppOp == "operator-=")   { return "opSubAssign"; }
+        else if (cppOp == "operator*=")   { return "opMulAssign"; }
+        else if (cppOp == "operator/=")   { return "opDivAssign"; }
+        else if (cppOp == "operator%=")   { return "opModAssign"; }
+        else if (cppOp == "operator**=")  { return "opPowAssign"; }
+        else if (cppOp == "operator&=")   { return "opAndAssign"; }
+        else if (cppOp == "operator|=")   { return "opOrAssign"; }
+        else if (cppOp == "operator^=")   { return "opXorAssign"; }
+        else if (cppOp == "operator<<=")  { return "opShlAssign"; }
+        else if (cppOp == "operator>>=")  { return "opShrAssign"; }
         else if (cppOp == "operator>>>=") { return "opUShrAssign"; }
-        else if (cppOp == "operator+") { return "opAdd"; }
-        else if (cppOp == "operator-") { return "opSub"; }
-        else if (cppOp == "operator*") { return "opMul"; }
-        else if (cppOp == "operator/") { return "opDiv"; }
-        else if (cppOp == "operator%") { return "opMod"; }
-        else if (cppOp == "operator**") { return "opPow"; }
-        else if (cppOp == "operator&") { return "opAnd"; }
-        else if (cppOp == "operator|") { return "opOr"; }
-        else if (cppOp == "operator^") { return "opXor"; }
-        else if (cppOp == "operator<<") { return "opShl"; }
-        else if (cppOp == "operator>>") { return "opShr"; }
-        else if (cppOp == "operator>>>") { return "opUShr"; }
+        else if (cppOp == "operator+")    { return "opAdd"; }
+        else if (cppOp == "operator-")    { return "opSub"; }
+        else if (cppOp == "operator*")    { return "opMul"; }
+        else if (cppOp == "operator/")    { return "opDiv"; }
+        else if (cppOp == "operator%")    { return "opMod"; }
+        else if (cppOp == "operator**")   { return "opPow"; }
+        else if (cppOp == "operator&")    { return "opAnd"; }
+        else if (cppOp == "operator|")    { return "opOr"; }
+        else if (cppOp == "operator^")    { return "opXor"; }
+        else if (cppOp == "operator<<")   { return "opShl"; }
+        else if (cppOp == "operator>>")   { return "opShr"; }
+        else if (cppOp == "operator>>>")  { return "opUShr"; }
 
         return "NULL";
     }
 
     static String asOpToCppOp(String asOp)
     {
-        if (asOp == "opIndex") { return "operator[]"  ; }
-        else if (asOp == "opNeg") { return "operator-"   ; }
-        else if (asOp == "opCom") { return "operator~"   ; }
-        else if (asOp == "opPreInc") { return "operator++"  ; }
-        else if (asOp == "opPreDec") { return "operator--"  ; }
-        else if (asOp == "opPostInc") { return "operator++"  ; }
-        else if (asOp == "opPostDec") { return "operator--"  ; }
-        else if (asOp == "opEquals") { return "operator=="  ; }
-        else if (asOp == "opEquals") { return "operator!="  ; }
-        else if (asOp == "opCmp") { return "operator<"   ; }
-        else if (asOp == "opCmp") { return "operator<="  ; }
-        else if (asOp == "opCmp") { return "operator>"   ; }
-        else if (asOp == "opCmp") { return "operator>="  ; }
-        else if (asOp == "opAssign") { return "operator="   ; }
-        else if (asOp == "opAddAssign") { return "operator+="  ; }
-        else if (asOp == "opSubAssign") { return "operator-="  ; }
-        else if (asOp == "opMulAssign") { return "operator*="  ; }
-        else if (asOp == "opDivAssign") { return "operator/="  ; }
-        else if (asOp == "opModAssign") { return "operator%="  ; }
-        else if (asOp == "opPowAssign") { return "operator**=" ; }
-        else if (asOp == "opAndAssign") { return "operator&="  ; }
-        else if (asOp == "opOrAssign") { return "operator|="  ; }
-        else if (asOp == "opXorAssign") { return "operator^="  ; }
-        else if (asOp == "opShlAssign") { return "operator<<=" ; }
-        else if (asOp == "opShrAssign") { return "operator>>=" ; }
+        if      (asOp == "opIndex")      { return "operator[]"  ; }
+        else if (asOp == "opNeg")        { return "operator-"   ; }
+        else if (asOp == "opCom")        { return "operator~"   ; }
+        else if (asOp == "opPreInc")     { return "operator++"  ; }
+        else if (asOp == "opPreDec")     { return "operator--"  ; }
+        else if (asOp == "opPostInc")    { return "operator++"  ; }
+        else if (asOp == "opPostDec")    { return "operator--"  ; }
+        else if (asOp == "opEquals")     { return "operator=="  ; }
+        else if (asOp == "opEquals")     { return "operator!="  ; }
+        else if (asOp == "opCmp")        { return "operator<"   ; }
+        else if (asOp == "opCmp")        { return "operator<="  ; }
+        else if (asOp == "opCmp")        { return "operator>"   ; }
+        else if (asOp == "opCmp")        { return "operator>="  ; }
+        else if (asOp == "opAssign")     { return "operator="   ; }
+        else if (asOp == "opAddAssign")  { return "operator+="  ; }
+        else if (asOp == "opSubAssign")  { return "operator-="  ; }
+        else if (asOp == "opMulAssign")  { return "operator*="  ; }
+        else if (asOp == "opDivAssign")  { return "operator/="  ; }
+        else if (asOp == "opModAssign")  { return "operator%="  ; }
+        else if (asOp == "opPowAssign")  { return "operator**=" ; }
+        else if (asOp == "opAndAssign")  { return "operator&="  ; }
+        else if (asOp == "opOrAssign")   { return "operator|="  ; }
+        else if (asOp == "opXorAssign")  { return "operator^="  ; }
+        else if (asOp == "opShlAssign")  { return "operator<<=" ; }
+        else if (asOp == "opShrAssign")  { return "operator>>=" ; }
         else if (asOp == "opUShrAssign") { return "operator>>>="; }
-        else if (asOp == "opAdd") { return "operator+"   ; }
-        else if (asOp == "opSub") { return "operator-"   ; }
-        else if (asOp == "opMul") { return "operator*"   ; }
-        else if (asOp == "opDiv") { return "operator/"   ; }
-        else if (asOp == "opMod") { return "operator%"   ; }
-        else if (asOp == "opPow") { return "operator**"  ; }
-        else if (asOp == "opAnd") { return "operator&"   ; }
-        else if (asOp == "opOr") { return "operator|"   ; }
-        else if (asOp == "opXor") { return "operator^"   ; }
-        else if (asOp == "opShl") { return "operator<<"  ; }
-        else if (asOp == "opShr") { return "operator>>"  ; }
-        else if (asOp == "opUShr") { return "operator>>>" ; }
+        else if (asOp == "opAdd")        { return "operator+"   ; }
+        else if (asOp == "opSub")        { return "operator-"   ; }
+        else if (asOp == "opMul")        { return "operator*"   ; }
+        else if (asOp == "opDiv")        { return "operator/"   ; }
+        else if (asOp == "opMod")        { return "operator%"   ; }
+        else if (asOp == "opPow")        { return "operator**"  ; }
+        else if (asOp == "opAnd")        { return "operator&"   ; }
+        else if (asOp == "opOr")         { return "operator|"   ; }
+        else if (asOp == "opXor")        { return "operator^"   ; }
+        else if (asOp == "opShl")        { return "operator<<"  ; }
+        else if (asOp == "opShr")        { return "operator>>"  ; }
+        else if (asOp == "opUShr")       { return "operator>>>" ; }
 
-        else if (asOp == "opAdd_r") { return "DROP"; }
-        else if (asOp == "opSub_r") { return "DROP"; }
-        else if (asOp == "opMul_r") { return "DROP"; }
-        else if (asOp == "opDiv_r") { return "DROP"; }
-        else if (asOp == "opMod_r") { return "DROP"; }
-        else if (asOp == "opPow_r") { return "DROP"; }
-        else if (asOp == "opAnd_r") { return "DROP"; }
-        else if (asOp == "opOr_r") { return "DROP"; }
-        else if (asOp == "opXor_r") { return "DROP"; }
-        else if (asOp == "opShl_r") { return "DROP"; }
-        else if (asOp == "opShr_r") { return "DROP"; }
-        else if (asOp == "opUShr_r") { return "DROP"; }
+        else if (asOp == "opAdd_r")      { return "DROP"; }
+        else if (asOp == "opSub_r")      { return "DROP"; }
+        else if (asOp == "opMul_r")      { return "DROP"; }
+        else if (asOp == "opDiv_r")      { return "DROP"; }
+        else if (asOp == "opMod_r")      { return "DROP"; }
+        else if (asOp == "opPow_r")      { return "DROP"; }
+        else if (asOp == "opAnd_r")      { return "DROP"; }
+        else if (asOp == "opOr_r")       { return "DROP"; }
+        else if (asOp == "opXor_r")      { return "DROP"; }
+        else if (asOp == "opShl_r")      { return "DROP"; }
+        else if (asOp == "opShr_r")      { return "DROP"; }
+        else if (asOp == "opUShr_r")     { return "DROP"; }
 
         return "NULL";
     }

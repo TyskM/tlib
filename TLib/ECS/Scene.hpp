@@ -6,6 +6,7 @@
 #include <TLib/Files.hpp>
 
 #include <TLib/ECS/MeshInstance3D.hpp>
+#include <TLib/ECS/Physics3D.hpp>
 
 struct Scene
 {
@@ -19,39 +20,40 @@ struct Scene
 
 
     ECS ecs;
+    Physics3DWorld phys3d;
 
-    System sysMeshInstance3DRender;
+    System sys_MeshInstance3DRender;
+    System sys_rigidBody3DFixedUpdate;
 
     float fixedTimeStep  = 1.f/60.f;
     float time           = 0;
     float lastUpdateTime = 0;
     float timeBuffer     = 0;
 
-    #pragma region Constructors/Destructors
-
-    void onSetRigidBody3D(Entity e, RigidBody3D& body)
-    {
-
-    }
-
-    #pragma endregion
-
     void init()
     {
-        sysMeshInstance3DRender = ecs.system<MeshInstance3D, const Transform3D>("MeshInstance3D Render").each(
-            [&](Entity e, MeshInstance3D& mesh, const Transform3D& tf) { MeshInstance3D::onRender(e, mesh, tf); });
+        // Setup Rendering
+        sys_MeshInstance3DRender = ecs.system<MeshInstance3D, const Transform3D>("MeshInstance3D Render").each(&MeshInstance3D_onRender);
+        
+        // Setup physics
+        phys3d.init();
+        sys_rigidBody3DFixedUpdate = ecs.system<const RigidBody3D, Transform3D>("RigidBody3D Fixed Update").each(&RigidBody3D_onFixedUpdate);
 
-        auto e = ecs.entity();
-        e.emplace<Transform3D>(Vector3f::up() * 5.f);
+        auto theHolyCube = ecs.entity();
+        emplaceComponent<Transform3D>(theHolyCube, Vector3f::up() * 5.f);
 
-        const Path p("assets/primitives/cube.obj");
-        e.emplace<MeshInstance3D>(p);
+        const Path theHolyCubeModel("assets/primitives/cube.obj");
+        emplaceComponent<MeshInstance3D>(theHolyCube, theHolyCubeModel);
+
+        auto& body = emplaceComponent<RigidBody3D>(theHolyCube, phys3d);
+        
     }
 
 
     void fixedUpdate(float delta)
     {
-
+        sys_rigidBody3DFixedUpdate.run(delta);
+        phys3d.simulate(delta);
     }
 
     void update(float delta)
@@ -69,6 +71,6 @@ struct Scene
 
     void render(float delta)
     {
-        sysMeshInstance3DRender.run(delta);
+        sys_MeshInstance3DRender.run(delta);
     }
 };

@@ -21,9 +21,9 @@ struct MeshInstance3D
         mesh = new Mesh(); // TODO: Leak
         mesh->loadFromFile(path);
     }
-
-    static void onRender(Entity e, MeshInstance3D& mesh, const Transform3D& tf)
-    {
-        R3D::drawModel(mesh.mesh.get(), tf);
-    }
 };
+
+static void MeshInstance3D_onRender(Entity e, MeshInstance3D& mesh, const Transform3D& tf)
+{
+    R3D::drawModel(mesh.mesh.get(), tf);
+}

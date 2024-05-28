@@ -13,7 +13,59 @@ enable_testing()
 add_subdirectory("Tests")
 add_subdirectory("Demos")
 
-file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h)
+include(CMakeParseArguments)
+
+function(glob_append out pattern)
+    file (GLOB temp LIST_DIRECTORIES false ${pattern})
+    list (APPEND temp ${out})
+endfunction()
+
+GLOB_APPEND(SOURCE_FILES "TLib/*.cpp;TLib/*.hpp;TLib/*.h")
+#file(GLOB         SOURCE_FILES LIST_DIRECTORIES false CONFIGURE_DEPENDS TLib/*.cpp TLib/*.hpp TLib/*.h)
+#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Containers/*.hpp)
+#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/ECS/*.hpp)
+#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Embed/*.hpp)
+#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Game/*.hpp)
+#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Media/*.hpp)
+#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Scripting/*.hpp)
+#file(GLOB_RECURSE SOURCE_FILES                        CONFIGURE_DEPENDS TLib/Types/*.hpp)
+#
+## Third party
+#file(GLOB         SOURCE_FILES LIST_DIRECTORIES false CONFIGURE_DEPENDS
+#TLib/thirdparty/*.cpp
+#TLib/thirdparty/*.hpp
+#TLib/thirdparty/*.h)
+#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
+#TLib/thirdparty/angelscript/*.hpp
+#TLib/thirdparty/angelscript/*.cpp
+#TLib/thirdparty/angelscript/*.h)
+#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
+#TLib/thirdparty/angelscript-docgen/*.hpp
+#TLib/thirdparty/angelscript-docgen/*.cpp
+#TLib/thirdparty/angelscript-docgen/*.h)
+#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
+#TLib/thirdparty/cute_headers/*.hpp
+#TLib/thirdparty/cute_headers/*.cpp
+#TLib/thirdparty/cute_headers/*.h)
+#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
+#TLib/thirdparty/multiarray/*.hpp
+#TLib/thirdparty/multiarray/*.cpp
+#TLib/thirdparty/multiarray/*.h)
+#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
+#TLib/thirdparty/plf/*.hpp
+#TLib/thirdparty/plf/*.cpp
+#TLib/thirdparty/plf/*.h)
+#file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
+#TLib/thirdparty/rectpack2d/*.hpp
+#TLib/thirdparty/rectpack2d/*.cpp
+#TLib/thirdparty/rectpack2d/*.h)
+
+### AngelScript
+if(MSVC AND CMAKE_CL_64)
+    enable_language(ASM_MASM)
+    set(SOURCE_FILES "${SOURCE_FILES};TLib/thirdparty/angelscript/as_callfunc_x64_msvc_asm.asm")
+endif()
+
 message("Found source files: ")
 foreach(src IN ITEMS ${SOURCE_FILES})
     message("${src}")
@@ -42,11 +94,11 @@ message("Triplet:      ${VCPKG_TARGET_TRIPLET}")
 message("Build Type:   ${CMAKE_BUILD_TYPE}")
 message("Shared Build: ${BUILD_SHARED_LIBS}")
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    message("ASan: Enabled")
+    message("ASan:         Enabled")
     add_compile_definitions(_DISABLE_STRING_ANNOTATION=1 _DISABLE_VECTOR_ANNOTATION=1)
     add_compile_options(-fsanitize=address)
 else()
-    message("ASan: Disabled")
+    message("ASan:         Disabled")
 endif()
 
 target_include_directories(TLib PUBLIC

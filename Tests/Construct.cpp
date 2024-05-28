@@ -13,23 +13,7 @@
 #include <TLib/Media/Renderer3D.hpp>
 #include <TLib/ECS/Scene.hpp>
 
-// Move this to mesh class ig
-struct Skeleton
-{
-    static constexpr uint32_t maxBoneInfluences = 4;
-
-    struct Vertex
-    {
-        Vector3f position;
-        Vector3f normal;
-        Vector2f texCoords;
-        Vector3f tangent;
-        Vector3f bitangent;
-
-        Array<uint32_t, maxBoneInfluences> boneIds;
-        Array<float,    maxBoneInfluences> boneWeights;
-    };
-};
+using namespace Physics3D;
 
 void imGuiVectorFloatEdit(const String& label, Vector<float>& v,
     float vmin, float vmax, const char* format = "%.3f", ImGuiSliderFlags flags = 0)
@@ -321,6 +305,8 @@ void init()
     auto& m = models.emplace_back();
     m.modelPtr = new Mesh();
     m.modelPtr->loadFromMemory(levelMesh);
+
+    
 
     // Player geometry
     PxMaterial* playerMat = physics->createMaterial(0, 0, 0);

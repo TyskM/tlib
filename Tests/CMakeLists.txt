@@ -20,6 +20,7 @@ set(TLib_Tests
         FBOTest
         AStar2D
         Construct
+        Scripting
 )
 
 enable_testing()

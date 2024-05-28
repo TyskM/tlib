@@ -4,14 +4,14 @@
 static_assert(false, "Don't include the original script builder");
 #endif
 
-#include "../../thirdparty/angelscript/angelscript.h"
-#include "../../String.hpp"
-#include "../../Macros.hpp"
-#include "../Logging.hpp"
+#include <TLib/thirdparty/angelscript/angelscript.h>
+#include <TLib/String.hpp>
+#include <TLib/Macros.hpp>
+#include <TLib/Scripting/AngelScript/Logging.hpp>
 
-#include <vector>
-#include <set>
-using namespace std;
+#include <TLib/Containers/Vector.hpp>
+#include <TLib/Containers/Set.hpp>
+#include <TLib/Containers/Map.hpp>
 
 #include <stdio.h>
 #if defined(_MSC_VER) && !defined(_WIN32_WCE) && !defined(__S3E__)
@@ -36,7 +36,7 @@ typedef int (*INCLUDECALLBACK_t)(const char* include, const char* from, ScriptBu
 // This callback will be called for each #pragma directive encountered by the builder.
 // The application can interpret the pragmaText and decide what do to based on that.
 // If the callback returns a negative value the builder will report an error and abort the compilation.
-typedef int(*PRAGMACALLBACK_t)(const std::string& pragmaText, ScriptBuilder& builder, void* userParam);
+typedef int(*PRAGMACALLBACK_t)(const String& pragmaText, ScriptBuilder& builder, void* userParam);
 
 // Helper functions
 static String GetCurrentDir();
@@ -47,7 +47,7 @@ struct ScriptBuilder
 {
     asIScriptEngine* engine;
     asIScriptModule* module;
-    std::string                modifiedScript;
+    String                modifiedScript;
 
     INCLUDECALLBACK_t  includeCallback;
     void* includeParam;
@@ -56,8 +56,8 @@ struct ScriptBuilder
     void* pragmaParam;
 
     #if AS_PROCESS_METADATA == 1
-    int  ExtractMetadata(int pos, std::vector<std::string>& outMetadata);
-    int  ExtractDeclaration(int pos, std::string& outName, std::string& outDeclaration, int& outType);
+    int  ExtractMetadata(int pos, Vector<String>& outMetadata);
+    int  ExtractDeclaration(int pos, String& outName, String& outDeclaration, int& outType);
 
     enum METADATATYPE
     {
@@ -71,32 +71,32 @@ struct ScriptBuilder
     // Temporary structure for storing metadata and declaration
     struct SMetadataDecl
     {
-        SMetadataDecl(std::vector<std::string> m, std::string n, std::string d, int t, std::string c, std::string ns) : metadata(m), name(n), declaration(d), type(t), parentClass(c), nameSpace(ns) {}
-        std::vector<std::string> metadata;
-        std::string              name;
-        std::string              declaration;
+        SMetadataDecl(Vector<String> m, String n, String d, int t, String c, String ns) : metadata(m), name(n), declaration(d), type(t), parentClass(c), nameSpace(ns) {}
+        Vector<String> metadata;
+        String              name;
+        String              declaration;
         int                      type;
-        std::string              parentClass;
-        std::string              nameSpace;
+        String              parentClass;
+        String              nameSpace;
     };
-    std::vector<SMetadataDecl> foundDeclarations;
-    std::string currentClass;
-    std::string currentNamespace;
+    Vector<SMetadataDecl> foundDeclarations;
+    String currentClass;
+    String currentNamespace;
 
     // Storage of metadata for global declarations
-    std::map<int, std::vector<std::string> > typeMetadataMap;
-    std::map<int, std::vector<std::string> > funcMetadataMap;
-    std::map<int, std::vector<std::string> > varMetadataMap;
+    Map<int, Vector<String> > typeMetadataMap;
+    Map<int, Vector<String> > funcMetadataMap;
+    Map<int, Vector<String> > varMetadataMap;
 
     // Storage of metadata for class member declarations
     struct SClassMetadata
     {
-        SClassMetadata(const std::string& aName) : className(aName) {}
-        std::string className;
-        std::map<int, std::vector<std::string> > funcMetadataMap;
-        std::map<int, std::vector<std::string> > varMetadataMap;
+        SClassMetadata(const String& aName) : className(aName) {}
+        String className;
+        Map<int, Vector<String> > funcMetadataMap;
+        Map<int, Vector<String> > varMetadataMap;
     };
-    std::map<int, SClassMetadata> classMetadataMap;
+    Map<int, SClassMetadata> classMetadataMap;
 
     #endif
 
@@ -115,17 +115,17 @@ struct ScriptBuilder
 
     struct ci_less
     {
-        bool operator()(const std::string& a, const std::string& b) const
+        bool operator()(const String& a, const String& b) const
         {
             return _stricmp(a.c_str(), b.c_str()) < 0;
         }
     };
-    std::set<std::string, ci_less> includedScripts;
+    Set<String, ci_less> includedScripts;
     #else
-    std::set<std::string>      includedScripts;
+    Set<String>      includedScripts;
     #endif
 
-    std::set<std::string>      definedWords;
+    Set<String>      definedWords;
 
     ScriptBuilder()
     {

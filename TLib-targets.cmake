@@ -58,7 +58,7 @@ set_target_properties(TLib::TLib PROPERTIES
 # Import target "TLib::TLib" for configuration "Debug"
 set_property(TARGET TLib::TLib APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
 set_target_properties(TLib::TLib PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "CXX"
+  IMPORTED_LINK_INTERFACE_LANGUAGES_DEBUG "ASM_MASM"
   IMPORTED_LOCATION_DEBUG "D:/Resources/Dev/CPP/TLib/out/build/x64-windows-debug-static/TLib.lib"
   )
 

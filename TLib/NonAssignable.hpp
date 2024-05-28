@@ -18,5 +18,13 @@ struct NonMoveable
     NonMoveable& operator=(NonMoveable&&) noexcept = delete;
 };
 
+struct Moveable
+{
+    Moveable()                               = default;
+    ~Moveable()                              = default;
+    Moveable(Moveable&&)            noexcept = default;
+    Moveable& operator=(Moveable&&) noexcept = default;
+};
+
 // Disable move and copy
 struct NonAssignable : NonMoveable, NonCopyable { };

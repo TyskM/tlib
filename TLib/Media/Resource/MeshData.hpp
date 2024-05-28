@@ -19,11 +19,40 @@ struct Vertex
     Vector2f texCoords;
 };
 
+struct SkeletonVertex
+{
+    Vector3f position;
+    Vector3f normal;
+    Vector2f texCoords;
+    //Vector3f tangent;
+    //Vector3f bitangent;
+
+    static constexpr uint32_t maxBoneInfluences = 4;
+    Array<uint32_t, maxBoneInfluences> boneIds;
+    Array<float,    maxBoneInfluences> boneWeights;
+};
+
+struct SkeletalAnimation
+{
+    struct Channel
+    {
+        String           name;
+        Vector<Vector3f> positions;
+        Vector<Quat>     rotations;
+        Vector<Vector3f> scales;
+    };
+
+    double          duration       = 0.f;
+    double          ticksPerSecond = 0.f;
+    Vector<Channel> channels;
+};
+
 enum class TextureType
 {
     Diffuse,   // = aiTextureType::aiTextureType_DIFFUSE,
     Roughness, // = aiTextureType::aiTextureType_DIFFUSE_ROUGHNESS
     Metalness, // = aiTextureType::aiTextureType_METALNESS,
+    // TODO: Support normal maps
 
     Count,
     None       // = aiTextureType::aiTextureType_NONE,

@@ -72,7 +72,10 @@ using namespace magic_enum::bitwise_operators;
             Primitive = bit(2)
         }; FLAG_ENUM(RendererType);
 */
-#define FLAG_ENUM(name)
+#define FLAG_ENUM(name)                        \
+template <>                                    \
+struct magic_enum::customize::enum_range<name> \
+{ static constexpr bool is_flags = true; };    
 //inline name operator|(name a, name b)                                                          \
 //{                                                                                              \
 //    using UT = magic_enum::underlying_type<name>::type;                                        \

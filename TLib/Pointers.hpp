@@ -22,8 +22,8 @@ template <typename T, typename... Args>
 auto makeUnique(Args&&... args)
 { return make_unique<T>(args...); }
 
-template <typename T>
-using UPtr = std::unique_ptr<T>;
+template <typename T, class Deleter = std::default_delete<T>>
+using UPtr = std::unique_ptr<T, Deleter>;
 
 //template <typename T>
 //struct UPtr : public std::unique_ptr<T>
