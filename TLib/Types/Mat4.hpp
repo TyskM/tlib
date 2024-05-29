@@ -50,7 +50,7 @@ struct Mat4f
     glm::mat4 toGlm() const { return matrix; }
 
     Mat4f operator* (const Mat4f& other) const { return matrix * other.matrix; }
-    Mat4f operator*=(const Mat4f& other) { matrix *= other.matrix; return *this; }
+    Mat4f operator*=(const Mat4f& other)       { matrix *= other.matrix; return *this; }
 
     auto operator[](int32_t index) { return matrix[index]; }
 };

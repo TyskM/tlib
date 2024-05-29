@@ -4,6 +4,7 @@
 #include <TLib/EASTL.hpp>
 #include <TLib/Logging.hpp>
 #include <TLib/Macros.hpp>
+#include <TLib/Pointers.hpp>
 
 #define PX_PHYSX_STATIC_LIB
 #include <physx/PxPhysics.h>
@@ -100,11 +101,16 @@ namespace Physics3D
     {
         PxSceneDesc desc(phys->getTolerancesScale());
         desc.filterShader  = PxDefaultSimulationFilterShader;
-        desc.gravity       ={ 0.f, -20.f, 0.f };
+        desc.gravity       = { 0.f, -20.f, 0.f };
         desc.cpuDispatcher = PxDefaultCpuDispatcherCreate(1);
         ASSERT(desc.isValid());
         PxScene* physicsScene = phys->createScene(desc);
         ASSERT(physicsScene);
         return physicsScene;
     }
+
+    using Material   = UPtr<PxMaterial,     Deleter< [](PxMaterial*    mat)   { mat  ->release(); } >>;
+    using Shape      = UPtr<PxShape,        Deleter< [](PxShape*       shape) { shape->release(); } >>;
+    using RigidBody  = UPtr<PxRigidDynamic, Deleter< [](PxRigidBody*   body)  { body ->release(); } >>;
+    using StaticBody = UPtr<PxRigidStatic,  Deleter< [](PxRigidStatic* body)  { body ->release(); } >>;
 }

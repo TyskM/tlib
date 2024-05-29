@@ -25,6 +25,16 @@ auto makeUnique(Args&&... args)
 template <typename T, class Deleter = std::default_delete<T>>
 using UPtr = std::unique_ptr<T, Deleter>;
 
+template <auto fn>
+struct Deleter
+{
+    // Thanks Justin
+    // https://stackoverflow.com/questions/19053351/how-do-i-use-a-custom-deleter-with-a-stdunique-ptr-member
+    template <typename T>
+    constexpr void operator()(T* arg) const
+    { fn(arg); }
+};
+
 //template <typename T>
 //struct UPtr : public std::unique_ptr<T>
 //{

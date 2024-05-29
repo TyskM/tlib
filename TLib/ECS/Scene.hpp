@@ -37,6 +37,7 @@ struct Scene
         
         // Setup physics
         phys3d.init();
+        phys3d.setGravity({ 0.f, -20.f, 0.f });
         sys_rigidBody3DFixedUpdate = ecs.system<const RigidBody3D, Transform3D>("RigidBody3D Fixed Update").each(&RigidBody3D_onFixedUpdate);
 
         auto theHolyCube = ecs.entity();
@@ -45,8 +46,8 @@ struct Scene
         const Path theHolyCubeModel("assets/primitives/cube.obj");
         emplaceComponent<MeshInstance3D>(theHolyCube, theHolyCubeModel);
 
-        auto& body = emplaceComponent<RigidBody3D>(theHolyCube, phys3d);
-        
+        auto& body = emplaceComponent<RigidBody3D>(theHolyCube, phys3d, Vector3f(0.f, 3.f, 3.f));
+        body.addBoxCollider({ 1.f, 1.f, 1.f });
     }
 
 
