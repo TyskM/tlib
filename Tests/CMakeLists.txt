@@ -27,8 +27,8 @@ enable_testing()
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 get_filename_component(PARENT_DIR ../ ABSOLUTE)
-set(TLib_DIR ${PARENT_DIR})
-find_package(TLib REQUIRED)
+add_library(TLib SHARED IMPORTED)
+set_target_properties(TLib PROPERTIES IMPORTED_LOCATION ${PARENT_DIR})
 
 add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets )
 

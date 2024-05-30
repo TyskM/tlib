@@ -55,7 +55,84 @@ struct ModelInstance
 
 Vector<Vector3f> lines;
 
-struct PlayerController
+static void addForceAtPosInternal(PxRigidBody& body, const PxVec3& force, const PxVec3& pos, PxForceMode::Enum mode, bool wakeup)
+{
+/*	if(mode == PxForceMode::eACCELERATION || mode == PxForceMode::eVELOCITY_CHANGE)
+    {
+        Ps::getFoundation().error(PxErrorCode::eINVALID_PARAMETER, __FILE__, __LINE__,
+            "PxRigidBodyExt::addForce methods do not support eACCELERATION or eVELOCITY_CHANGE modes");
+        return;
+    }*/
+
+    const PxTransform globalPose = body.getGlobalPose();
+    const PxVec3 centerOfMass = globalPose.transform(body.getCMassLocalPose().p);
+
+    const PxVec3 torque = (pos - centerOfMass).cross(force);
+    body.addForce(force, mode, wakeup);
+    body.addTorque(torque, mode, wakeup);
+}
+
+static void addForceAtLocalPos(PxRigidBody& body, const PxVec3& force, const PxVec3& pos, PxForceMode::Enum mode, bool wakeup=true)
+{
+    //transform pos to world space
+    const PxVec3 globalForcePos = body.getGlobalPose().transform(pos);
+
+    addForceAtPosInternal(body, force, globalForcePos, mode, wakeup);
+}
+
+static void defaultCCTInteraction(const PxControllerShapeHit& hit)
+{
+    // https://github.com/NVIDIAGameWorks/PhysX-3.4/blob/master/PhysX_3.4/Samples/SampleCCTSharedCode/SampleCCTActor.cpp#L256
+    PxRigidDynamic* actor = hit.actor->is<PxRigidDynamic>();
+    if (actor)
+    {
+        if (actor->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC)
+            return;
+
+        if (0)
+        {
+            const PxVec3 p = actor->getGlobalPose().p + hit.dir * 10.0f;
+
+            PxShape* shape;
+            actor->getShapes(&shape, 1);
+            PxRaycastHit newHit;
+            PxU32 n = PxShapeExt::raycast(*shape, *shape->getActor(), p, -hit.dir, 20.0f, PxHitFlag::ePOSITION, 1, &newHit);
+            if (n)
+            {
+                // We only allow horizontal pushes. Vertical pushes when we stand on dynamic objects creates
+                // useless stress on the solver. It would be possible to enable/disable vertical pushes on
+                // particular objects, if the gameplay requires it.
+                const PxVec3 upVector = hit.controller->getUpDirection();
+                const PxF32 dp = hit.dir.dot(upVector);
+                // shdfnd::printFormatted("%f\n", fabsf(dp));
+                if (fabsf(dp)<1e-3f)
+                // if(hit.dir.y==0.0f)
+                {
+                    const PxTransform globalPose = actor->getGlobalPose();
+                    const PxVec3 localPos = globalPose.transformInv(newHit.position);
+                    addForceAtLocalPos(*actor, hit.dir*hit.length*1000.0f, localPos, PxForceMode::eACCELERATION);
+                }
+            }
+        }
+
+        // We only allow horizontal pushes. Vertical pushes when we stand on dynamic objects creates
+        // useless stress on the solver. It would be possible to enable/disable vertical pushes on
+        // particular objects, if the gameplay requires it.
+        const PxVec3 upVector = hit.controller->getUpDirection();
+        const PxF32 dp = hit.dir.dot(upVector);
+        // shdfnd::printFormatted("%f\n", fabsf(dp));
+        if (fabsf(dp)<1e-3f)
+        // if(hit.dir.y==0.0f)
+        {
+            const PxTransform globalPose = actor->getGlobalPose();
+            const PxVec3 localPos = globalPose.transformInv(toVec3(hit.worldPos));
+            addForceAtLocalPos(*actor, hit.dir*hit.length*1000.0f, localPos, PxForceMode::eACCELERATION);
+        }
+    }
+}
+
+
+struct PlayerController : PxControllerBehaviorCallback, PxUserControllerHitReport
 {
 public:
     Vector2f moveDir;
@@ -193,6 +270,69 @@ public:
         pitch      = 0;
         yaw        = 0;
     }
+
+    /**
+    \brief Retrieve behavior flags for a shape.
+    When the CCT touches a shape, the CCT's behavior w.r.t. this shape can be customized by users.
+    This function retrieves the desired PxControllerBehaviorFlag flags capturing the desired behavior.
+    \note See comments about deprecated functions at the start of this class
+    \param[in] shape	The shape the CCT is currently touching
+    \param[in] actor	The actor owning the shape
+    \return Desired behavior flags for the given shape */
+    virtual PxControllerBehaviorFlags getBehaviorFlags(const PxShape& shape, const PxActor& actor) override
+    {
+        return PxControllerBehaviorFlags(0);
+    }
+
+    /**
+    \brief Retrieve behavior flags for a controller.
+    When the CCT touches a controller, the CCT's behavior w.r.t. this controller can be customized by users.
+    This function retrieves the desired PxControllerBehaviorFlag flags capturing the desired behavior.
+    \note The flag PxControllerBehaviorFlag::eCCT_CAN_RIDE_ON_OBJECT is not supported.
+    \note See comments about deprecated functions at the start of this class
+    \param[in] controller	The controller the CCT is currently touching
+    \return Desired behavior flags for the given controller */
+    virtual PxControllerBehaviorFlags getBehaviorFlags(const PxController& controller) override
+    {
+        return PxControllerBehaviorFlags(0);
+    }
+
+    /**
+    \brief Retrieve behavior flags for an obstacle.
+    When the CCT touches an obstacle, the CCT's behavior w.r.t. this obstacle can be customized by users.
+    This function retrieves the desired PxControllerBehaviorFlag flags capturing the desired behavior.
+    \note See comments about deprecated functions at the start of this class
+    \param[in] obstacle		The obstacle the CCT is currently touching
+    \return Desired behavior flags for the given obstacle */
+    virtual PxControllerBehaviorFlags getBehaviorFlags(const PxObstacle& obstacle) override
+    {
+        return PxControllerBehaviorFlag::eCCT_CAN_RIDE_ON_OBJECT | PxControllerBehaviorFlag::eCCT_SLIDE;
+    }
+
+    /**
+    \brief Called when current controller hits a shape.
+    This is called when the CCT moves and hits a shape. This will not be called when a moving shape hits a non-moving CCT.
+    \param[in] hit Provides information about the hit. */
+    virtual void onShapeHit(const PxControllerShapeHit& hit) override
+    {
+        defaultCCTInteraction(hit);
+    }
+
+    /**
+    \brief Called when current controller hits another controller.
+    \param[in] hit Provides information about the hit. */
+    virtual void onControllerHit(const PxControllersHit& hit) override
+    {
+
+    }
+
+    /**
+    \brief Called when current controller hits a user-defined obstacle.
+    \param[in] hit Provides information about the hit. */
+    virtual void onObstacleHit(const PxControllerObstacleHit& hit) override
+    {
+
+    }
 };
 
 Window     window;
@@ -244,124 +384,6 @@ PxScene*             physicsScene     = nullptr;
 PxControllerManager* controllerMan    = nullptr;
 
 Scene scene;
-
-static void addForceAtPosInternal(PxRigidBody& body, const PxVec3& force, const PxVec3& pos, PxForceMode::Enum mode, bool wakeup)
-{
-/*	if(mode == PxForceMode::eACCELERATION || mode == PxForceMode::eVELOCITY_CHANGE)
-    {
-        Ps::getFoundation().error(PxErrorCode::eINVALID_PARAMETER, __FILE__, __LINE__,
-            "PxRigidBodyExt::addForce methods do not support eACCELERATION or eVELOCITY_CHANGE modes");
-        return;
-    }*/
-
-    const PxTransform globalPose = body.getGlobalPose();
-    const PxVec3 centerOfMass = globalPose.transform(body.getCMassLocalPose().p);
-
-    const PxVec3 torque = (pos - centerOfMass).cross(force);
-    body.addForce(force, mode, wakeup);
-    body.addTorque(torque, mode, wakeup);
-}
-
-static void addForceAtLocalPos(PxRigidBody& body, const PxVec3& force, const PxVec3& pos, PxForceMode::Enum mode, bool wakeup=true)
-{
-    //transform pos to world space
-    const PxVec3 globalForcePos = body.getGlobalPose().transform(pos);
-
-    addForceAtPosInternal(body, force, globalForcePos, mode, wakeup);
-}
-
-static void defaultCCTInteraction(const PxControllerShapeHit& hit)
-{
-    // https://github.com/NVIDIAGameWorks/PhysX-3.4/blob/master/PhysX_3.4/Samples/SampleCCTSharedCode/SampleCCTActor.cpp#L256
-    PxRigidDynamic* actor = hit.shape->getActor()->is<PxRigidDynamic>();
-    if (actor)
-    {
-        if (actor->getRigidBodyFlags() & PxRigidBodyFlag::eKINEMATIC)
-            return;
-
-        if (0)
-        {
-            const PxVec3 p = actor->getGlobalPose().p + hit.dir * 10.0f;
-
-            PxShape* shape;
-            actor->getShapes(&shape, 1);
-            PxRaycastHit newHit;
-            PxU32 n = PxShapeExt::raycast(*shape, *shape->getActor(), p, -hit.dir, 20.0f, PxHitFlag::ePOSITION, 1, &newHit);
-            if (n)
-            {
-                // We only allow horizontal pushes. Vertical pushes when we stand on dynamic objects creates
-                // useless stress on the solver. It would be possible to enable/disable vertical pushes on
-                // particular objects, if the gameplay requires it.
-                const PxVec3 upVector = hit.controller->getUpDirection();
-                const PxF32 dp = hit.dir.dot(upVector);
-                // shdfnd::printFormatted("%f\n", fabsf(dp));
-                if (fabsf(dp)<1e-3f)
-                // if(hit.dir.y==0.0f)
-                {
-                    const PxTransform globalPose = actor->getGlobalPose();
-                    const PxVec3 localPos = globalPose.transformInv(newHit.position);
-                    addForceAtLocalPos(*actor, hit.dir*hit.length*1000.0f, localPos, PxForceMode::eACCELERATION);
-                }
-            }
-        }
-
-        // We only allow horizontal pushes. Vertical pushes when we stand on dynamic objects creates
-        // useless stress on the solver. It would be possible to enable/disable vertical pushes on
-        // particular objects, if the gameplay requires it.
-        const PxVec3 upVector = hit.controller->getUpDirection();
-        const PxF32 dp = hit.dir.dot(upVector);
-        // shdfnd::printFormatted("%f\n", fabsf(dp));
-        if (fabsf(dp)<1e-3f)
-        // if(hit.dir.y==0.0f)
-        {
-            const PxTransform globalPose = actor->getGlobalPose();
-            const PxVec3 localPos = globalPose.transformInv(toVec3(hit.worldPos));
-            addForceAtLocalPos(*actor, hit.dir*hit.length*1000.0f, localPos, PxForceMode::eACCELERATION);
-        }
-    }
-}
-
-struct PlayerControllerHandler : PxControllerBehaviorCallback
-{
-    /**
-    \brief Retrieve behavior flags for a shape.
-    When the CCT touches a shape, the CCT's behavior w.r.t. this shape can be customized by users.
-    This function retrieves the desired PxControllerBehaviorFlag flags capturing the desired behavior.
-    \note See comments about deprecated functions at the start of this class
-    \param[in] shape	The shape the CCT is currently touching
-    \param[in] actor	The actor owning the shape
-    \return Desired behavior flags for the given shape */
-    virtual PxControllerBehaviorFlags getBehaviorFlags(const PxShape& shape, const PxActor& actor)
-    {
-        return PxControllerBehaviorFlags(0);
-    }
-
-    /**
-    \brief Retrieve behavior flags for a controller.
-    When the CCT touches a controller, the CCT's behavior w.r.t. this controller can be customized by users.
-    This function retrieves the desired PxControllerBehaviorFlag flags capturing the desired behavior.
-    \note The flag PxControllerBehaviorFlag::eCCT_CAN_RIDE_ON_OBJECT is not supported.
-    \note See comments about deprecated functions at the start of this class
-    \param[in] controller	The controller the CCT is currently touching
-    \return Desired behavior flags for the given controller */
-    virtual PxControllerBehaviorFlags getBehaviorFlags(const PxController& controller)
-    {
-        return PxControllerBehaviorFlags(0);
-    }
-
-    /**
-    \brief Retrieve behavior flags for an obstacle.
-    When the CCT touches an obstacle, the CCT's behavior w.r.t. this obstacle can be customized by users.
-    This function retrieves the desired PxControllerBehaviorFlag flags capturing the desired behavior.
-    \note See comments about deprecated functions at the start of this class
-    \param[in] obstacle		The obstacle the CCT is currently touching
-    \return Desired behavior flags for the given obstacle */
-    virtual PxControllerBehaviorFlags getBehaviorFlags(const PxObstacle& obstacle)
-    {
-        return PxControllerBehaviorFlag::eCCT_CAN_RIDE_ON_OBJECT | PxControllerBehaviorFlag::eCCT_SLIDE;
-    }
-
-} playerControllerHandler;
 
 void init()
 {
@@ -442,12 +464,13 @@ void init()
     cdesc.radius           = 0.5f;
     cdesc.height           = controller.playerHeight;
     cdesc.contactOffset    = 0.01f;
-    cdesc.slopeLimit       = sqrtf(3.f)/2.f; // http://www2.clarku.edu/faculty/djoyce/trig/cosines.html
+    cdesc.slopeLimit       = 0.707; // http://www2.clarku.edu/faculty/djoyce/trig/cosines.html
     cdesc.stepOffset       = 0.1f;
     cdesc.climbingMode     = PxCapsuleClimbingMode::eCONSTRAINED;
     cdesc.nonWalkableMode  = PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
     cdesc.density          = 1000.f;
-    cdesc.behaviorCallback = &playerControllerHandler;
+    cdesc.behaviorCallback = &controller;
+    cdesc.reportCallback   = &controller;
     controller.playerController = controllerMan->createController(cdesc);
     playerMat->release();
 }
