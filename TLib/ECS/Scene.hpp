@@ -70,5 +70,6 @@ struct Scene
     void render(float delta)
     {
         sys_MeshInstance3DRender.run(delta);
+        phys3d.debugDraw();
     }
 };

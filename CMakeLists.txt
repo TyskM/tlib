@@ -149,6 +149,9 @@ target_compile_definitions(TLib PUBLIC PX_PHYSX_STATIC_LIB)
 find_package(unofficial-omniverse-physx-sdk CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC unofficial::omniverse-physx-sdk::sdk)
 
+find_package(Bullet CONFIG REQUIRED)
+target_link_libraries(TLib PRIVATE ${BULLET_LIBRARIES})
+
 find_package(flecs CONFIG REQUIRED)
 target_link_libraries(TLib PRIVATE $<IF:$<TARGET_EXISTS:flecs::flecs>,flecs::flecs,flecs::flecs_static>)
 
