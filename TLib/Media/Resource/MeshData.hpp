@@ -125,7 +125,7 @@ struct MeshData
                     auto& vertices = subMesh.vertices;
                     auto& indices  = subMesh.indices;
 
-                    aiMesh* mesh         = scene->mMeshes[node->mMeshes[i]];
+                    aiMesh*  mesh         = scene->mMeshes[node->mMeshes[i]];
                     uint32_t verticeCount = mesh->mNumVertices;
                     uint32_t faceCount    = mesh->mNumFaces;
                     auto     texCoords    = mesh->mTextureCoords[0];
@@ -243,7 +243,7 @@ private:
 
         {   // Load Roughness
             aiString roughnessPath;
-            float    fallbackRoughness = 0.f;
+            float    fallbackRoughness = 1.f;
             aimat->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &roughnessPath);
             aimat->Get(AI_MATKEY_ROUGHNESS_FACTOR, fallbackRoughness);
             ColorRGBAf roughnessColor (fallbackRoughness, fallbackRoughness, fallbackRoughness, 1.f);

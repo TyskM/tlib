@@ -7,6 +7,7 @@
 #include <TLib/Containers/Variant.hpp>
 #include <TLib/Containers/Span.hpp>
 #include <TLib/Media/Resource/Asset.hpp>
+#include <TLib/thirdparty/ImGuiColorTextEdit/TextEditor.h>
 #include "Common.hpp"
 
 #include <TLib/Physics3D.hpp>
@@ -130,7 +131,6 @@ static void defaultCCTInteraction(const PxControllerShapeHit& hit)
         }
     }
 }
-
 
 struct PlayerController : PxControllerBehaviorCallback, PxUserControllerHitReport
 {
@@ -340,12 +340,11 @@ MyGui      imgui;
 FPSLimit   fpslimit;
 Timer      deltaTimer;
 
-String vertShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString();
-String fragShaderStr = myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString();
+TextEditor vertShaderEdit;
+TextEditor fragShaderEdit;
 
 bool debugDrawPhysics = false;
-Vector<ModelInstance> models;
-PlayerController controller;
+
 
 const char* presetModelPaths[7] =
 {
@@ -384,71 +383,102 @@ PxScene*             physicsScene     = nullptr;
 PxControllerManager* controllerMan    = nullptr;
 
 Scene scene;
+Entity level;
+PlayerController controller;
+
+struct Test
+{
+    ~Test()
+    {
+        tlog::info("Test");
+    }
+} test;
 
 void init()
 {
-
-    //initPhysics();
-    //PxTolerancesScale scale{};
-    //physics = createPhysics(scale);
-    //physicsScene = createPhysicsScene(physics);
+    auto lang = TextEditor::LanguageDefinition::GLSL();
+    vertShaderEdit.SetLanguageDefinition(lang);
+    fragShaderEdit.SetLanguageDefinition(lang);
+    vertShaderEdit.SetText(myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString());
+    fragShaderEdit.SetText(myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
 
     scene.init();
     physics = scene.phys3d.phys;
     physicsScene = scene.phys3d.scene;
 
+    const Path theHolyCubeModel("assets/primitives/cube.obj");
+    for (size_t i = 1; i < 20; i++)
+    {
+        Vector3f scale = Vector3f(0.1f, 0.1f, 0.1f) * (int)i;
 
-    PxShapeFlags    shapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE;
-    PxMaterial*     mat        = physics->createMaterial(0.1f, 0.1f, 0.f);
-    PxCookingParams params(physics->getTolerancesScale());
+        auto theHolyCube = scene.createEntity();
+        emplaceComponent<Transform3D>(theHolyCube).scale = scale;
+        emplaceComponent<MeshInstance3D>(theHolyCube, theHolyCubeModel);
+
+        auto& theHolyCubeBody = emplaceComponent<Physics3DBody>(theHolyCube);
+        theHolyCubeBody.init(scene.phys3d);
+        theHolyCubeBody.makeRigidBody(Vector3f(0.f, i, 3.f));
+        theHolyCubeBody.addBoxCollider(scale);
+    }
 
     // Load level mesh
     MeshData levelMesh;
     levelMesh.loadFromFile("assets/scuffed_construct.glb");
+    level = scene.createEntity();
+
+    emplaceComponent<Transform3D>(level);
+    emplaceComponent<MeshInstance3D>(level, "assets/scuffed_construct.glb");
+
+    auto& body = emplaceComponent<Physics3DBody>(level);
+    body.init(scene.phys3d);
+    body.makeStaticBody(Vector3f(0, -20, 0));
+    body.addBoxCollider(Vector3f(100.f, 1.f, 100.f));
+    //body.addTriMeshCollider(levelMesh);
+    body.body->setName("Level");
 
     // Level collision
-    for (auto& submesh : levelMesh.subMeshes)
-    {
-        PxTriangleMeshDesc meshDesc;
-
-        Vector<Vector3f> vertices;
-        for (auto& vert : submesh.vertices)
-        {
-            vertices.emplace_back(vert.position);
-        }
-
-        meshDesc.points.count           = vertices.size();;
-        meshDesc.points.stride          = sizeof(Vector3f);
-        meshDesc.points.data            = vertices.data();
-        meshDesc.triangles.count        = submesh.indices.size();
-        meshDesc.triangles.stride       = 3*sizeof(uint32_t);
-        meshDesc.triangles.data         = submesh.indices.data();
-
-        PxDefaultMemoryOutputStream writeBuffer;
-        bool status = PxCookTriangleMesh(params, meshDesc, writeBuffer, NULL);
-        ASSERT(status);
-
-        PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
-
-        PxTriangleMesh* triMesh = physics->createTriangleMesh(readBuffer);
-        
-        PxMeshScale triScale(physx::PxVec3(1.0f, 1.0f, 1.0f), physx::PxQuat(physx::PxIdentity));
-        PxRigidStatic* rigidStatic = physics->createRigidStatic(PxTransform({0, 0, 0}));
-        {
-            PxShape* shape = physics->createShape(PxTriangleMeshGeometry(triMesh, triScale), *mat, true, shapeFlags);
-            shape->setContactOffset(0.002f);
-            shape->setRestOffset(0.002f);
-            rigidStatic->attachShape(*shape);
-            shape->release(); // this way shape gets automatically released with actor
-        }
-
-        physicsScene->addActor(*rigidStatic);
-    }
+    //for (auto& submesh : levelMesh.subMeshes)
+    //{
+    //    PxTriangleMeshDesc meshDesc;
+    //
+    //    Vector<Vector3f> vertices;
+    //    for (auto& vert : submesh.vertices)
+    //    {
+    //        vertices.emplace_back(vert.position);
+    //    }
+    //
+    //    meshDesc.points.count           = vertices.size();;
+    //    meshDesc.points.stride          = sizeof(Vector3f);
+    //    meshDesc.points.data            = vertices.data();
+    //    meshDesc.triangles.count        = submesh.indices.size();
+    //    meshDesc.triangles.stride       = 3*sizeof(uint32_t);
+    //    meshDesc.triangles.data         = submesh.indices.data();
+    //
+    //    PxDefaultMemoryOutputStream writeBuffer;
+    //    bool status = PxCookTriangleMesh(params, meshDesc, writeBuffer, NULL);
+    //    ASSERT(status);
+    //
+    //    PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
+    //
+    //    PxTriangleMesh* triMesh = physics->createTriangleMesh(readBuffer);
+    //    
+    //    PxMeshScale triScale(physx::PxVec3(1.0f, 1.0f, 1.0f), physx::PxQuat(physx::PxIdentity));
+    //    PxRigidStatic* rigidStatic = physics->createRigidStatic(PxTransform({0, 0, 0}));
+    //    {
+    //        PxShape* shape = physics->createShape(PxTriangleMeshGeometry(triMesh, triScale), *mat, true, shapeFlags);
+    //        shape->setContactOffset(0.002f);
+    //        shape->setRestOffset(0.002f);
+    //        rigidStatic->attachShape(*shape);
+    //        shape->release(); // this way shape gets automatically released with actor
+    //    }
+    //
+    //    physicsScene->addActor(*rigidStatic);
+    //}
 
     // Upload to GPU
-    auto& m = models.emplace_back();
-    m.modelPtr = new Mesh();
-    m.modelPtr->loadFromMemory(levelMesh);
+    //auto& m = models.emplace_back();
+    //m.modelPtr = new Mesh();
+    //m.modelPtr->loadFromMemory(levelMesh);
 
     // Box
     //PxMaterial* mat = physics->createMaterial(1, 1, 1);
@@ -465,7 +495,7 @@ void init()
     cdesc.height           = controller.playerHeight;
     cdesc.contactOffset    = 0.01f;
     cdesc.slopeLimit       = 0.707; // http://www2.clarku.edu/faculty/djoyce/trig/cosines.html
-    cdesc.stepOffset       = 0.1f;
+    cdesc.stepOffset       = 0.2f;
     cdesc.climbingMode     = PxCapsuleClimbingMode::eCONSTRAINED;
     cdesc.nonWalkableMode  = PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
     cdesc.density          = 1000.f;
@@ -473,6 +503,12 @@ void init()
     cdesc.reportCallback   = &controller;
     controller.playerController = controllerMan->createController(cdesc);
     playerMat->release();
+}
+
+void shutdown()
+{
+    // Have to call this explicitly bc physx destructors get called first for some reason.
+    //scene.reset(); // TODO: fix this
 }
 
 void fixedUpdate(float delta)
@@ -645,11 +681,15 @@ void update(float delta)
         int textEditFlags = ImGuiInputTextFlags_AllowTabInput;
 
         if (ImGui::Button("Compile Shaders"))
-        { R3D::setPBRShader(vertShaderStr, fragShaderStr); }
+        { R3D::setPBRShader(vertShaderEdit.GetText(), fragShaderEdit.GetText()); }
         if (ImGui::CollapsingHeader("Vert Shader", headerFlags))
-        { ImGui::InputTextMultiline("#VertShaderEdit", &vertShaderStr, { ImGui::GetContentRegionAvail().x, 600 }, textEditFlags); }
+        {
+            vertShaderEdit.Render("Vertex Shader Edit", ImVec2(0, 720), true);
+        }
         if (ImGui::CollapsingHeader("Frag Shader", headerFlags))
-        { ImGui::InputTextMultiline("#FragShaderEdit", &fragShaderStr, { ImGui::GetContentRegionAvail().x, 600 }, textEditFlags); }
+        {
+            fragShaderEdit.Render("Fragment Shader Edit", ImVec2(0, 720), true);
+        }
 
         if (ImGui::CollapsingHeader("CSMs", headerFlags))
         {
@@ -748,12 +788,6 @@ void draw(float delta)
         R3D::drawLines(frustLines, ColorRGBAf::white(), GLDrawMode::Lines);
     }
 
-    for (auto& modelInst : models)
-    {
-        ASSERT(modelInst.modelPtr);
-        R3D::drawModel(*modelInst.modelPtr, modelInst.transform);
-    }
-
     scene.render(delta);
 
     R3D::drawLines(std::initializer_list{ Vector3f::up()      * 10, Vector3f() }, ColorRGBAf::green(), GLDrawMode::Lines);
@@ -845,6 +879,8 @@ int main()
         window.swap();
         fpslimit.wait();
     }
+
+    shutdown();
 
     return 0;
 }

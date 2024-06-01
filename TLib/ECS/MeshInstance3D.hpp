@@ -19,7 +19,7 @@ struct MeshInstance3D
         { /* TODO: Fallback mesh */ }
 
         mesh = new Mesh(); // TODO: Leak
-        mesh->loadFromFile(path);
+        ASSERT(mesh->loadFromFile(path));
     }
 };
 

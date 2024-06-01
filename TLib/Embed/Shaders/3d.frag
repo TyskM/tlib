@@ -213,12 +213,13 @@ vec3 calcPBRLighting(Light light, vec3 posDir, bool isDirLight, vec3 normal)
     { l = -posDir.xyz; }
     else
     {
-        l = posDir - vertLocalPos;
+        l = posDir - vertWorldPos;
         float lightToPixelDist = length(l);
         l = normalize(l);
         lightIntensity /= (lightToPixelDist * lightToPixelDist);
     }
 
+    // TODO: Switch to this impl https://learnopengl.com/PBR/Lighting
     vec3 n = normal;                           // Without this vec3 theres ugly black rim
     vec3 v = normalize(cameraPos - vertWorldPos) + (vec3(0,5,0)); // lighting from some angles
     vec3 h = normalize(v + l);                 //\\ TODO: find a less scuffed fix for above.

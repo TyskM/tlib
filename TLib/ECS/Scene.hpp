@@ -10,20 +10,11 @@
 
 struct Scene
 {
-    /* Components:
-        Transform3D
-        MeshInstance3D
-
-        Physics:
-            RigidBody3D
-    */
-
-
-    ECS ecs;
     Physics3DWorld phys3d;
 
     System sys_MeshInstance3DRender;
-    System sys_rigidBody3DFixedUpdate;
+    System sys_Physics3DFixedUpdate;
+    ECS    ecs;
 
     float fixedTimeStep  = 1.f/60.f;
     float time           = 0;
@@ -38,22 +29,28 @@ struct Scene
         // Setup physics
         phys3d.init();
         phys3d.setGravity({ 0.f, -20.f, 0.f });
-        sys_rigidBody3DFixedUpdate = ecs.system<const RigidBody3D, Transform3D>("RigidBody3D Fixed Update").each(&RigidBody3D_onFixedUpdate);
+        sys_Physics3DFixedUpdate  = ecs.system<const Physics3DBody, Transform3D>("Physics3DBody Fixed Update") .each(&Physics3DBody_onFixedUpdate);
 
-        auto theHolyCube = ecs.entity();
-        emplaceComponent<Transform3D>(theHolyCube, Vector3f::up() * 5.f);
-
-        const Path theHolyCubeModel("assets/primitives/cube.obj");
-        emplaceComponent<MeshInstance3D>(theHolyCube, theHolyCubeModel);
-
-        auto& body = emplaceComponent<RigidBody3D>(theHolyCube, phys3d, Vector3f(0.f, 3.f, 3.f));
-        body.addBoxCollider({ 1.f, 1.f, 1.f });
     }
 
+    void reset()
+    {
+        ecs.reset();
+        phys3d.reset();
+    }
+
+    ~Scene() { reset(); }
+
+    Entity createEntity()
+    { return ecs.entity(); }
+
+    template <typename T, typename... Args>
+    T& emplaceComponent(Entity entity, Args&&... args)
+    { return ::emplaceComponent<T>(entity, args...); }
 
     void fixedUpdate(float delta)
     {
-        sys_rigidBody3DFixedUpdate.run(delta);
+        sys_Physics3DFixedUpdate.run(delta);
         phys3d.simulate(delta);
     }
 

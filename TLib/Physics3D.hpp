@@ -6,7 +6,6 @@
 #include <TLib/Macros.hpp>
 #include <TLib/Pointers.hpp>
 
-#define PX_PHYSX_STATIC_LIB
 #include <physx/PxPhysics.h>
 #include <physx/PxPhysicsAPI.h>
 #include <physx/foundation/PxErrorCallback.h>
@@ -38,10 +37,10 @@ namespace Physics3D
             switch (code)
             {
                 case physx::PxErrorCode::eDEBUG_INFO:
-                case physx::PxErrorCode::eDEBUG_WARNING:
-                    tlog::debug(fmt::runtime(errFormat), file, line, message);
+                    tlog::warn(fmt::runtime(errFormat), file, line, message);
                     break;
 
+                case physx::PxErrorCode::eDEBUG_WARNING:
                 case physx::PxErrorCode::ePERF_WARNING:
                     tlog::warn(fmt::runtime(errFormat), file, line, message);
                     break;
@@ -109,8 +108,16 @@ namespace Physics3D
         return physicsScene;
     }
 
-    using Material   = UPtr<PxMaterial,     Deleter< [](PxMaterial*    mat)   { mat  ->release(); } >>;
-    using Shape      = UPtr<PxShape,        Deleter< [](PxShape*       shape) { shape->release(); } >>;
-    using RigidBody  = UPtr<PxRigidDynamic, Deleter< [](PxRigidBody*   body)  { body ->release(); } >>;
-    using StaticBody = UPtr<PxRigidStatic,  Deleter< [](PxRigidStatic* body)  { body ->release(); } >>;
+    using Material   = UPtr<PxMaterial,     Deleter< [](PxMaterial*     mat)   { ASSERT(mat);   mat  ->release(); } >>;
+    using Shape      = UPtr<PxShape,        Deleter< [](PxShape*        shape) { ASSERT(shape); shape->release(); } >>;
+    using RigidBody  = UPtr<PxRigidDynamic, Deleter< [](PxRigidDynamic* body)  { ASSERT(body);  body ->release(); } >>;
+    using StaticBody = UPtr<PxRigidStatic,  Deleter< [](PxRigidStatic*  body)  { ASSERT(body);  body ->release(); } >>;
+    //using Body       = UPtr<PxRigidActor,   Deleter< [](PxRigidActor*   body)  { ASSERT(body);  body ->release(); } >>;
+
+    using Body = UPtr<PxRigidActor, Deleter< [](PxRigidActor* body)
+    {
+        ASSERT(body);
+        ASSERT(body->isReleasable());
+        body->release();
+    } >>;
 }
