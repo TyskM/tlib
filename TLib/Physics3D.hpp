@@ -108,16 +108,24 @@ namespace Physics3D
         return physicsScene;
     }
 
-    using Material   = UPtr<PxMaterial,     Deleter< [](PxMaterial*     mat)   { ASSERT(mat);   mat  ->release(); } >>;
-    using Shape      = UPtr<PxShape,        Deleter< [](PxShape*        shape) { ASSERT(shape); shape->release(); } >>;
-    using RigidBody  = UPtr<PxRigidDynamic, Deleter< [](PxRigidDynamic* body)  { ASSERT(body);  body ->release(); } >>;
-    using StaticBody = UPtr<PxRigidStatic,  Deleter< [](PxRigidStatic*  body)  { ASSERT(body);  body ->release(); } >>;
-    //using Body       = UPtr<PxRigidActor,   Deleter< [](PxRigidActor*   body)  { ASSERT(body);  body ->release(); } >>;
+    using PhysXMaterial = UPtr<PxMaterial,     Deleter< [](PxMaterial*     mat)   { ASSERT(mat);   mat  ->release(); } >>;
+    using Shape         = UPtr<PxShape,        Deleter< [](PxShape*        shape) { ASSERT(shape); shape->release(); } >>;
+    using RigidBody     = UPtr<PxRigidDynamic, Deleter< [](PxRigidDynamic* body)  { ASSERT(body);  body ->release(); } >>;
+    using StaticBody    = UPtr<PxRigidStatic,  Deleter< [](PxRigidStatic*  body)  { ASSERT(body);  body ->release(); } >>;
+    using Body          = UPtr<PxRigidActor,   Deleter< [](PxRigidActor*   body)  { ASSERT(body);  body ->release(); } >>;
 
-    using Body = UPtr<PxRigidActor, Deleter< [](PxRigidActor* body)
+    enum class MaterialCombine
     {
-        ASSERT(body);
-        ASSERT(body->isReleasable());
-        body->release();
-    } >>;
+        Minimum,
+        Average,
+        Maximum,
+        Multiply
+    };
+
+    struct Material
+    {
+        float dynamicFriction = 0.8f;  // The friction coefficient when the collider is moving
+        float staticFriction  = 0.8f;  // The friction coefficient when the collider is still
+        float restitution     = 0.1f; // Bounciness. 0-1 range. 0 = No bounce, 1 = max bounce.
+    };
 }

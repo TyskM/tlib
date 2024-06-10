@@ -144,7 +144,7 @@ public:
 
     View3D   camera;
     Quat     bodyRot;
-    bool     freeCam      = true;
+    bool     freeCam      = false;
     float    sens         = 0.1f;
     float    freeCamSpeed = 12.f;
     float    yaw          = 0.f;
@@ -159,12 +159,15 @@ public:
     float    jumpPower =  0.25f;
     Vector3f velocity;
 
+    PxController* playerController = nullptr;
+    float         playerHeight     = 0.8f;
+
     bool isOnGround = false;
     bool lookingAtGeometry = false;
 
     Vector3f getPos() const
     {
-        return camera.pos;
+        return Vector3f(playerController->getPosition());
     }
 
     void update(float delta, bool mouseCaptured)
@@ -183,7 +186,7 @@ public:
         auto pitchRad = glm::radians(pitch);
 
         Quat qPitch  (pitchRad, Vector3f(1, 0, 0));
-        Quat qYaw    (yawRad,   Vector3f(0, 1, 0));
+        Quat qYaw    (yawRad, Vector3f(0, 1, 0));
         camera.rot  = (qPitch * qYaw).normalized();
         bodyRot     = qYaw;
 
@@ -199,7 +202,8 @@ public:
         }
         else
         {
-
+            const auto& pos = playerController->getPosition();
+            camera.pos = Vector3f(pos.x, pos.y + playerHeight/2.f, pos.z);
         }
 
         if (!freeCam && Input::isKeyJustPressed(SDL_SCANCODE_SPACE))
@@ -212,10 +216,51 @@ public:
 
     void fixedUpdate(float delta)
     {
-        if (freeCam) { }
+        if (freeCam) {}
         else
         {
+            const auto& pos = playerController->getPosition();
+            PxControllerState state;
+            playerController->getState(state);
 
+            Vector3f fw = bodyRot.forward();
+            if (moveDir.x) velocity += fw.cross(up).normalized() * moveDir.x * moveSpeed;
+            if (moveDir.y) velocity += fw * moveDir.y * moveSpeed;
+
+            auto* scene = playerController->getScene();
+
+            PxRaycastBuffer hit;
+            PxQueryFilterData d; d.flags = PxQueryFlag::eSTATIC;
+            lookingAtGeometry = false; //scene->raycast(PxVec3(camera.pos.x, camera.pos.y, camera.pos.z), PxVec3(forward.x, forward.y, forward.z), 10000.f, hit, PxHitFlag::eDEFAULT, d);
+
+            if (primary)
+            {
+                primary = false;
+                if (lookingAtGeometry)
+                {
+                    lines.emplace_back(camera.pos);
+                    lines.emplace_back(hit.block.position.x, hit.block.position.y, hit.block.position.z);
+                }
+            }
+
+            if (jump)
+            {
+                jump = false;
+                if (isOnGround)
+                { velocity.y += jumpPower; isOnGround = false; }
+            }
+            else if (!isOnGround)
+            { velocity.y += gravity; }
+            else
+            { velocity.y = gravity; }
+
+            velocity.x *= friction;
+            velocity.z *= friction;
+
+            PxControllerFilters filters;
+            filters.mFilterFlags = PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC;
+            PxControllerCollisionFlags flags = playerController->move(PxVec3(velocity.x, velocity.y, velocity.z), 0.002f, delta, filters);
+            isOnGround = flags & PxControllerCollisionFlag::eCOLLISION_DOWN;
         }
     }
 
@@ -333,8 +378,12 @@ bool frustumSet = false;
 
 float totalTime = 0.f;
 
-Scene scene;
-Entity level;
+PxPhysics* physics                 = nullptr;
+PxScene*   physicsScene            = nullptr;
+PxControllerManager* controllerMan = nullptr;
+
+Scene            scene;
+Entity           level;
 PlayerController controller;
 
 void init()
@@ -346,11 +395,13 @@ void init()
     fragShaderEdit.SetText(myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
 
     scene.init();
+    physics      = scene.phys3d.phys;
+    physicsScene = scene.phys3d.scene;
 
     const Path theHolyCubeModel("assets/primitives/cube.obj");
     for (size_t i = 1; i < 40; i+=2)
     {
-        Vector3f scale = Vector3f(0.1f, 0.1f, 0.1f) * (int)i;
+        Vector3f scale = Vector3f(0.1f, 0.1f, 0.1f) * (int)i/2;
 
         auto theHolyCube = scene.createEntity();
         emplaceComponent<Transform3D>(theHolyCube).scale = scale;
@@ -360,7 +411,7 @@ void init()
         theHolyCubeBody.init(scene.phys3d);
         theHolyCubeBody.makeRigidBody();
         theHolyCubeBody.addBoxCollider(scale);
-        theHolyCubeBody.setPosition(Vector3f(0.f, 10.f, i));
+        theHolyCubeBody.setPosition(Vector3f(0.f, 50.f, i));
     }
 
     // Load level mesh
@@ -374,9 +425,8 @@ void init()
     auto& body = emplaceComponent<Physics3DBody>(level);
     body.init(scene.phys3d);
     body.makeStaticBody();
-    //body.addBoxCollider(Vector3f(100.f, 1.f, 100.f));
-    //body.setPosition(Vector3f(0, -20, 0));
     body.addTriMeshCollider(levelMesh);
+
 
     // Level collision
     //for (auto& submesh : levelMesh.subMeshes)
@@ -429,35 +479,33 @@ void init()
     //boxBody->attachShape(*boxGeom);
 
     // Player geometry
-    //PxMaterial* playerMat = physics->createMaterial(0, 0, 0);
-    //controllerMan = PxCreateControllerManager(*physicsScene);
-    //PxCapsuleControllerDesc cdesc;
-    //cdesc.material         = playerMat;
-    //cdesc.radius           = 0.5f;
-    //cdesc.height           = controller.playerHeight;
-    //cdesc.contactOffset    = 0.01f;
-    //cdesc.slopeLimit       = 0.707; // http://www2.clarku.edu/faculty/djoyce/trig/cosines.html
-    //cdesc.stepOffset       = 0.2f;
-    //cdesc.climbingMode     = PxCapsuleClimbingMode::eCONSTRAINED;
-    //cdesc.nonWalkableMode  = PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
-    //cdesc.density          = 1000.f;
-    //cdesc.behaviorCallback = &controller;
-    //cdesc.reportCallback   = &controller;
-    //controller.playerController = controllerMan->createController(cdesc);
-    //playerMat->release();
+    PxMaterial* playerMat = physics->createMaterial(0, 0, 0);
+    controllerMan = PxCreateControllerManager(*physicsScene);
+    PxCapsuleControllerDesc cdesc;
+    cdesc.material         = playerMat;
+    cdesc.radius           = 0.5f;
+    cdesc.height           = controller.playerHeight;
+    cdesc.contactOffset    = 0.01f;
+    cdesc.slopeLimit       = 0.707; // http://www2.clarku.edu/faculty/djoyce/trig/cosines.html
+    cdesc.stepOffset       = 0.2f;
+    cdesc.climbingMode     = PxCapsuleClimbingMode::eCONSTRAINED;
+    cdesc.nonWalkableMode  = PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
+    cdesc.density          = 1000.f;
+    cdesc.behaviorCallback = &controller;
+    cdesc.reportCallback   = &controller;
+    controller.playerController = controllerMan->createController(cdesc);
+    playerMat->release();
 }
 
 void shutdown()
 {
     // Have to call this explicitly bc physx destructors get called first for some reason.
-    //scene.reset(); // TODO: fix this
+    scene.reset(); // TODO: fix this
 }
 
 void fixedUpdate(float delta)
 {
     controller.fixedUpdate(delta);
-    //physicsScene->simulate(delta);
-    //physicsScene->fetchResults(true);
 }
 
 void update(float delta)
@@ -487,19 +535,7 @@ void update(float delta)
     if (ImGui::CollapsingHeader("Character & Camera", headerFlags))
     {
         ImGui::Indent();
-        if (ImGui::Checkbox("Physics Debug", &debugDrawPhysics))
-        {
-            //if (debugDrawPhysics)
-            //{
-            //    physicsScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 1.0f); // Required
-            //    physicsScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 1.0f);
-            //}
-            //else
-            //{
-            //    physicsScene->setVisualizationParameter(PxVisualizationParameter::eSCALE, 0.f);
-            //    physicsScene->setVisualizationParameter(PxVisualizationParameter::eCOLLISION_SHAPES, 0.f);
-            //}
-        }
+        ImGui::Checkbox("Physics Debug", &debugDrawPhysics);
 
         ImGui::Checkbox("Freecam", &controller.freeCam);
 
@@ -517,8 +553,8 @@ void update(float delta)
         Vector3f playerPos(controller.getPos());
         static Vector3f guiTeleport;
         ImGui::InputFloat3("##teleportinput", &guiTeleport.x);
-        //if (ImGui::Button("Teleport"))
-        //{ controller.playerController->setPosition({ guiTeleport.x, guiTeleport.y, guiTeleport.z }); }
+        if (ImGui::Button("Teleport"))
+        { controller.playerController->setPosition({ guiTeleport.x, guiTeleport.y, guiTeleport.z }); }
         ImGui::SameLine();
         if (ImGui::Button("Save Pos"))
         { guiTeleport = playerPos; }
@@ -526,8 +562,8 @@ void update(float delta)
 
         static Vector3f guiGravity;
         ImGui::InputFloat3("##gravinput", &guiGravity.x);
-        //if (ImGui::Button("Set Gravity"))
-        //{ physicsScene->setGravity({ guiGravity.x, guiGravity.y, guiGravity.z }); }
+        if (ImGui::Button("Set Gravity"))
+        { physicsScene->setGravity({ guiGravity.x, guiGravity.y, guiGravity.z }); }
 
         ImGui::SeparatorText("Camera");
         if (ImGui::Button("Reset Camera"))
@@ -739,25 +775,7 @@ void draw(float delta)
 
     if (debugDrawPhysics)
     {
-        //const PxRenderBuffer& rb = physicsScene->getRenderBuffer();
-        //for (PxU32 i=0; i < rb.getNbPoints(); i++)
-        //{
-        //    const PxDebugPoint& point = rb.getPoints()[i];
-        //    // render the point
-        //}
-        //
-        //static Vector<Vector3f> lines;
-        //lines.clear();
-        //lines.reserve(rb.getNbLines());
-        //for (PxU32 i=0; i < rb.getNbLines(); i++)
-        //{
-        //    const PxDebugLine& line = rb.getLines()[i];
-        //    // render the line
-        //    lines.emplace_back(line.pos0.x, line.pos0.y, line.pos0.z);
-        //    lines.emplace_back(line.pos1.x, line.pos1.y, line.pos1.z);
-        //}
-        //if (!lines.empty())
-        //    R3D::drawLines(lines, ColorRGBAf::white(), GLDrawMode::Lines);
+        scene.phys3d.debugDraw();
     }
     
 }
