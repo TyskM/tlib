@@ -56,11 +56,15 @@ if( !(x) ) \
 
 #pragma endregion
 
+using namespace magic_enum::bitwise_operators;
+
 template <typename T>
 static constexpr T bit(T value)
 { return 1 << value; }
 
-using namespace magic_enum::bitwise_operators;
+template <typename T>
+static constexpr bool hasFlag(T var, T flag)
+{ return (bool)(var & flag); }
 
 /*
     Create operators for enums.

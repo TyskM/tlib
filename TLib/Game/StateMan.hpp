@@ -9,6 +9,13 @@ struct State
     virtual void onExit()  { }
 };
 
+struct GameState : State
+{
+    virtual void init  () {  }
+    virtual void update(float delta) {  }
+    virtual void render(float delta) {  }
+};
+
 template <typename StateType>
 struct StateMan
 {

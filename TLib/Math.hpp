@@ -36,6 +36,7 @@ namespace math
     float normalize(const T& val, const T& min, const T& max)
     { return (val - min) / (max - min); }
 
+    // Returns -1 if negative, 1 if positive, and 0 if 0
     template <class T>
     int sign(const T& value)
     { return (value > 0) - (value < 0); }

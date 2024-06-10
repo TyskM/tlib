@@ -155,6 +155,9 @@ target_link_libraries(TLib PRIVATE ${BULLET_LIBRARIES})
 find_package(flecs CONFIG REQUIRED)
 target_link_libraries(TLib PRIVATE $<IF:$<TARGET_EXISTS:flecs::flecs>,flecs::flecs,flecs::flecs_static>)
 
+find_package(unofficial-enet CONFIG REQUIRED)
+target_link_libraries(TLib PRIVATE unofficial::enet::enet)
+
 ### Graphics stuff
 
 find_dependency(SDL2 CONFIG REQUIRED)
@@ -224,19 +227,7 @@ add_custom_target(RunEmbedder WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR} COMMAN
 add_dependencies(RunEmbedder CopyEmbedder)
 add_dependencies(TLib RunEmbedder)
 
-##
-#### Make package
-
-install(TARGETS TLib EXPORT TLib-targets)
-# install package
-install(EXPORT TLib-targets
-    FILE TLib-targets.cmake
-    NAMESPACE TLib::
-    DESTINATION share/cmake/TLib
-)
-# export build tree
-export(
-    EXPORT TLib-targets
-    FILE "${CMAKE_CURRENT_LIST_DIR}/TLib-targets.cmake"
-    NAMESPACE TLib::
-)
+# I don't understand the overcomplicated packaging BS
+# Link TLib like this:
+# add_subdirectory("D:/Resources/Dev/CPP/TLib" "sub/tlib")
+# target_link_libraries(main PUBLIC TLib::TLib)

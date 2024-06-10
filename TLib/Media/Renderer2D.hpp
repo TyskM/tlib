@@ -352,42 +352,57 @@ public:
         prim_batch(line, color, GLDrawMode::LineStrip, layer);
     }
 
-    static void drawRect(float             x,
-                         float             y,
-                         float             w,
-                         float             h,
-                         float             rot    = 0.f,
-                         bool              filled = false,
-                         const ColorRGBAf& color  = ColorRGBAf::white(),
-                         const int         layer  = DefaultPrimitiveLayer)
+    static void drawRect(float                   x,
+                         float                   y,
+                         float                   w,
+                         float                   h,
+                         float                   rot    = 0.f,
+                         bool                    filled = false,
+                         const ColorRGBAf&       color  = ColorRGBAf::white(),
+                         const Renderer2DOrigin& origin = OriginCenter,
+                         const int               layer  = DefaultPrimitiveLayer)
     {
         Vector2f verts[4] = {
-            Vector2f(x, y),
-            Vector2f(x + w, y),
+            Vector2f(x,     y    ),
+            Vector2f(x + w, y    ),
             Vector2f(x + w, y + h),
-            Vector2f(x, y + h)
+            Vector2f(x,     y + h)
         };
 
         if (rot != 0)
         {
+            Vector2f realOrigin;
+
+            // If origin is default value, make it center of texture
+            if (origin.pos.x == FLT_MAX)
+            { realOrigin = getRectDefaultOrigin(Rectf(x, y, w, h)); }
+            else
+            {
+                if (origin.useWorldCoords)
+                { realOrigin = origin.pos; }
+                else
+                { realOrigin = Vector2f(x, y) + origin.pos; }
+            }
+
             for (auto& v : verts)
             {
-                v -= {x, y};
+                v -= realOrigin;
                 v.rotate(rot);
-                v += {x, y};
+                v += realOrigin;
             }
         }
 
         prim_batch(verts, color, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop, layer);
     }
 
-    static void drawRect(const Rectf&      rect,
-                         float             rot    = 0.f,
-                         bool              filled = false,
-                         const ColorRGBAf& color  = ColorRGBAf::white(),
-                         const int         layer  = DefaultPrimitiveLayer)
+    static void drawRect(const Rectf&            rect,
+                         float                   rot    = 0.f,
+                         bool                    filled = false,
+                         const ColorRGBAf&       color  = ColorRGBAf::white(),
+                         const Renderer2DOrigin& origin = OriginCenter,
+                         const int               layer  = DefaultPrimitiveLayer)
     {
-        drawRect(rect.x, rect.y, rect.width, rect.height, rot, filled, color, layer);
+        drawRect(rect.x, rect.y, rect.width, rect.height, rot, filled, color, origin, layer);
     }
 
     static void drawGrid(const Vector2f&   offset,

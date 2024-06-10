@@ -1,9 +1,7 @@
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-get_filename_component(PARENT_DIR ../ ABSOLUTE)
-add_library(TLib SHARED IMPORTED)
-set_target_properties(TLib PROPERTIES IMPORTED_LOCATION ${PARENT_DIR})
+add_library(TLib STATIC IMPORTED)
 
 file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS *.cpp *.hpp *.h)
 

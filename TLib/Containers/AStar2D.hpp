@@ -69,7 +69,7 @@ protected:
         return results;
     }
 
-    float cost(const Vector2i& fromPos, const Grid& fromGrid, const Vector2i& toPos, const Grid& toGrid) const
+    float cost(const Vector2i& fromPos, const Grid& fromGrid, const Vector2i& toPos, const Grid& toGrid, float diagonalCost) const
     {
         bool diagonal = (fromPos.x != toPos.x && fromPos.y != toPos.y);
         return toGrid.moveCost * (diagonal ? diagonalCost : 1.f);
@@ -121,9 +121,6 @@ protected:
     };
 
 public:
-
-    float diagonalCost = 1.001f; // Read/Write; I recommend 1.001f or sqrt(2.f)
-    bool  includeStart = false; // Read/Write; Should the start variable be included in computePath return.
 
     AStar2D(const Vector2i& size) { setSize(size); }
     AStar2D(int x, int y)         { setSize(x, y); }
@@ -180,6 +177,8 @@ public:
     Vector<Vector2i> computePath(
         const Vector2i& start,
         const Vector2i& goal,
+        const bool      includeStart = false,
+        const float     diagonalCost = 1.001f,
         UnorderedMap<Vector2i, Vector2i>* cameFromPtr  = nullptr, // For debug
         UnorderedMap<Vector2i, float>*    costSoFarPtr = nullptr) // For debug
         const
@@ -219,7 +218,7 @@ public:
 
             for (Vector2i next : neighbors(current))
             {
-                float newCost = costSoFar[current] + cost(current, getGridAt(current), next, getGridAt(next));
+                float newCost = costSoFar[current] + cost(current, getGridAt(current), next, getGridAt(next), diagonalCost);
                 if (costSoFar.find(next) == costSoFar.end() || newCost < costSoFar[next])
                 {
                     costSoFar[next] = newCost;
