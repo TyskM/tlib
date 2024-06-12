@@ -65,6 +65,7 @@ public:
     Vector3f getGravity() const
     { return Vector3f(scene->getGravity()); }
 
+    // TODO: https://gameworksdocs.nvidia.com/PhysX/4.1/documentation/physxguide/Manual/BestPractices.html#performance-issues
     void simulate(float delta)
     {
         scene->simulate    (delta);

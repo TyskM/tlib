@@ -382,9 +382,27 @@ PxPhysics* physics                 = nullptr;
 PxScene*   physicsScene            = nullptr;
 PxControllerManager* controllerMan = nullptr;
 
-Scene            scene;
-Entity           level;
-PlayerController controller;
+struct Level
+{
+    Physics3DBody collision;
+    Asset<Mesh>   gpuMesh;
+};
+
+struct Prop
+{
+    Physics3DBody collision;
+    Asset<Mesh>   gpuMesh;
+};
+
+struct Player
+{
+    PlayerController controller;
+};
+
+Physics3DWorld phys3d;
+Level          level;
+Vector<Prop>   props;
+Player         player;
 
 void init()
 {
@@ -394,9 +412,9 @@ void init()
     vertShaderEdit.SetText(myEmbeds.at("TLib/Embed/Shaders/3d.vert").asString());
     fragShaderEdit.SetText(myEmbeds.at("TLib/Embed/Shaders/3d.frag").asString());
 
-    scene.init();
-    physics      = scene.phys3d.phys;
-    physicsScene = scene.phys3d.scene;
+    phys3d.init();
+    physics      = phys3d.phys;
+    physicsScene = phys3d.scene;
 
     const Path theHolyCubeModel("assets/primitives/cube.obj");
     for (size_t i = 1; i < 40; i+=2)
@@ -417,7 +435,9 @@ void init()
     // Load level mesh
     MeshData levelMesh;
     levelMesh.loadFromFile("assets/scuffed_construct.glb");
-    level = scene.createEntity();
+    level.collision.makeStaticBody();
+    level.collision.addTriMeshCollider(levelMesh);
+    level.gpuMesh->loadFromMemory(levelMesh);
 
     emplaceComponent<Transform3D>(level);
     emplaceComponent<MeshInstance3D>(level, "assets/scuffed_construct.glb");
@@ -426,57 +446,6 @@ void init()
     body.init(scene.phys3d);
     body.makeStaticBody();
     body.addTriMeshCollider(levelMesh);
-
-
-    // Level collision
-    //for (auto& submesh : levelMesh.subMeshes)
-    //{
-    //    PxTriangleMeshDesc meshDesc;
-    //
-    //    Vector<Vector3f> vertices;
-    //    for (auto& vert : submesh.vertices)
-    //    {
-    //        vertices.emplace_back(vert.position);
-    //    }
-    //
-    //    meshDesc.points.count           = vertices.size();;
-    //    meshDesc.points.stride          = sizeof(Vector3f);
-    //    meshDesc.points.data            = vertices.data();
-    //    meshDesc.triangles.count        = submesh.indices.size();
-    //    meshDesc.triangles.stride       = 3*sizeof(uint32_t);
-    //    meshDesc.triangles.data         = submesh.indices.data();
-    //
-    //    PxDefaultMemoryOutputStream writeBuffer;
-    //    bool status = PxCookTriangleMesh(params, meshDesc, writeBuffer, NULL);
-    //    ASSERT(status);
-    //
-    //    PxDefaultMemoryInputData readBuffer(writeBuffer.getData(), writeBuffer.getSize());
-    //
-    //    PxTriangleMesh* triMesh = physics->createTriangleMesh(readBuffer);
-    //    
-    //    PxMeshScale triScale(physx::PxVec3(1.0f, 1.0f, 1.0f), physx::PxQuat(physx::PxIdentity));
-    //    PxRigidStatic* rigidStatic = physics->createRigidStatic(PxTransform({0, 0, 0}));
-    //    {
-    //        PxShape* shape = physics->createShape(PxTriangleMeshGeometry(triMesh, triScale), *mat, true, shapeFlags);
-    //        shape->setContactOffset(0.002f);
-    //        shape->setRestOffset(0.002f);
-    //        rigidStatic->attachShape(*shape);
-    //        shape->release(); // this way shape gets automatically released with actor
-    //    }
-    //
-    //    physicsScene->addActor(*rigidStatic);
-    //}
-
-    // Upload to GPU
-    //auto& m = models.emplace_back();
-    //m.modelPtr = new Mesh();
-    //m.modelPtr->loadFromMemory(levelMesh);
-
-    // Box
-    //PxMaterial* mat = physics->createMaterial(1, 1, 1);
-    //PxShape* boxGeom = physics->createShape(PxBoxGeometry(1.f, 1.f, 1.f), *mat, false, shapeFlags);
-    //PxRigidDynamic* boxBody = physics->createRigidDynamic({ 3.f, 3.f, 0.f });
-    //boxBody->attachShape(*boxGeom);
 
     // Player geometry
     PxMaterial* playerMat = physics->createMaterial(0, 0, 0);
