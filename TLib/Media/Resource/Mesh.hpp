@@ -9,32 +9,23 @@
 #include <TLib/Pointers.hpp>
 #include <TLib/Containers/Array.hpp>
 
-/* DONE: Optimize VAO usage. One per model? // Done, thanks aiProcess_OptimizeGraph
-
-Use single global VAO, VBO, and EBO to avoid the overhead of switching them.
-
-global VertexArray;  // Layout
-global VertexBuffer; // Vertices
-global ElementBuffer // Indices
-
-size_t vboIndex, vboSize;
-size_t eboIndex, eboSize;
-
-*/
-// Add lighting
-// Support materials
-struct Mesh : NonAssignable
+// DONE: Optimize VAO usage. // Done, thanks aiProcess_OptimizeGraph
+// DONE: Add lighting
+// DONE: Support materials
+// TODO: Use single global VAO, VBO, and EBO to avoid the overhead of switching them.
+struct Mesh : NonCopyable
 {
 private:
     struct MeshTexture
     {
-        TextureType   type = TextureType::Diffuse;
-        UPtr<Texture> texture;
+        TextureType type = TextureType::Diffuse;
+        Texture     texture;
     };
 
     struct Material
     {
-        Array<UPtr<Texture>, (size_t)TextureType::Count> textures;
+        // TODO: why is this a UPtr?
+        Array<Texture, (size_t)TextureType::Count> textures;
     };
 
     struct SubMesh
@@ -64,11 +55,11 @@ public:
             {
                 ASSERT(cpuTexture); // Textures should never be NULL, worst case they are 1x1 pure white/black/gray
                 auto& gpuTexture = gpuSubMesh.material.textures[i];
-                gpuTexture = makeUnique<Texture>();
-                gpuTexture->setData(*cpuTexture);
-                gpuTexture->setUVMode(UVMode::Repeat);
-                gpuTexture->setFilter(TextureMinFilter::LinearMipmapLinear, TextureMagFilter::Linear);
-                gpuTexture->generateMipmaps();
+                gpuTexture.create();
+                gpuTexture.setData(*cpuTexture);
+                gpuTexture.setUVMode(UVMode::Repeat);
+                gpuTexture.setFilter(TextureMinFilter::LinearMipmapLinear, TextureMagFilter::Linear);
+                gpuTexture.generateMipmaps();
                 ++i;
             }
         }
@@ -84,6 +75,7 @@ public:
         if (!success) { tlog::error("Model::loadFromFile: Failed to load mesh"); return false; }
         ASSERT(success);
 
+        reset();
         return loadFromMemory(meshData);
     }
 

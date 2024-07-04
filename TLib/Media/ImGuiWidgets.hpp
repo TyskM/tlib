@@ -2,6 +2,7 @@
 
 #include <TLib/Media/ImGui.hpp>
 #include <TLib/Media/Renderer.hpp>
+#include <TLib/Media/Renderer2D.hpp>
 #include <TLib/Media/Platform/SysQuery.hpp>
 #include <TLib/Media/Platform/FPSLimit.hpp>
 #include <TLib/Media/Platform/Input.hpp>

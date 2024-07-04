@@ -46,6 +46,20 @@ struct Vector3
     T lengthSquared() const
     { return x * x + y * y + z * z; }
 
+    T distanceTo(const Vector3<T>& other) const
+    {
+        return static_cast<T>(std::sqrt(
+            (x - other.x) * (x - other.x) +
+            (y - other.y) * (y - other.y) +
+            (z - other.z) * (z - other.z))); }
+
+    T distanceToSquared(const Vector3<T>& other) const
+    {
+        return (x - other.x) * (x - other.x) +
+               (y - other.y) * (y - other.y) +
+               (z - other.z) * (z - other.z);
+    }
+
     void normalize()
     {
         *this = normalized();

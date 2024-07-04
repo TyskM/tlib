@@ -64,6 +64,7 @@ public:
     {
         Mesh*       model;
         Transform3D transform;
+        bool        shadowOnly = false;
     };
 
     struct PrimitiveDrawCmd
@@ -241,12 +242,13 @@ public:
         Renderer3D::camera = camera;
     }
 
-    static void drawModel(Mesh& model, const Transform3D& transform)
+    static void drawModel(Mesh& model, const Transform3D& transform, bool shadowOnly = false)
     {
         DrawCmd&      var = cmds.emplace_back();
         ModelDrawCmd& cmd = var.emplace<ModelDrawCmd>();
         cmd.model         = &model;
         cmd.transform     = transform;
+        cmd.shadowOnly    = shadowOnly;
     }
 
     static void drawLines(
@@ -800,12 +802,14 @@ private:
             else if (is<ModelDrawCmd>(varCmd))
             {
                 ModelDrawCmd& cmd = std::get<ModelDrawCmd>(varCmd);
+                if (cmd.shadowOnly)
+                { continue; }
 
                 for (auto& mesh : cmd.model->getMeshes())
                 {
-                    mesh.material.textures[(int32_t)TextureType::Diffuse]  ->bind(0);
-                    mesh.material.textures[(int32_t)TextureType::Roughness]->bind(1);
-                    mesh.material.textures[(int32_t)TextureType::Metalness]->bind(2);
+                    mesh.material.textures[(int32_t)TextureType::Diffuse]  .bind(0);
+                    mesh.material.textures[(int32_t)TextureType::Roughness].bind(1);
+                    mesh.material.textures[(int32_t)TextureType::Metalness].bind(2);
 
                     shader3d.setMat4f("model", cmd.transform.getMatrix());
                     Renderer::draw(shader3d, *mesh.vertices);

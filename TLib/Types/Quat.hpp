@@ -24,6 +24,14 @@ struct Quat
     static Quat angleAxis(float angle, const Vector3f& axis)
     { return glm::angleAxis(angle, glm::vec3(axis.x, axis.y, axis.z)); }
 
+    static Quat euler(float yaw, float pitch, float roll)
+    {
+        Quat   qYaw    (glm::radians(yaw),   Vector3f(0, 1, 0));
+        Quat   qPitch  (glm::radians(pitch), Vector3f(1, 0, 0));
+        Quat   qRoll   (glm::radians(roll),  Vector3f(0, 0, 1));
+        return (qRoll * qPitch * qYaw).normalized();
+    }
+
     Vector3f forward() const
     { return inverse().rotated(Vector3f::forward()); }
 

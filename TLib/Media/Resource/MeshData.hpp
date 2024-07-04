@@ -32,21 +32,6 @@ struct SkeletonVertex
     Array<float,    maxBoneInfluences> boneWeights;
 };
 
-struct SkeletalAnimation
-{
-    struct Channel
-    {
-        String           name;
-        Vector<Vector3f> positions;
-        Vector<Quat>     rotations;
-        Vector<Vector3f> scales;
-    };
-
-    double          duration       = 0.f;
-    double          ticksPerSecond = 0.f;
-    Vector<Channel> channels;
-};
-
 enum class TextureType
 {
     Diffuse,   // = aiTextureType::aiTextureType_DIFFUSE,
@@ -68,22 +53,49 @@ struct MeshData
 
     struct Material
     {
+        String name = "???";
         // Texture should not be NULL
         Array<UPtr<TextureData>, (size_t)TextureType::Count> textures;
     };
 
     struct SubMesh
     {
+        String           name;
         Vector<Vertex>   vertices;
         Vector<uint32_t> indices;
         Material         material;
     };
 
-    Vector<SubMesh> subMeshes;
+    struct Animation
+    {
+        template <typename T>
+        struct Key
+        {
+            double time = 0.f;
+            T      value;
+        };
+
+        struct Channel
+        {
+            String                name;
+            Vector<Key<Vector3f>> positions;
+            Vector<Key<Quat>>     rotations;
+            Vector<Key<Vector3f>> scales;
+        };
+
+        double          duration       = 0.f;
+        double          ticksPerSecond = 0.f;
+        Vector<Channel> channels;
+    };
+
+    Path              path;
+    Vector<SubMesh>   subMeshes;
+    Vector<Animation> animations;
 
     bool loadFromFile(const Path& path)
     {
         // https://learnopengl.com/Model-Loading/Model
+        this->path = path;
 
         const aiPostProcessSteps importerFlags =
             aiProcess_Triangulate           | aiProcess_GenNormals    |
@@ -109,16 +121,15 @@ struct MeshData
         stack.get_container().clear();
         stack.push(scene->mRootNode);
 
+        // Load meshes
         while (!stack.empty())
         {
             aiNode* node = stack.top();
             stack.pop();
 
-            uint32_t meshCount     = node->mNumMeshes;
-            bool     nodeHasMeshes = meshCount > 0;
-
-            if (nodeHasMeshes)
+            if (scene->HasMeshes())
             {
+                uint32_t meshCount = node->mNumMeshes;
                 for (uint32_t i = 0; i < meshCount; i++)
                 {
                     auto& subMesh  = subMeshes.emplace_back();
@@ -129,6 +140,7 @@ struct MeshData
                     uint32_t verticeCount = mesh->mNumVertices;
                     uint32_t faceCount    = mesh->mNumFaces;
                     auto     texCoords    = mesh->mTextureCoords[0];
+                    subMesh.name          = mesh->mName.C_Str();
 
                     // process vertex positions, normals and texture coordinates
                     ASSERT(vertices.empty()); // sanity check because im a fuck up
@@ -164,15 +176,68 @@ struct MeshData
                     if (mesh->mMaterialIndex >= 0)
                     {
                         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-                        loadMaterialTextures(subMesh.material, scene, material, aiTextureType_DIFFUSE, fileFolder);
-                        ////loadMaterialTextures(modelMesh.textures, material, aiTextureType_SPECULAR, path);
+                        loadMaterialTextures(subMesh.material, scene, material, fileFolder);
                     }
                 }
             }
 
             // Queue children for above process
-            for (unsigned int i = 0; i < node->mNumChildren; i++)
+            for (uint32_t i = 0; i < node->mNumChildren; i++)
             { stack.push(node->mChildren[i]); }
+        }
+
+        if (scene->HasAnimations())
+        {
+            uint32_t animCount = scene->mNumAnimations;
+            animations.reserve(animCount);
+            for (uint32_t i = 0; i < animCount; i++)
+            {
+                auto& anim   = animations.emplace_back();
+                auto& aianim = scene->mAnimations[i];
+
+                anim.duration       = aianim->mDuration;
+                anim.ticksPerSecond = aianim->mTicksPerSecond;
+
+                uint32_t channelCount = aianim->mNumChannels;
+                anim.channels.reserve(channelCount);
+                for (uint32_t j = 0; j < channelCount; j++)
+                {
+                    auto& channel   = anim.channels.emplace_back();
+                    auto& aichannel = aianim->mChannels[j];
+                    
+                    channel.name = aichannel->mNodeName.C_Str();
+
+                    uint32_t posKeyCount = aichannel->mNumPositionKeys;
+                    channel.positions.reserve(posKeyCount);
+                    for (uint32_t k = 0; k < posKeyCount; k++)
+                    {
+                        auto& pos   = channel.positions.emplace_back();
+                        auto& aipos = aichannel->mPositionKeys[k];
+                        pos.time    = aipos.mTime;
+                        pos.value   = Vector3f(aipos.mValue.x, aipos.mValue.y, aipos.mValue.z);
+                    }
+
+                    uint32_t rotKeyCount = aichannel->mNumRotationKeys;
+                    channel.rotations.reserve(rotKeyCount);
+                    for (uint32_t k = 0; k < rotKeyCount; k++)
+                    {
+                        auto& pos   = channel.rotations.emplace_back();
+                        auto& airot = aichannel->mRotationKeys[k];
+                        pos.time    = airot.mTime;
+                        pos.value   = Quat(airot.mValue.w, airot.mValue.x, airot.mValue.y, airot.mValue.z);
+                    }
+
+                    uint32_t sclKeyCount = aichannel->mNumScalingKeys;
+                    channel.scales.reserve(sclKeyCount);
+                    for (uint32_t k = 0; k < sclKeyCount; k++)
+                    {
+                        auto& pos   = channel.scales.emplace_back();
+                        auto& aiscl = aichannel->mScalingKeys[k];
+                        pos.time    = aiscl.mTime;
+                        pos.value   = Vector3f(aiscl.mValue.x, aiscl.mValue.y, aiscl.mValue.z);
+                    }
+                }
+            }
         }
 
         return true;
@@ -181,6 +246,7 @@ struct MeshData
     void reset()
     {
         subMeshes.clear();
+        animations.clear();
     }
 
 private:
@@ -227,9 +293,10 @@ private:
         }
     }
 
-    void loadMaterialTextures(Material& mat, const aiScene* scene, aiMaterial* aimat, aiTextureType type, const Path& modelPath)
+    void loadMaterialTextures(Material& mat, const aiScene* scene, aiMaterial* aimat, const Path& modelPath)
     {
-        auto&  textures = mat.textures;
+        mat.name = aimat->GetName().C_Str();
+        auto& textures = mat.textures;
 
         {   // Load Diffuse
             aiString  diffusePath;

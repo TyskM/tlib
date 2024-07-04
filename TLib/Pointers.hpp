@@ -25,6 +25,8 @@ auto makeUnique(Args&&... args)
 template <typename T, class Deleter = std::default_delete<T>>
 using UPtr = std::unique_ptr<T, Deleter>;
 
+// Example:
+// using Material = UPtr<PxMaterial, Deleter<[](PxMaterial* mat) { mat->release(); }>>;
 template <auto fn>
 struct Deleter
 {

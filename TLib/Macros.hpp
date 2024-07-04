@@ -149,3 +149,11 @@ struct magic_enum::customize::enum_range<name> \
 
 #define STRING_NAME(X) #X
 #define STRING_VALUE(X) STRING_NAME(X)
+
+#define DISABLE_COPY(name) \
+    name          (const name&) noexcept = delete; \
+    name operator=(const name&) noexcept = delete;
+
+#define DISABLE_MOVE(name) \
+    name           (name&&) noexcept = delete; \
+    name& operator=(name&&) noexcept = delete;

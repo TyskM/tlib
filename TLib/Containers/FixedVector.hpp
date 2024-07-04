@@ -1,5 +1,6 @@
 
 #pragma once
+#include <TLib/EASTL.hpp>
 #include <EASTL/fixed_vector.h>
 
 template <typename T,

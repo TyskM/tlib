@@ -115,7 +115,7 @@ static GLenum toGLFlag(TextureFiltering flag)
 }
 
 // OpenGL Texture
-struct Texture : NonAssignable
+struct Texture
 {
 public:
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
@@ -130,33 +130,52 @@ public:
     };
 
 private:
-    GLuint glHandle        =  0;
-    int    width           =  0;
-    int    height          =  0;
+    GLuint             glHandle       = 0;
+    int32_t            width          = 0;
+    int32_t            height         = 0;
     TexInternalFormats internalFormat = TexInternalFormats::Unknown;
-    Path   _path;
+    Path              _path;
+
+    void moveInternals(Texture&& old)
+    {
+        glHandle       = std::move(old.glHandle);
+        old.glHandle   = 0;
+        width          = std::move(old.glHandle);
+        height         = std::move(old.height);
+        internalFormat = std::move(old.internalFormat);
+       _path           = std::move(old._path);
+    }
 
 public:
-    constexpr Texture() = default;
+    Texture() = default;
     Texture(const Path& filePath) { loadFromFile(filePath); }
+
     ~Texture() { reset(); }
 
-    String toString() const
+    DISABLE_COPY(Texture);
+
+    // Move-construct
+    Texture(Texture&& old) noexcept
     {
-        return fmt::format("Handle: {}, Width: {}, Height: {}, Path: {}",
-                            glHandle,   width,     height, _path.string());
+        moveInternals(std::move(old));
+    }
+
+    // Move-assign
+    Texture& operator=(Texture&& old) noexcept
+    {
+        reset();
+        moveInternals(std::move(old));
+        return *this;
     }
 
     void reset()
     {
-        if (created())
-        {
-            GL_CHECK(glDeleteTextures(1, &glHandle));
-            glHandle        =  0;
-            width           =  0;
-            height          =  0;
-            internalFormat  = TexInternalFormats::Unknown;
-        }
+        if (!created()) return;
+        GL_CHECK(glDeleteTextures(1, &glHandle));
+        glHandle       = 0;
+        width          = 0;
+        height         = 0;
+        internalFormat = TexInternalFormats::Unknown;
     }
 
     void create()
@@ -172,9 +191,9 @@ public:
     bool valid() const
     {
         return
-            width     >  0 &&
-            height    >  0 &&
-            glHandle  >  0 &&
+            width           >  0 &&
+            height          >  0 &&
+            glHandle        >  0 &&
             internalFormat != TexInternalFormats::Unknown;
     }
 
@@ -329,6 +348,12 @@ public:
 
     bool isFromSamePath(const Texture& otherTex) const
     { return isFromSamePath(otherTex.path()); }
+
+    String toString() const
+    {
+        return fmt::format("Handle: {}, Width: {}, Height: {}, Path: {}",
+                            glHandle,   width,     height, _path.string());
+    }
 
     // TODO: is unpack alignment per texture?? where am i>:>??????
     void setUnpackAlignment(int value)

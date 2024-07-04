@@ -386,12 +386,14 @@ struct Level
 {
     Physics3DBody collision;
     Asset<Mesh>   gpuMesh;
+    Transform3D   transform;
 };
 
 struct Prop
 {
     Physics3DBody collision;
     Asset<Mesh>   gpuMesh;
+    Transform3D   transform;
 };
 
 struct Player
@@ -417,35 +419,31 @@ void init()
     physicsScene = phys3d.scene;
 
     const Path theHolyCubeModel("assets/primitives/cube.obj");
+    Asset<Mesh> cubeMesh = new Mesh();
+    cubeMesh->loadFromFile(theHolyCubeModel);
     for (size_t i = 1; i < 40; i+=2)
     {
         Vector3f scale = Vector3f(0.1f, 0.1f, 0.1f) * (int)i/2;
 
-        auto theHolyCube = scene.createEntity();
-        emplaceComponent<Transform3D>(theHolyCube).scale = scale;
-        emplaceComponent<MeshInstance3D>(theHolyCube, theHolyCubeModel);
+        auto& prop = props.emplace_back();
+        prop.collision.init(phys3d);
+        prop.collision.makeRigidBody();
+        prop.collision.addBoxCollider(scale);
+        prop.collision.setPosition(Vector3f(0.f, 50.f, i));
 
-        auto& theHolyCubeBody = emplaceComponent<Physics3DBody>(theHolyCube);
-        theHolyCubeBody.init(scene.phys3d);
-        theHolyCubeBody.makeRigidBody();
-        theHolyCubeBody.addBoxCollider(scale);
-        theHolyCubeBody.setPosition(Vector3f(0.f, 50.f, i));
+        prop.gpuMesh = cubeMesh;
+
+        prop.transform.scale = scale;
     }
 
     // Load level mesh
     MeshData levelMesh;
     levelMesh.loadFromFile("assets/scuffed_construct.glb");
+    level.collision.init(phys3d);
     level.collision.makeStaticBody();
     level.collision.addTriMeshCollider(levelMesh);
+    level.gpuMesh = new Mesh();
     level.gpuMesh->loadFromMemory(levelMesh);
-
-    emplaceComponent<Transform3D>(level);
-    emplaceComponent<MeshInstance3D>(level, "assets/scuffed_construct.glb");
-
-    auto& body = emplaceComponent<Physics3DBody>(level);
-    body.init(scene.phys3d);
-    body.makeStaticBody();
-    body.addTriMeshCollider(levelMesh);
 
     // Player geometry
     PxMaterial* playerMat = physics->createMaterial(0, 0, 0);
@@ -453,28 +451,39 @@ void init()
     PxCapsuleControllerDesc cdesc;
     cdesc.material         = playerMat;
     cdesc.radius           = 0.5f;
-    cdesc.height           = controller.playerHeight;
+    cdesc.height           = player.controller.playerHeight;
     cdesc.contactOffset    = 0.01f;
     cdesc.slopeLimit       = 0.707; // http://www2.clarku.edu/faculty/djoyce/trig/cosines.html
     cdesc.stepOffset       = 0.2f;
     cdesc.climbingMode     = PxCapsuleClimbingMode::eCONSTRAINED;
     cdesc.nonWalkableMode  = PxControllerNonWalkableMode::ePREVENT_CLIMBING_AND_FORCE_SLIDING;
     cdesc.density          = 1000.f;
-    cdesc.behaviorCallback = &controller;
-    cdesc.reportCallback   = &controller;
-    controller.playerController = controllerMan->createController(cdesc);
+    cdesc.behaviorCallback = &player.controller;
+    cdesc.reportCallback   = &player.controller;
+    player.controller.playerController = controllerMan->createController(cdesc);
     playerMat->release();
 }
 
 void shutdown()
 {
-    // Have to call this explicitly bc physx destructors get called first for some reason.
-    scene.reset(); // TODO: fix this
+    phys3d.reset();
 }
 
 void fixedUpdate(float delta)
 {
-    controller.fixedUpdate(delta);
+    // Copy transforms
+    auto levelTf = level.collision.getTransform();
+    level.transform.pos = levelTf.pos;
+    level.transform.rot = levelTf.rot;
+    for (auto& prop : props)
+    {
+        auto tf = prop.collision.getTransform();
+        prop.transform.pos = tf.pos;
+        prop.transform.rot = tf.rot;
+    }
+
+    phys3d.simulate(delta);
+    player.controller.fixedUpdate(delta);
 }
 
 void update(float delta)
@@ -493,8 +502,6 @@ void update(float delta)
         timeBuffer -= fixedTimeStep;
     }
 
-    scene.update(delta);
-
     #pragma region UI
     beginDiagWidgetExt();
 
@@ -506,24 +513,24 @@ void update(float delta)
         ImGui::Indent();
         ImGui::Checkbox("Physics Debug", &debugDrawPhysics);
 
-        ImGui::Checkbox("Freecam", &controller.freeCam);
+        ImGui::Checkbox("Freecam", &player.controller.freeCam);
 
-        ImGui::SliderFloat("Move Speed", &controller.moveSpeed, 0.f, 100.f);
-        ImGui::SliderFloat("Gravity", &controller.gravity, -2.f, 2.f);
-        ImGui::SliderFloat("Friction", &controller.friction, 0.f, 1.f);
-        ImGui::SliderFloat("Jump Power", &controller.jumpPower, 1.f, 100.f);
-        ImGui::Checkbox   ("On Ground", &controller.isOnGround);
+        ImGui::SliderFloat("Move Speed", &player.controller.moveSpeed, 0.f, 100.f);
+        ImGui::SliderFloat("Gravity",    &player.controller.gravity, -2.f, 2.f);
+        ImGui::SliderFloat("Friction",   &player.controller.friction, 0.f, 1.f);
+        ImGui::SliderFloat("Jump Power", &player.controller.jumpPower, 1.f, 100.f);
+        ImGui::Checkbox   ("On Ground",  &player.controller.isOnGround);
 
-        ImGui::Text(fmt::format("Velocity: {}", controller.velocity.toString()).c_str());
-        ImGui::Text(fmt::format("Looking At Geometry: {}", controller.lookingAtGeometry).c_str());
+        ImGui::Text(fmt::format("Velocity: {}",            player.controller.velocity.toString()).c_str());
+        ImGui::Text(fmt::format("Looking At Geometry: {}", player.controller.lookingAtGeometry).c_str());
         //ImGui::Text(fmt::format("Dir:      {}", Vector3f(controller.forward).toString()).c_str());
         //ImGui::Text(fmt::format("Dir No Y: {}", Vector3f(controller.forwardNoY).toString()).c_str());
 
-        Vector3f playerPos(controller.getPos());
+        Vector3f playerPos(player.controller.getPos());
         static Vector3f guiTeleport;
         ImGui::InputFloat3("##teleportinput", &guiTeleport.x);
         if (ImGui::Button("Teleport"))
-        { controller.playerController->setPosition({ guiTeleport.x, guiTeleport.y, guiTeleport.z }); }
+        { player.controller.playerController->setPosition({ guiTeleport.x, guiTeleport.y, guiTeleport.z }); }
         ImGui::SameLine();
         if (ImGui::Button("Save Pos"))
         { guiTeleport = playerPos; }
@@ -536,14 +543,14 @@ void update(float delta)
 
         ImGui::SeparatorText("Camera");
         if (ImGui::Button("Reset Camera"))
-        { controller.resetCamera(); }
-        ImGui::SliderFloat("FOV", &controller.camera.fov, 70.f, 170.f);
+        { player.controller.resetCamera(); }
+        ImGui::SliderFloat("FOV", &player.controller.camera.fov, 70.f, 170.f);
 
         ImGui::Text("Press ALT to toggle cursor.");
-        ImGui::SliderFloat("Sensitivity", &controller.sens, 0.01f, 2.f);
-        ImGui::SliderFloat("Camera Speed", &controller.freeCamSpeed, 0.01f, 400.f);
-        ImGui::Text(fmt::format("Pitch : {}", controller.pitch).c_str());
-        ImGui::Text(fmt::format("Yaw   : {}", controller.yaw).c_str());
+        ImGui::SliderFloat("Sensitivity",    &player.controller.sens, 0.01f, 2.f);
+        ImGui::SliderFloat("Camera Speed",   &player.controller.freeCamSpeed, 0.01f, 400.f);
+        ImGui::Text(fmt::format("Pitch : {}", player.controller.pitch).c_str());
+        ImGui::Text(fmt::format("Yaw   : {}", player.controller.yaw).c_str());
         ImGui::Unindent();
     }
     // Model loading input
@@ -587,8 +594,8 @@ void update(float delta)
             ImGui::Indent();
             ImGui::Checkbox   ("Fog", &R3D::fog);
             ImGui::ColorEdit3 ("Fog Color", &R3D::fogColor.r);
-            ImGui::SliderFloat("Near Plane", &controller.camera.znear, 0.f, 1.f);
-            ImGui::SliderFloat(" Far Plane", &controller.camera.zfar, 0.f, 500.f);
+            ImGui::SliderFloat("Near Plane", &player.controller.camera.znear, 0.f, 1.f);
+            ImGui::SliderFloat(" Far Plane", &player.controller.camera.zfar, 0.f, 500.f);
             ImGui::Dummy(dummySize);
             ImGui::Unindent();
         }
@@ -657,9 +664,9 @@ void update(float delta)
         if (Input::isKeyJustPressed(SDL_SCANCODE_LALT))
         { window.toggleFpsMode(); }
 
-        controller.update(delta, window.getFpsMode());
+        player.controller.update(delta, window.getFpsMode());
 
-        R3D::setCamera(controller.camera);
+        R3D::setCamera(player.controller.camera);
     }
 
     if (ambientColorSkySync)
@@ -681,7 +688,7 @@ void update(float delta)
 void draw(float delta)
 {
     //sunDir = Vector3f::forward() * controller.camera.rot;
-    Vector3f lightPos  = controller.getPos();
+    Vector3f lightPos  = player.controller.getPos();
     R3D::addPointLight(lightPos, ColorRGBf(lightColor), lightPower);
 
     if (sunEnabled)
@@ -735,7 +742,9 @@ void draw(float delta)
         R3D::drawLines(frustLines, ColorRGBAf::white(), GLDrawMode::Lines);
     }
 
-    scene.render(delta);
+    R3D::drawModel(level.gpuMesh.get(), Transform3D());
+    for (auto& prop : props)
+    { R3D::drawModel(prop.gpuMesh.get(), prop.transform); }
 
     R3D::drawLines(std::initializer_list{ Vector3f::up()      * 10, Vector3f() }, ColorRGBAf::green(), GLDrawMode::Lines);
     R3D::drawLines(std::initializer_list{ Vector3f::right()   * 10, Vector3f() }, ColorRGBAf::red(),   GLDrawMode::Lines);
@@ -744,7 +753,7 @@ void draw(float delta)
 
     if (debugDrawPhysics)
     {
-        scene.phys3d.debugDraw();
+        phys3d.debugDraw();
     }
     
 }

@@ -15,7 +15,7 @@ struct View3D
     float     znear    = 0.02f;
     float     zfar     = 500.f;
     float     fov      = 110.f;
-    Vector3f  pos      ={ 0.0f, 0.0f, 0.0f };
+    Vector3f  pos      = { 0.0f, 0.0f, 0.0f };
     Quat      rot;
     ViewMode  viewmode = ViewMode::Perspective;
 

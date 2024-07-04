@@ -102,6 +102,13 @@ private:
     static inline ActionControl lastInput;
 
 public:
+    static inline void init()
+    {
+        // Fill the buffers
+        updateKeyboard(); updateKeyboard();
+        updateMouse();    updateMouse();
+    }
+
     // Call in your input loop
     static inline void input(const SDL_Event& e)
     {
