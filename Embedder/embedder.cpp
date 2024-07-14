@@ -7,6 +7,7 @@
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+#include <fmt/args.h>
 
 using namespace spdlog;
 using String = std::string;
@@ -113,7 +114,8 @@ public:
 
 int main(int argc, char* argv[])
 {
-    set_default_logger(createConsoleLogger("Main"));
+    set_default_logger(createConsoleLogger("Embedder"));
+    spdlog::info("Working dir: {}", fs::current_path().string());
 
     #ifdef TLIB_DEBUG
         tlog::info("Arg count: {}", argc);
@@ -122,86 +124,150 @@ int main(int argc, char* argv[])
     #endif
 
     std::vector<String> embedFiles;
-    String              outPath = "";
-    String              embedMapName = "myEmbeds";
-    bool                overwrite = false;
+    String              outPath       = "";
+    String              embedMapName  = "myEmbeds";
+    String              timestampPath = "{outPathDir}/time.stamp";
+    bool                overwrite     = false;
 
-    CLI::App app("Embed files");
+    // Parse Args
+    {
+        CLI::App app("Embed files");
 
-    app.add_option(
-        "-f,--file",
-        embedFiles,
-        "Individual files to embed")
-        ->required();
+        app.add_option(
+            "-f,--file",
+            embedFiles,
+            "Individual files to embed")
+            ->required();
 
-    app.add_option(
-        "-o,--out",
-        outPath,
-        "Output path (including output filename)")
-        ->required();
+        app.add_option(
+            "-o,--out",
+            outPath,
+            "Output path (including output filename)")
+            ->required();
 
-    app.add_option(
-        "-n,--mapName",
-        embedMapName,
-        "Name of the map variable used to access your data (myEmbeds by default)")
-        ->default_val(embedMapName);
+        app.add_option(
+            "-n,--mapName",
+            embedMapName,
+            "Name of the map variable used to access your data (myEmbeds by default)")
+            ->default_val(embedMapName);
     
-    app.add_flag(
-        "--ow",
-        overwrite,
-        "Overwrite output (You probably want this but it's false by default to be safe)")
-        ->default_val(overwrite);
+        app.add_option(
+            "-t,--timeStamp",
+            timestampPath,
+            "Path to timestamp")
+            ->default_val(timestampPath);
 
-    CLI11_PARSE(app, argc, argv);
+        app.add_flag(
+            "--ow",
+            overwrite,
+            "Overwrite output (You probably want this but it's false by default to be safe)")
+            ->default_val(overwrite);
 
-    spdlog::info("Working dir: {}", fs::current_path().string());
+        CLI11_PARSE(app, argc, argv);
+    }
 
-    std::stringstream mainStream;
-    spdlog::info("Got files: ");
-
-    for (size_t i = 0; i < embedFiles.size(); i++)
+    // Format parsed args
     {
-        const String& f = embedFiles[i];
-        spdlog::info(f);
+        using FormatArgs = fmt::dynamic_format_arg_store<fmt::format_context>;
+        FormatArgs args;
+        args.push_back(fmt::arg("outPath", outPath));
+        args.push_back(fmt::arg("outPathDir", Path(outPath).remove_filename().string()));
 
-        // Normalize key
-        String normalizedPath = fs::path(f).lexically_normal().string();
-        replace(normalizedPath, "\\", "/");
+        timestampPath = fmt::vformat(timestampPath, args);
+    }
 
-        // Get value from file
-        std::vector<char> bytes;
-        bytes = readFileBytes(f);
-        if (bytes.empty())
-        { spdlog::error("Failed to read file: {}\n Exiting...", f); return 1; }
-        
-        std::stringstream byteStream;
-        byteStream << "{{ ";
-        for (size_t i = 0; i < bytes.size(); i++)
+    // Normalize file paths
+    {
+        for (auto& filePath : embedFiles)
         {
-            auto& byte = bytes[i];
-            byteStream << "0x" << std::setfill('0') << std::setw(2) << std::hex << (0xff & (unsigned int)byte);
-
-            if (i < bytes.size()-1)
-            { byteStream << ", "; }
+            filePath = fs::path(filePath).lexically_normal().string();
+            replace(filePath, "\\", "/");
         }
-        byteStream << " }}";
-
-        mainStream << fmt::format("{{ \"{}\", EmbeddedData({}) }}", normalizedPath, byteStream.str());
-        
-        // Last one, no comma
-        if (i < embedFiles.size()-1)
-        { mainStream << ",\n    "; }
     }
 
-    String finalSrc = fmt::format(outputSrc, fmt::arg("mapName", embedMapName), fmt::arg("mapVars", mainStream.str()));
-
-    if (fs::exists(outPath) && !overwrite)
+    // Get or create embed timestamp
+    fs::file_time_type lastEmbedTimeStamp;
     {
-        spdlog::error("Output path '{}' already exists. Use -ow flag to overwrite output.", outPath);
-        return 1;
+        bool timestampExists = fs::exists(timestampPath);
+        if (!timestampExists)
+        {
+            spdlog::info("No embed timestamp found, creating one...");
+            if (!writeToFile(timestampPath, ""))
+            { spdlog::error("Failed to write timestamp '{}'", timestampPath); }
+        }
+        lastEmbedTimeStamp = fs::last_write_time(timestampPath);
+
+        // Set new timestamp
+        fs::last_write_time(timestampPath, std::chrono::file_clock::now());
     }
 
-    writeToFile(outPath, finalSrc);
+    // Check if files are dirty
+    bool filesAreDirty = false;
+    {
+        for (auto& file : embedFiles)
+        {
+            auto ts = fs::last_write_time(file);
+            filesAreDirty = (ts > lastEmbedTimeStamp);
+            if (filesAreDirty)
+            {
+                spdlog::info("Embedder source file '{}' is dirty, reembedding all source files...", file);
+                break;
+            }
+        }
+    }
 
-    return 0;
+    // If no files have been changed, do nothing. Happy common case :)
+    if (!filesAreDirty)
+    {
+        spdlog::info("Files are all clean, doing nothing :)");
+        return 0;
+    }
+
+    // Embed provided source files
+    {
+        std::stringstream mainStream;
+        spdlog::info("Got files: ");
+
+        for (size_t i = 0; i < embedFiles.size(); i++)
+        {
+            const String& embedFile = embedFiles[i];
+            spdlog::info(embedFile);
+
+            // Get value from file
+            std::vector<char> bytes;
+            bytes = readFileBytes(embedFile);
+            if (bytes.empty())
+            { spdlog::error("Failed to read file: {}\n Exiting...", embedFile); return 1; }
+            
+            std::stringstream byteStream;
+            byteStream << "{{ ";
+            for (size_t i = 0; i < bytes.size(); i++)
+            {
+                auto& byte = bytes[i];
+                byteStream << "0x" << std::setfill('0') << std::setw(2) << std::hex << (0xff & (unsigned int)byte);
+
+                if (i < bytes.size()-1)
+                { byteStream << ", "; }
+            }
+            byteStream << " }}";
+
+            mainStream << fmt::format("{{ \"{}\", EmbeddedData({}) }}", embedFile, byteStream.str());
+            
+            // Last one, no comma
+            if (i < embedFiles.size()-1)
+            { mainStream << ",\n    "; }
+        }
+
+        String finalSrc = fmt::format(outputSrc, fmt::arg("mapName", embedMapName), fmt::arg("mapVars", mainStream.str()));
+
+        if (fs::exists(outPath) && !overwrite)
+        {
+            spdlog::error("Output path '{}' already exists. Use -ow flag to overwrite output.", outPath);
+            return 1;
+        }
+
+        writeToFile(outPath, finalSrc);
+
+        return 0;
+    }
 }

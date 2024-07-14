@@ -33,11 +33,11 @@ endmacro()
 GLOB_APPEND        (SOURCE_FILES "TLib/*.cpp;TLib/*.hpp;TLib/*.h")
 GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Containers/*.hpp")
 GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/ECS/*.hpp")
-GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Embed/*.hpp")
 GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Game/*.hpp")
 GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Media/*.hpp")
 GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Scripting/*.hpp")
 GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Types/*.hpp")
+GLOB_RECURSE_APPEND(SOURCE_FILES "TLib/Embed/*.hpp")
 
 # Third party
 GLOB_APPEND        (SOURCE_FILES "TLib/thirdparty/*.cpp;TLib/thirdparty/*.hpp;TLib/thirdparty/*.h")
@@ -192,7 +192,8 @@ target_link_libraries(TLib PUBLIC freetype)
 ##
 #### Embedder
 enable_testing()
-add_executable(Embedder "Embedder/embedder.cpp" "TLib/thirdparty/zep/config_app.h")
+set(EmbedderSources "Embedder/embedder.cpp")
+add_executable(Embedder ${EmbedderSources})
 target_compile_features(Embedder PUBLIC cxx_std_20)
 set_target_properties(Embedder PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
 
@@ -200,19 +201,20 @@ find_dependency(CLI11 CONFIG REQUIRED)
 target_link_libraries(Embedder PUBLIC CLI11::CLI11)
 target_link_libraries(Embedder PUBLIC spdlog::spdlog spdlog::spdlog_header_only)
 
-add_test(EmbedTest1 Embedder -f "Embedder/test/2d.frag" "Embedder/test/2d.vert" -o "embed.hpp" --ow)
+enable_testing()
+add_test(NAME EmbedderTest COMMAND "Embedder -f Embedder/test/2d.frag Embedder/test/2d.vert -o embed.hpp --ow")
 
 # Embedder tests
 add_custom_target(EmbedTestAssets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/Embedder/test ${CMAKE_CURRENT_BINARY_DIR}/Embedder/test )
 add_dependencies(Embedder EmbedTestAssets)
 
 # Copy Embedder
-add_custom_target(CopyEmbedder COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/Embedder.exe ${CMAKE_CURRENT_LIST_DIR})
+add_custom_target(CopyEmbedder
+COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_BINARY_DIR}/Embedder.exe ${CMAKE_CURRENT_LIST_DIR}
+DEPENDS ${EmbedderSources})
 add_dependencies(CopyEmbedder Embedder)
 
-# Run Embedder
-add_custom_target(RunEmbedder WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR} COMMAND ${CMAKE_CURRENT_LIST_DIR}/Embedder.exe
--f
+set(EMBEDDED_FILES
 "TLib/Embed/Shaders/sdf_text.frag"
 "TLib/Embed/Shaders/2d.frag"
 "TLib/Embed/Shaders/2d.vert"
@@ -222,8 +224,13 @@ add_custom_target(RunEmbedder WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR} COMMAN
 "TLib/Embed/Shaders/empty.frag"
 "TLib/Embed/Shaders/3d_primitive.vert"
 "TLib/Embed/Shaders/3d_primitive.frag"
-"TLib/Embed/Shaders/csm.vert"
--o "TLib/Embed/Embed.hpp" --ow)
+"TLib/Embed/Shaders/csm.vert")
+
+# Run Embedder
+set(EmbedderCommand ${CMAKE_CURRENT_LIST_DIR}/Embedder.exe -f ${EMBEDDED_FILES} -o "TLib/Embed/Embed.hpp" --ow)
+add_custom_target(RunEmbedder WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+COMMAND ${EmbedderCommand}
+DEPENDS ${EMBEDDED_FILES})
 add_dependencies(RunEmbedder CopyEmbedder)
 add_dependencies(TLib RunEmbedder)
 
