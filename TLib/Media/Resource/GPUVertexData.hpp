@@ -15,12 +15,14 @@
 struct GPUVertexData : NonCopyable
 {
 protected:
+    using Layout = TLib::Layout;
+
     VertexArray   vao; // Layout
     VertexBuffer  vbo; // Vertices
     ElementBuffer ebo; // Indices
-    Layout        _layout;
-    uint32_t      _vertexCount = 0;
-    uint32_t      _indiceCount = 0;
+    Layout       _layout;
+    uint32_t     _vertexCount = 0;
+    uint32_t     _indiceCount = 0;
 
     void move(GPUVertexData& src)
     {

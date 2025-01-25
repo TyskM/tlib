@@ -3,10 +3,10 @@
 // Disable copy
 struct NonCopyable
 {
-    NonCopyable()                               = default;
-    ~NonCopyable()                              = default;
-    NonCopyable(const NonCopyable&)    noexcept = delete;
-    void operator=(const NonCopyable&) noexcept = delete;
+    NonCopyable()                                       = default;
+    ~NonCopyable()                                      = default;
+    NonCopyable(const NonCopyable&)            noexcept = delete;
+    NonCopyable& operator=(const NonCopyable&) noexcept = delete;
 };
 
 // Disable move

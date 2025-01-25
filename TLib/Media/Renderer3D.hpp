@@ -409,7 +409,7 @@ public:
     {
         // Setup Primitive Rendering
         {
-            primitiveMesh.setLayout({ Layout::Vec3f(), Layout::Vec4f() });
+            primitiveMesh.setLayout({ TLib::Layout::Vec3f(), TLib::Layout::Vec4f() });
 
             defaultPrimitiveShader.create(
                 myEmbeds.at("TLib/Embed/Shaders/3d_primitive.vert").asString(),

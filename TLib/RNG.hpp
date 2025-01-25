@@ -9,15 +9,15 @@
 class RNG
 {
     std::mt19937 generator;
-    unsigned int currentSeed = 0;
+    uint32_t     currentSeed = 0;
 
 public:
 
-    RNG(unsigned int seedvalue) { seed(seedvalue); }
+    RNG(uint32_t seedvalue) { seed(seedvalue); }
     RNG() { seed(); }
 
     // Seeds the generator with the specified seed.
-    void seed(unsigned int value)
+    void seed(uint32_t value)
     {
         generator.seed(value);
         currentSeed = value;
@@ -32,8 +32,23 @@ public:
     }
 
     // Returns 0 if no seed is set
-    unsigned int getSeed() const
+    uint32_t getSeed() const
     { return currentSeed; }
+
+    [[nodiscard]]
+    String getState() const
+    {
+        std::stringstream ss;
+        ss << generator;
+        return ss.str();
+    }
+
+    void setState(const String& state)
+    {
+        std::stringstream ss;
+        ss << state;
+        ss >> generator;
+    }
 
     // Returns a random int between min and max, including min and max.
     template <typename T = int>

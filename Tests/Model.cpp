@@ -140,11 +140,13 @@ int main()
         time += delta;
 
         ImGui::SeparatorText("Camera");
-        auto result = imguiEnumCombo("Camera Mode", cameraMode);
-        if (result.first)
-        { setCameraMode(result.second); }
-        if (ImGui::Button("Reset Camera"))
-        { resetCamera(); }
+
+        auto mode = cameraMode;
+        imguiEnumCombo("Camera Mode", &cameraMode);
+        if (mode != cameraMode) { setCameraMode(mode); }
+
+        if (ImGui::Button("Reset Camera")) { resetCamera(); }
+
         ImGui::SliderFloat("FOV", &camera.fov, 70.f, 170.f);
 
         switch (cameraMode)

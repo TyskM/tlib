@@ -77,19 +77,20 @@ struct Rect
 
     bool contains(const T& x, const T& y) const
     {
-        Vector2<T> topLeft ={ this->x, this->y };
-        Vector2<T> bottomRight = topLeft + Vector2<T>{ width, height };
+        const Vector2<T> topLeft     = { this->x, this->y };
+        const Vector2<T> bottomRight = topLeft + Vector2<T>{ width, height };
 
-        return topLeft.x < x && x < bottomRight.x && topLeft.y < y && y < bottomRight.y;
+        return topLeft.x <= x && x < bottomRight.x && topLeft.y <= y && y < bottomRight.y;
     }
 
     bool intersects(const Rect<T>& otherRect) const
     {
         Vector2<T> bottomRight = Vector2<T>{ x, y } + Vector2<T>{ width, height };
-        Vector2<T> otherBottomRight = Vector2<T>{ otherRect.x, otherRect.y } +
+        Vector2<T> otherBottomRight =
+            Vector2<T>{ otherRect.x, otherRect.y } +
             Vector2<T>{ otherRect.width, otherRect.height };
 
-        T x1, x2, y1, y2;
+        T x1,  x2,  y1,  y2;
         T ox1, ox2, oy1, oy2;
 
         x1 = x; y1 = y;
@@ -102,9 +103,9 @@ struct Rect
         oy2 = otherRect.y + otherRect.height;
 
         return !(x1  >= ox2 ||
-            ox1 >= x2  ||
-            y1  >= oy2 ||
-            oy1 >= y2);
+                 ox1 >= x2  ||
+                 y1  >= oy2 ||
+                 oy1 >= y2);
     }
 
     bool intersects(const Circle<T>& circle)
@@ -123,7 +124,7 @@ struct Rect
         return distanceSquared <= (circle.radius * circle.radius);
     }
 
-    String toString() const { return fmt::format("({}, {}, {}, {})"); }
+    String toString() const { return fmt::format("({}, {}, {}, {})", x, y, width, height); }
     operator String() const { return toString(); }
 
     bool operator==(const Rect<T>& other)

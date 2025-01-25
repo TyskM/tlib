@@ -4,6 +4,7 @@
 
 #include <TLib/Types/Types.hpp>
 #include <TLib/Media/Platform/SDL2.hpp>
+#include <TLib/Media/Platform/Window.hpp>
 #include <TLib/String.hpp>
 #include <TLib/Containers/Vector.hpp>
 #include <TLib/Containers/UnorderedMap.hpp>
@@ -101,9 +102,13 @@ private:
 
     static inline ActionControl lastInput;
 
+    static inline const Window* window = nullptr;
+
 public:
-    static inline void init()
+    static inline void init(const Window& window)
     {
+        Input::window = &window;
+
         // Fill the buffers
         updateKeyboard(); updateKeyboard();
         updateMouse();    updateMouse();
@@ -150,9 +155,14 @@ public:
 
     static inline void updateMouse()
     {
-        prevmouse = mouse;
+        ASSERTMSG(window, "You forgot to call Input::init(window&)")
+
+        prevmouse    = mouse;
         prevMousePos = mousePos;
         auto tempMouse = SDL_GetMouseState(&mousePos.x, &mousePos.y);
+
+        // OpenGL coordinate conversion
+        mousePos.y = window->getSize().y - mousePos.y;
 
         for (int i = 0; i <= MOUSE_X2; i++)
         {

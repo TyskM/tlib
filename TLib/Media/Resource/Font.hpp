@@ -59,11 +59,35 @@ struct FontDetail
 struct Font : NonAssignable
 {
 protected:
-    // DONE: a map isn't needed, use an array and instance by char. they're just numbers
-    Texture textureAtlas;
+    Texture               textureAtlas;
     Vector<FontAtlasChar> characters;
-    int32_t _newLineHeight = 0;
-    uint32_t _size = 0;
+    int32_t              _lineSpacing = 0;
+    uint32_t             _size        = 0;
+    int32_t              _ascender    = 0;
+    int32_t              _descender   = 0;
+
+    using Bitmap  = Vector<uint8_t>;
+    using Bitmaps = Vector<Bitmap>;
+
+    void copyFlippedYGlyph(Bitmaps& bitmaps, FT_Bitmap* bmp)
+    {
+        // Flip all bitmaps vertically, because OpenGL coords are weird.
+        // https://stackoverflow.com/questions/26706036/flip-an-image-vertically
+
+        Bitmap& flipped = bitmaps.emplace_back();
+        flipped.resize((size_t)bmp->width * bmp->rows);
+
+        auto& rows  = bmp->rows;
+        auto& width = bmp->width;
+        auto  components = 1;
+
+        for (size_t r = 0; r < rows; r++)
+        {
+            auto src = &bmp->buffer[r * components * width];
+            auto dst = &flipped[(rows - r - 1) * components * width];
+            std::copy(src, src + components*width, dst);
+        }
+    }
 
 public:
     [[nodiscard]]
@@ -79,8 +103,14 @@ public:
     { return characters.back(); }
 
     [[nodiscard]]
-    inline int32_t newLineHeight() const
-    { return _newLineHeight; }
+    inline int32_t lineSpacing() const
+    { return _lineSpacing; }
+
+    [[nodiscard]]
+    int32_t ascender() const { return _ascender; };
+    
+    [[nodiscard]]
+    int32_t descender() const { return _descender; };
 
     [[nodiscard]]
     inline uint32_t size() const
@@ -97,18 +127,32 @@ public:
     [[nodiscard]]
     Vector2f calcTextSize(const String& text, float scale = 1.f)
     {
-        Vector2f size;
+        Vector2f cursor;
+
+        float maxX = 0.f;
+        float maxY = 0.f;
+
+        const auto linespacing = lineSpacing();
+
         for (auto& strchar : text)
         {
-            if (!containsChar(strchar))
-            { continue; }
-
+            if (!containsChar(strchar)) { continue; }
             FontAtlasChar& ch = characters.at(strchar);
-            size.x += (ch.advance >> 6) * scale;
-            if (ch.rect.getSize().y * scale > size.y)
-            { size.y = ch.rect.getSize().y * scale; }
+
+            if (strchar == '\n')
+            {
+                cursor.x = 0;
+                cursor.y += linespacing;
+            }
+            else
+            {
+                cursor.x += (ch.advance >> 6) * scale;
+            }
+
+            maxX = std::max(maxX, cursor.x);
+            maxY = std::max(maxY, cursor.y);
         }
-        return size;
+        return Vector2f(maxX, maxY);
     }
 
     SubTexture getCharTex(size_t c)
@@ -141,13 +185,16 @@ public:
         }
         FT_Select_Charmap(face, ft_encoding_unicode);
         FT_Set_Pixel_Sizes(face, 0, size);
-        FT_GlyphSlot slot = face->glyph;
-        FT_Bitmap* bmp = &slot->bitmap;
+        FT_GlyphSlot slot =  face->glyph;
+        FT_Bitmap*   bmp  = &slot->bitmap;
 
         size_t charCount = FontDetail::getGlyphCount(face);
         charCount = std::min(charCount, rangeMax);
         characters.resize(charCount);
-        _newLineHeight = (face->size->metrics.ascender - face->size->metrics.descender) >> 6;
+        _ascender    =  face->size->metrics.ascender >> 6;
+        _descender   =  face->size->metrics.descender >> 6;
+        _lineSpacing = (face->size->metrics.ascender - face->size->metrics.descender) >> 6;
+        //_lineSpacing = static_cast<float>(face->size->metrics.height) / float{1 << 6};
         _size = size;
 
         // DONE: Pack glyphs better, theres tons of wasted space!!!
@@ -170,15 +217,15 @@ public:
 
         std::vector<rect_type> rects;
         rects.reserve(charCount);
-        Vector<Vector<char>> sdfBitmapBuffer;
-        sdfBitmapBuffer.reserve(charCount);
+        Bitmaps bitmaps;
+        bitmaps.reserve(charCount);
 
         for (size_t c = rangeMin; c < charCount; c++)
         {
             if (!FT_Get_Char_Index(face, c))
             {
                 rects.emplace_back(rect_xywh());
-                sdfBitmapBuffer.emplace_back();
+                bitmaps.emplace_back();
                 continue;
             }
 
@@ -189,7 +236,7 @@ public:
             
             // Save glyph rect for packing, and save bitmap buffer for second iteration
             rects.emplace_back(rect_xywh(0, 0, bmp->width, bmp->rows));
-            sdfBitmapBuffer.emplace_back(bmp->buffer, bmp->buffer + bmp->width * bmp->rows);
+            copyFlippedYGlyph(bitmaps, bmp);
 
             //// Write their info into the char map so we can actually use them
             FontAtlasChar& ch = characters.at(c);
@@ -202,9 +249,10 @@ public:
         /// Save a fallback character
         // 0 is null https://www.cs.cmu.edu/~pattis/15-1XX/common/handouts/ascii.html
         FT_Load_Char(face, 0, FT_LOAD_DEFAULT);
-        FT_Render_Glyph(slot, FT_RENDER_MODE_SDF);
+        FT_Render_Glyph(slot, static_cast<FT_Render_Mode_>(renderMode));
+        copyFlippedYGlyph(bitmaps, bmp);
         rects.emplace_back(rect_xywh(0, 0, bmp->width, bmp->rows));
-        sdfBitmapBuffer.emplace_back(bmp->buffer, bmp->buffer + bmp->width * bmp->rows);
+
         FontAtlasChar& ch = characters.emplace_back();
         ch.bearing        = Vector2i(slot->bitmap_left, slot->bitmap_top);
         ch.advance        = slot->advance.x;
@@ -230,9 +278,9 @@ public:
 
         //// Loop through saved sdf bitmaps,
         //// load them into GPU texture using the positions we found with rectpack2d
-        for (size_t i = 0; i < sdfBitmapBuffer.size(); i++)
+        for (size_t i = 0; i < characters.size(); i++)
         {
-            auto& bitmap = sdfBitmapBuffer[i];
+            auto& bitmap = bitmaps[i];
             if (bitmap.empty()) { continue; }
 
             FontAtlasChar& ch = characters.at(i);

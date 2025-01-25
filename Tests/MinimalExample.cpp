@@ -11,17 +11,23 @@
 Window   window;
 FPSLimit fpslimit;
 
-void init()
+static void init()
 {
 
 }
 
-void update(float delta)
+static void shutdown()
 {
 
 }
 
-void draw(float delta)
+static void update(float delta)
+{
+    Vector2f mouseLocalPos = Vector2f(Input::mousePos);
+    Vector2f mouseWorldPos = localToWorldPoint(mouseLocalPos, Renderer2D::getView(), Renderer::getFramebufferSize());
+}
+
+static void draw(float delta)
 {
 
 }
@@ -35,6 +41,7 @@ int main()
     params.title = "Window";
     params.size  = {1280, 720};
     window.create(params);
+    Input::init(window);
     Renderer::create();
     Renderer2D::create();
 
@@ -81,6 +88,8 @@ int main()
 
         fpslimit.wait();
     }
+
+    shutdown();
 
     return 0;
 }

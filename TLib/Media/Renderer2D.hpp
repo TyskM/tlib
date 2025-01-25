@@ -94,6 +94,7 @@ public:
         return localToWorldPoint(pos, Renderer2D::getView(), Renderer::getFramebufferSize());
     }
 
+    // TODO: Make this a command, for now it is immediate.
     static void clearColor(const ColorRGBAf& color = { 0.1f, 0.1f, 0.1f, 1.f })
     { Renderer::clearColor(color); }
 
@@ -239,9 +240,7 @@ public:
                                  bool                    flipUvY  = false,
                                  Shader&                 shader   = defaultShader)
     {
-        // Render target textures need to be flipped on the Y,
-        // because openGL is weird and uses bottom-left as the origin.
-        drawTexture(target.texture, srcrect, dstrect, rotation, color, layer, origin, flipUvX, !flipUvY, shader);
+        drawTexture(target.texture, srcrect, dstrect, rotation, color, layer, origin, flipUvX, flipUvY, shader);
     }
 
     static void drawRenderTarget(RenderTarget&          target,
@@ -254,13 +253,12 @@ public:
                                 bool                    flipUvY  = false,
                                 Shader&                 shader   = defaultShader)
     {
-        drawTexture(target.texture, dstrect, rotation, color, layer, origin, flipUvX, !flipUvY, shader);
+        drawTexture(target.texture, dstrect, rotation, color, layer, origin, flipUvX, flipUvY, shader);
     }
 
     static void drawFinalRenderTarget(RenderTarget& rt)
     {
         Renderer2D::setView(rt.view);
-        Renderer::setViewport(rt.getViewportSizePixels(), Vector2f(rt.getSize()));
         Renderer2D::drawRenderTarget(rt, Rectf(0, 0, Vector2f(rt.texture.getSize())));
     }
 
@@ -269,7 +267,6 @@ public:
         ASSERT(rt.created());
         rt.bind();
         Renderer2D::setView(rt.view);
-        Renderer::setViewport(rt.getViewportSizePixels(), Vector2f(rt.getSize()));
     }
 
     /*
@@ -653,7 +650,7 @@ private:
         { Renderer::create(); }
 
         if (!mesh.valid())
-        { mesh.setLayout({ Layout::Vec4f(), Layout::Vec4f() }); }
+        { mesh.setLayout({ TLib::Layout::Vec4f(), TLib::Layout::Vec4f() }); }
 
         if (!whiteTex.created())
         { whiteTex.setData(whiteTexData, 1, 1); }
@@ -715,9 +712,11 @@ private:
         // TODO: Frustum is unused for now
         //auto mat = camera.getMatrix();
         //frustum  = Frustum(mat);
-        Vector2i viewportSize = Vector2i(currentView.viewport.width, currentView.viewport.height);
-        const Vector2f fbSize(Renderer::getFramebufferSize());
-        Renderer::setViewport(getViewportSizePixels(currentView, fbSize), fbSize);
+
+        Vector2f fbSize(Renderer::getFramebufferSize());
+        if (RenderTarget::getBoundRenderTarget())
+        { fbSize = Vector2f(RenderTarget::getBoundRenderTarget()->getSize()); }
+        Renderer::setViewport(getViewportSizePixels(currentView, fbSize));
 
         Texture*   lastTexture  = drawCmds[0].texture;
         Shader*    lastShader   = drawCmds[0].shader;
@@ -813,10 +812,15 @@ private:
         if (flipuvy)
         { std::swap(uv_y, uv_height); }
 
-        posAndCoords.emplace_back( dstrect.x , dstrect.y  , uv_x,      uv_y      ); // topleft
-        posAndCoords.emplace_back( xpluswidth, dstrect.y  , uv_width,  uv_y      ); // topright
-        posAndCoords.emplace_back( dstrect.x , yplusheight, uv_x,      uv_height ); // bottom left
-        posAndCoords.emplace_back( xpluswidth, yplusheight, uv_width,  uv_height ); // bottom right
+        //uv_x,      uv_y       // topleft
+        //uv_width,  uv_y       // topright
+        //uv_x,      uv_height  // bottom left
+        //uv_width,  uv_height  // bottom right
+
+        posAndCoords.emplace_back( dstrect.x , dstrect.y  , uv_x    , uv_y      ); // bottom left 
+        posAndCoords.emplace_back( xpluswidth, dstrect.y  , uv_width, uv_y      ); // bottom right 
+        posAndCoords.emplace_back( dstrect.x , yplusheight, uv_x    , uv_height ); // topleft
+        posAndCoords.emplace_back( xpluswidth, yplusheight, uv_width, uv_height ); // topright
          
         if (rotation != 0)
         {
@@ -892,7 +896,7 @@ private:
         {
             if (strchar == '\n')
             {
-                currentPos.y += font.newLineHeight();
+                currentPos.y += font.lineSpacing();
                 currentPos.x = pos.x;
                 continue;
             }
@@ -903,9 +907,10 @@ private:
             else
             { ch = &font.getChar(strchar); }
 
-            float xpos = currentPos.x + (ch->bearing.x * scale);
-            float ypos = currentPos.y - (ch->bearing.y + font.newLineHeight()) * scale;
-            //float ypos = currentPos.y - (ch->bearing.y - ch->bearing.y) * scale;
+            const float originYOffset = ch->rect.height - ch->bearing.y;
+
+            float xpos = currentPos.x + ch->bearing.x * scale;
+            float ypos = currentPos.y - originYOffset * scale;
             float w    = ch->rect.width  * scale;
             float h    = ch->rect.height * scale;
             currentPos.x += (ch->advance >> 6) * scale;

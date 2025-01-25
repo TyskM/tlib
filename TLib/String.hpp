@@ -18,6 +18,9 @@ using StringStream = std::stringstream;
 using WideString       = std::wstring;
 using WideStringStream = std::wstringstream;
 
+template <typename T>
+using Hash = std::hash<T>;
+
 namespace strhelp
 {
     static inline WideString toWide(const String& strIn)

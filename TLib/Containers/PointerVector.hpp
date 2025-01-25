@@ -1,5 +1,6 @@
 
 #pragma once
+#include <TLib/Macros.hpp>
 #include <TLib/Pointers.hpp>
 #include <TLib/Containers/Vector.hpp>
 
@@ -8,17 +9,25 @@ struct PointerVector
 {
     using value_type = T;
 
+    DISABLE_COPY(PointerVector);
+
 private:
     Vector<UPtr<T>> cont;
 
 public:
+    PointerVector() = default;
+
     auto& container()
     { return cont; }
 
+    template <typename T2 = T>
     T& emplace_back()
-    { return *cont.emplace_back(makeUnique<T>()); }
+    {
+        return *cont.emplace_back(makeUnique<T2>());
+    }
 
-    void push_back(UPtr<T>&& v)
+    template <typename T2 = T>
+    void push_back(UPtr<T2>&& v)
     { cont.push_back(v); }
 
     void clear()

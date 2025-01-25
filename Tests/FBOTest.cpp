@@ -13,6 +13,7 @@
 const Path     testTexPath = "assets/ship.png";
 const Path     fontPath    = "assets/roboto.ttf";
 const Vector2f fboTexSize  = {400, 400};
+float          totalDelta  = 0.f;
 
 int main()
 {
@@ -27,6 +28,7 @@ int main()
     window.create(wcp);
     window.setTitle("FBO Test");
 
+    Input::init(window);
     Renderer::create();
     Renderer2D::create();
     rt.create();
@@ -51,14 +53,16 @@ int main()
     RenderTarget subRt;
     subRt.create();
     subRt.setSize(fboTexSize.x, fboTexSize.y);
-    subRt.view = rt.view;
-    subRt.view.size = Vector2f(fboTexSize.x, fboTexSize.y);
+    subRt.view        = rt.view;
+    subRt.view.size   = Vector2f(fboTexSize.x, fboTexSize.y);
     subRt.view.center = subRt.view.size / 2.f;
 
     bool running = true;
     while (running)
     {
         float delta = deltaTimer.restart().asSeconds();
+        totalDelta += delta;
+
         SDL_Event e;
         while (SDL_PollEvent(&e))
         {
@@ -70,7 +74,7 @@ int main()
                 auto fbSize = Renderer::getFramebufferSize();
                 rt.setSize(fbSize);
                 Renderer2D::setView(rt.view);
-                Renderer::setViewport(rt.getViewportSizePixels(), Vector2f(rt.getSize()));
+                Renderer::setViewport(rt.getViewportSizePixels());
             }
 
             else if (e.type == SDL_QUIT) { running = false; }
@@ -85,20 +89,22 @@ int main()
 
         Renderer::clearColor();
 
+        Vector2f pos(abs(sin(totalDelta)) * 20.f, abs(cos(totalDelta)) * 20.f);
+
         // SubRT Drawing
         Renderer2D::bindRenderTarget(subRt);
-        Renderer::clearColor(ColorRGBAf::red());
-        Renderer2D::drawText("SubRT Drawing", font, mworldpos);
-        Renderer2D::drawTexture(testTex, Vector2f{20, 100});
-        Renderer2D::drawCircle(mworldpos, 6.f);
-        Renderer2D::render();
+            Renderer  ::clearColor(ColorRGBAf::red());
+            Renderer2D::drawText("SubRT Drawing", font, mworldpos);
+            Renderer2D::drawTexture(testTex, pos);
+            Renderer2D::drawCircle(mworldpos, 6.f);
+            Renderer2D::render();
         subRt.unbind();
 
         // RT Drawing
         Renderer2D::bindRenderTarget(rt);
-        Renderer::clearColor(ColorRGBAf::royalBlue());
+        Renderer  ::clearColor(ColorRGBAf::royalBlue());
         Renderer2D::drawText("RT Drawing", font, mworldpos);
-        Renderer2D::drawTexture(testTex, Vector2f{20, 100});
+        Renderer2D::drawTexture(testTex, pos);
         Renderer2D::drawCircle(mworldpos, 6.f);
 
         Renderer2D::drawRenderTarget(subRt, {0, fboTexSize.y, fboTexSize});
@@ -128,11 +134,12 @@ int main()
 
         ImGui::End();
         drawDiagWidget(&fpslimit);
-        imgui.render();
 
         rt.unbind();
         Renderer2D::drawFinalRenderTarget(rt);
         Renderer2D::render(false, true);
+
+        imgui.render();
 
         window.swap();
 

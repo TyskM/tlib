@@ -8,6 +8,7 @@
 #include <TLib/Containers/UnorderedMap.hpp>
 #include <TLib/Containers/Pair.hpp>
 #include <TLib/Logging.hpp>
+#include <TLib/Containers/GridMap2D.hpp>
 #include <TLib/thirdparty/multiarray/array.h>
 
 struct AStar2DGrid
@@ -28,7 +29,6 @@ struct AStar2DRaycastResult
     AStar2DRaycastResult() = default;
 };
 
-// TODO: Rename to AStarGridMap2D
 template <typename GridType = AStar2DGrid>
 struct AStar2D
 {
@@ -36,14 +36,9 @@ struct AStar2D
     static_assert(std::is_default_constructible<GridType>(),     "GridType must be default constructible");
 
 protected:
+    using Grid = GridType;
 
-    // TODO: Line of sight support
-
-    using Grid      = GridType;
-    using Array2D   = nda::shape<nda::dim<>, nda::dim<>>;
-    using GridArray = nda::array<Grid, Array2D>;
-
-    const Array<Vector2i, 8> dirs = {
+    static constexpr Array<Vector2i, 8> dirs = {
         Vector2i{1,  0}, Vector2i{-1, 0},
         Vector2i{0, -1}, Vector2i{ 0, 1},
 
@@ -52,8 +47,7 @@ protected:
         Vector2i{-1,  1}, Vector2i{ -1, -1} // TODO: Make diagonals optional
     };
 
-    GridArray grids;
-    Vector2i  size;
+    GridMap2D<GridType> grids;
 
     Vector<Vector2i> neighbors(const Vector2i& pos) const
     {
@@ -122,53 +116,36 @@ protected:
 
 public:
 
-    AStar2D(const Vector2i& size) { setSize(size); }
-    AStar2D(int x, int y)         { setSize(x, y); }
+    AStar2D()                     { resize(10, 10); }
+    AStar2D(const Vector2i& size) { resize(size);   }
+    AStar2D(int32_t x, int32_t y) { resize(x, y);   }
 
-    bool passable(const Vector2i& pos) const { return getGridAt(pos).passable; }
-    bool passable(int x, int y)        const { return passable({x, y}); }
+    bool passable(const Vector2i& pos)  const { return at(pos).passable; }
+    bool passable(int32_t x, int32_t y) const { return passable({x, y}); }
 
     bool inBounds(const Vector2i& pos) const
-    {
-        return 0 <= pos.x && pos.x < width()
-            && 0 <= pos.y && pos.y < height();
-    }
+    { return grids.inBounds(pos); }
 
-    void setSize(int width = 0, int height = 0) { setSize({ width, height }); }
+    void resize(int32_t width, int32_t height)
+    { resize({ width, height }); }
 
-    void setSize(const Vector2i& newSize)
-    {
-        size = newSize;
-        grids.reshape(Array2D(width(), height()));
-    }
+    void resize(const Vector2i& newSize)
+    { grids.resize(newSize); }
 
     void clear()
-    {
-        for (size_t x = 0; x < grids.width();  x++) {
-        for (size_t y = 0; y < grids.height(); y++)
-        { grids(x, y) = GridType(); }}
-    }
+    { grids.clear(); }
 
     void clear(const GridType& grid)
-    {
-        for (size_t x = 0; x < grids.width();  x++) {
-        for (size_t y = 0; y < grids.height(); y++)
-        { grids(x, y) = grid; }}
-    }
+    { grids.clear(grid); }
 
-          Grid& getGridAt(const Vector2i& pos)       { ASSERT(inBounds(pos)); return grids(pos.x, pos.y); }
-          Grid& getGridAt(int x, int y)              { return getGridAt({ x, y }); }
-    const Grid& getGridAt(const Vector2i& pos) const { ASSERT(inBounds(pos)); return grids(pos.x, pos.y); }
-    const Grid& getGridAt(int x, int y)        const { return getGridAt({ x, y }); }
+          Grid& at(const Vector2i& pos)        { return grids.at(pos.x, pos.y); }
+          Grid& at(int32_t x, int32_t y)       { return at({ x, y }); }
+    const Grid& at(const Vector2i& pos)  const { return grids.at(pos.x, pos.y); }
+    const Grid& at(int32_t x, int32_t y) const { return at({ x, y }); }
 
-          Grid& at(const Vector2i& pos)       { ASSERT(inBounds(pos)); return grids(pos.x, pos.y); }
-          Grid& at(int x, int y)              { return at({ x, y }); }
-    const Grid& at(const Vector2i& pos) const { ASSERT(inBounds(pos)); return grids(pos.x, pos.y); }
-    const Grid& at(int x, int y)        const { return at({ x, y }); }
-
-    int      width()   const { return size.x; }
-    int      height()  const { return size.y; }
-    Vector2i getSize() const { return size;   }
+    int32_t  width()  const { return grids.width();  }
+    int32_t  height() const { return grids.height(); }
+    Vector2i size()   const { return grids.size();   }
 
     mutable GridPriorityQueue<Vector2i, float> frontier;
     mutable UnorderedMap<Vector2i, Vector2i>   internalCameFrom;
@@ -196,7 +173,7 @@ public:
         // So make it temporarily passable and pop it before returning.
         // TODO: Make this a setting
         // TODO: Make this work for further distances
-        const Grid& goalGridConst = getGridAt(goal);
+        const Grid& goalGridConst = at(goal);
         // HACK: Changes are reverted at the end of the function, dunno if there's a better way.
         Grid& goalGrid       = const_cast<Grid&>(goalGridConst);
         bool goalIsPassable  = goalGrid.passable;
@@ -218,7 +195,7 @@ public:
 
             for (Vector2i next : neighbors(current))
             {
-                float newCost = costSoFar[current] + cost(current, getGridAt(current), next, getGridAt(next), diagonalCost);
+                float newCost = costSoFar[current] + cost(current, at(current), next, at(next), diagonalCost);
                 if (costSoFar.find(next) == costSoFar.end() || newCost < costSoFar[next])
                 {
                     costSoFar[next] = newCost;
@@ -262,7 +239,7 @@ public:
         Vector2f endf(end);
 
         float N = diagDist(startf, endf);
-        for (int step = 0; step <= N; step++)
+        for (int32_t step = 0; step <= N; step++)
         {
             float t = (N == 0) ? 0.0 : (float)step / N;
             points.push_back(Vector2i(v2flerp(startf, endf, t).rounded()));
@@ -282,19 +259,16 @@ public:
         }
 
         float N = diagDist(startf, endf);
-        for (int step = 0; step <= N; step++)
+        for (int32_t step = 0; step <= N; step++)
         {
             float t = (N == 0) ? 0.0 : (float)step / N;
             Vector2i nextPoint = Vector2i(v2flerp(startf, endf, t).rounded());
 
             if (grids) { grids->push_back(nextPoint); }
 
-            if (!inBounds(nextPoint) || !getGridAt(nextPoint).passable)
+            if (!inBounds(nextPoint) || !at(nextPoint).passable)
             { return AStar2DRaycastResult(true, nextPoint); }
         }
         return AStar2DRaycastResult(false, end);
     }
-
-    // TODO: Line of sight
-    // https://www.roguebasin.com/index.php/Permissive_Field_of_View
 };

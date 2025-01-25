@@ -46,7 +46,7 @@ public:
         {
             auto& gpuSubMesh = meshes.emplace_back();
             gpuSubMesh.vertices  = makeUnique<GPUVertexData>();
-            gpuSubMesh.vertices->setLayout({ Layout::Vec3f(), Layout::Vec3f(), Layout::Vec2f() });
+            gpuSubMesh.vertices->setLayout({ TLib::Layout::Vec3f(), TLib::Layout::Vec3f(), TLib::Layout::Vec2f() });
             gpuSubMesh.vertices->setData(cpuSubMesh.vertices);
             gpuSubMesh.vertices->setIndices(cpuSubMesh.indices);
 

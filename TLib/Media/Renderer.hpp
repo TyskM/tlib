@@ -153,17 +153,14 @@ public:
         GL_CHECK(glDrawElements(glmode, indices.size(), GL_UNSIGNED_INT, indices.begin()));
     }
 
-    static void setViewport(const Recti& vp, Vector2f targetSize = {-1,-1})
+    static void setViewport(const Recti& vp)
     {
-        if (targetSize.x < 0)
-        { targetSize = Vector2f(Renderer::getFramebufferSize()); }
-
-        glViewport(vp.x,     targetSize.y - vp.y - vp.height, // because glViewport uses bottom left as origin
+        glViewport(vp.x,     vp.y,
                    vp.width, vp.height);
     }
 
-    static void setViewport(int x, int y, int width, int height, Vector2f targetSize ={-1,-1})
-    { setViewport(Recti(x, y, width, height), targetSize); }
+    static void setViewport(int x, int y, int width, int height)
+    { setViewport(Recti(x, y, width, height)); }
 
     [[nodiscard]] [[maybe_unused]]
     static Vector2i getFramebufferSize() noexcept

@@ -11,7 +11,3 @@ target_link_libraries(Asteroids PUBLIC TLib::TLib)
 
 add_custom_target(AsteroidsAssets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets )
 add_dependencies(Asteroids AsteroidsAssets)
-
-set(CPACK_OUTPUT_FILE_PREFIX "")
-set(CPACK_GENERATOR "ZIP" CACHE STRING "Generators to support. semi-colon delimited list")
-include(CPack)

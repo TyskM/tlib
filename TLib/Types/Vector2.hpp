@@ -3,6 +3,7 @@
 
 #include <TLib/String.hpp>
 #include <TLib/Logging.hpp>
+#include <TLib/Math.hpp>
 #include <numeric>
 
 template <typename T>
@@ -77,6 +78,9 @@ struct Vector2
     Vector2<T> reflect(const Vector2<T>& normal) const
     { return (normal * 2) * dot(normal) - *this; }
 
+    Vector2<T> sign() const
+    { return Vector2<T>(math::sign(x), math::sign(y)); }
+
     T length() const
     { return static_cast<T>(std::sqrt(x * x + y * y)); }
 
@@ -90,7 +94,7 @@ struct Vector2
     { return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y); }
 
     // Distance to the city of Manhattan https://en.wikipedia.org/wiki/Manhattan
-    // https://simple.wikipedia.org/wiki/Manhattan_distance
+    // jk https://simple.wikipedia.org/wiki/Manhattan_distance
     T distanceToManhattan(const Vector2<T>& other) const
     { return static_cast<T>(std::abs(x - other.x)) + static_cast<T>(std::abs(y - other.y)); }
 
@@ -125,6 +129,7 @@ struct Vector2
 
     String toString() const { return fmt::format("({}, {})", x, y); }
     operator String() const { return toString(); }
+    operator bool()   const { return x || y; }
 
     bool       operator==(const Vector2<T>& other)   const { return x == other.x && y == other.y; }
     bool       operator!=(const Vector2<T>& other)   const { return !(operator==(other)); }
@@ -149,7 +154,6 @@ struct Vector2
     Vector2<T> operator/=(const int   v)                   { x /= v,   y /= v;   return *this; }
     Vector2<T> operator*=(const float v)                   { x *= v,   y *= v;   return *this; }
     Vector2<T> operator/=(const float v)                   { x /= v,   y /= v;   return *this; }
-
 };
 using Vector2f  = Vector2<float>;
 using Vector2i  = Vector2<int>;

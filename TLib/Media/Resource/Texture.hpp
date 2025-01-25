@@ -140,7 +140,7 @@ private:
     {
         glHandle       = std::move(old.glHandle);
         old.glHandle   = 0;
-        width          = std::move(old.glHandle);
+        width          = std::move(old.width);
         height         = std::move(old.height);
         internalFormat = std::move(old.internalFormat);
        _path           = std::move(old._path);

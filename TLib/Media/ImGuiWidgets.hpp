@@ -23,7 +23,7 @@ namespace ImGui
         auto handle = (ImTextureID)tex.handle();
         auto uv = Renderer2D::getTextureUVs(tex, srcRect);
         ImGui::Image(handle, { size.x, size.y },
-            { uv.first.x, uv.first.y }, { uv.second.x, uv.second.y },
+            { uv.first.x, uv.second.y }, { uv.second.x, uv.first.y },
             { tintColor.r, tintColor.g, tintColor.b, tintColor.a },
             { borderColor.r, borderColor.g, borderColor.b, borderColor.a });
     }
@@ -35,7 +35,7 @@ namespace ImGui
     {
 
         auto handle = (ImTextureID)tex.handle();
-        ImGui::Image(handle, { size.x, size.y }, {0,0}, {1,1},
+        ImGui::Image(handle, { size.x, size.y }, {0, 1}, {1, 0},
             { tintColor.r, tintColor.g, tintColor.b, tintColor.a },
             { borderColor.r, borderColor.g, borderColor.b, borderColor.a });
     }
@@ -49,7 +49,7 @@ void debugCamera(View& view, const float minZoom = 0.1f, const float maxZoom = 4
     if (Input::isMousePressed(Input::MOUSE_MIDDLE))
     {
         view.center.x -= Input::mouseDelta.x / view.zoom.x;
-        view.center.y -= Input::mouseDelta.y / view.zoom.y;
+        view.center.y += Input::mouseDelta.y / view.zoom.y;
     }
 
     // Zooming
@@ -66,20 +66,19 @@ void debugCamera(View& view, const float minZoom = 0.1f, const float maxZoom = 4
     view.zoom.y = std::clamp(view.zoom.y, minZoom, maxZoom);
 }
 
-// Returns { bool wasJustChanged, EnumType newValue }
 template <typename EnumType>
-Pair<bool, EnumType> imguiEnumCombo(const char* name, EnumType value)
+bool imguiEnumCombo(const char* name, EnumType* value)
 {
-    Pair<bool, EnumType> ret = { false, value };
+    bool ret  = false;
     auto cont = magic_enum::enum_values<EnumType>();
-    if (ImGui::BeginCombo(name, magic_enum::enum_name(value).data()))
+    if (ImGui::BeginCombo(name, magic_enum::enum_name(*value).data()))
     {
         for (auto& v : cont)
         {
-            bool selected = (value == v);
+            bool selected = (*value == v);
 
             if (ImGui::Selectable(magic_enum::enum_name(v).data(), selected))
-            { ret = { true, v }; }
+            { *value = v; ret = true; }
 
             if (selected)
             { ImGui::SetItemDefaultFocus(); }

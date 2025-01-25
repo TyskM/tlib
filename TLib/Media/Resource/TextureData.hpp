@@ -28,6 +28,8 @@ public:
     // TODO: should be names loadFromFile
     bool loadFromPath(const Path& path, int reqComp = 4)
     {
+        stbi_set_flip_vertically_on_load(true);
+
         bool pathExists = fs::exists(path);
         if (!pathExists)
         {

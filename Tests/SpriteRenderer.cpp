@@ -69,7 +69,7 @@ struct SpriteTest : GameTest
         Renderer2D::drawCircle({0, 0}, 6.f);
         Renderer2D::drawRect({ mwpos, Vector2f(20, 20) });
         Renderer2D::drawText("Hello world!", sdfFont,    { 50, 50 });
-        Renderer2D::drawText("Hello world!", bitmapFont, { 50, 50 + float(sdfFont.newLineHeight()) });
+        Renderer2D::drawText("Hello world!", bitmapFont, { 50, 50 + float(bitmapFont.lineSpacing()) });
 
         Renderer2D::render();
 

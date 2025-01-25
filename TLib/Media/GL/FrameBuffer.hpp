@@ -5,6 +5,7 @@
 #include <TLib/Media/GL/GLState.hpp>
 #include <TLib/Types/Types.hpp>
 #include <TLib/Misc.hpp>
+#include <TLib/Macros.hpp>
 
 enum class FrameBufferAttachmentType : GLenum
 {
@@ -32,6 +33,12 @@ private:
     FrameBufferAttachmentType currentType = FrameBufferAttachmentType::Null;
 
 public:
+
+    DISABLE_COPY(FrameBuffer);
+    DISABLE_MOVE(FrameBuffer);
+    FrameBuffer() = default;
+   ~FrameBuffer() { reset(); }
+
     // TODO: auto reset binding to prev state, for now this unbinds if bound.
     void setTexture(Texture& texture, FrameBufferAttachmentType type = FrameBufferAttachmentType::Color0)
     {
@@ -83,9 +90,6 @@ public:
         GL_CHECK(glBindFramebuffer(GL_FRAMEBUFFER, 0));
         GL_CHECK(glDrawBuffer(GL_BACK)); GL_CHECK(glReadBuffer(GL_BACK));
     }
-
-    FrameBuffer() = default;
-    ~FrameBuffer() { reset(); }
 
     operator GLuint*() { return &glHandle; }
     operator GLuint()  { return glHandle; }

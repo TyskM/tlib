@@ -50,8 +50,12 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456789!@#$%^&*()-=_+\|,./
 
         Vector2f textPos = {50, 50};
         Vector2f fontSize = font.calcTextSize(text);
-        Renderer2D::drawTexture(font.getAtlas(), {textPos - Vector2f(0, 20) - Vector2f(0, font.getAtlas().getSize().y), Vector2f(font.getAtlas().getSize())});
-        Renderer2D::drawCircle(textPos, 3.f, 1, ColorRGBAf::red(), true);
+
+        Rectf atlasRect(textPos - Vector2f(0, 20) - Vector2f(0, font.getAtlas().getSize().y), Vector2f(font.getAtlas().getSize()));
+        Renderer2D::drawTexture(font.getAtlas(), atlasRect);
+
+        Renderer2D::drawCircle(textPos, 6.f, 1, ColorRGBAf::red(), true);
+        Renderer2D::drawRect(Rectf(textPos, font.calcTextSize(text)), 0.f, false, ColorRGBAf::green());
         Renderer2D::drawText(text, font, textPos);
         Renderer2D::drawCircle(mwpos, 12.f);
         Renderer2D::render();

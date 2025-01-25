@@ -10,8 +10,8 @@ Recti getViewportSizePixels(const View& view, const Vector2f& targetSize)
     // Width and height must be >= 1
 
     Recti viewportPx{0, 0, 0, 0};
-    if (view.viewport.x != 0) { viewportPx.x      = targetSize.x * view.viewport.x; }
-    if (view.viewport.y != 0) { viewportPx.y      = targetSize.y * view.viewport.y; }
+    if (view.viewport.x != 0) { viewportPx.x = targetSize.x * view.viewport.x; }
+    if (view.viewport.y != 0) { viewportPx.y = targetSize.y * view.viewport.y; }
     viewportPx.width  = targetSize.x * view.viewport.width;
     viewportPx.height = targetSize.y * view.viewport.height;
     return viewportPx;
@@ -32,8 +32,10 @@ Vector2f localToWorldPoint(Vector2f localpos, const View& view, const Vector2f& 
     //localpos.y = (localpos.y + viewportPx.y - (targetSize.y - viewportPx.height)) / (viewportPx.height / targetSize.y);
 
     glm::vec3 ndc = glm::vec3(
-        localpos.x / targetSize.x,
-        1.f - localpos.y / targetSize.y, 0) * 2.f - 1.f;
+              localpos.x / targetSize.x,
+        /*1.f - for top left origin*/
+              localpos.y / targetSize.y, 0)
+              * 2.f - 1.f;
 
     glm::vec4 worldPosition = mat * glm::vec4(ndc, 1);
 
@@ -47,16 +49,19 @@ Vector2f localToWorldPoint(Vector2f localpos, const View& view, const Vector2i& 
 
 struct RenderTarget
 {
-protected:
     static inline RenderTarget* boundRenderTarget = nullptr;
 
-public:
+    DISABLE_COPY(RenderTarget);
+    DISABLE_MOVE(RenderTarget);
+    RenderTarget() = default;
+
     FrameBuffer fbo;
     Texture     texture;
     View        view;
 
     void create()
     {
+        if (created()) { return; }
         fbo.create();
         texture.create();
         fbo.setTexture(texture);
@@ -77,11 +82,13 @@ public:
     void bind()
     {
         fbo.bind();
+        boundRenderTarget = this;
     }
 
     static void unbind()
     {
         FrameBuffer::unbind();
+        boundRenderTarget = nullptr;
     }
 
     static RenderTarget* getBoundRenderTarget()

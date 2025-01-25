@@ -2,13 +2,15 @@
 #include <TLib/Containers/UnorderedMap.hpp>
 #include <TLib/String.hpp>
 #include <TLib/Logging.hpp>
+#include <TLib/Containers/Bitset.hpp>
 #include <EASTL/string.h>
-
-UnorderedMap<eastl::string, int> testMap;
 
 int main()
 {
-    testMap.insert_or_assign("test", 420);
-    tlog::info(testMap.at("test"));
+    Bitset<8, int> b{ {0, true}, {1, false}, {2, true} };
+    tlog::info(b.test(0));
+    tlog::info(b.test(1));
+    tlog::info(b.test(2));
+
     return 0;
 }

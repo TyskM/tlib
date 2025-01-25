@@ -28,8 +28,8 @@ struct View
         Vector2f halfSize = size/2.f;
         const float l = center.x - halfSize.x;
         const float r = center.x + halfSize.x;
-        const float t = center.y - halfSize.y;
-        const float b = center.y + halfSize.y;
+        const float t = center.y + halfSize.y;
+        const float b = center.y - halfSize.y;
 
         glm::mat4 mat(1.f);
         mat = glm::scale(mat, {zoom.x, zoom.y, 1.f});
