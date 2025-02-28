@@ -134,26 +134,24 @@ struct Vector2
     bool       operator==(const Vector2<T>& other)   const { return x == other.x && y == other.y; }
     bool       operator!=(const Vector2<T>& other)   const { return !(operator==(other)); }
     Vector2<T> operator- ()                          const { return Vector2<T>(-x, -y); }
-    Vector2<T> operator+ (const Vector2<T>& other)   const { return Vector2<T>(x + other.x, y + other.y); }
-    Vector2<T> operator- (const Vector2<T>& other)   const { return Vector2<T>(x - other.x, y - other.y); }
-    Vector2<T> operator* (const Vector2<T>& other)   const { return Vector2<T>(x * other.x, y * other.y); }
-    Vector2<T> operator/ (const Vector2<T>& other)   const { return Vector2<T>(x / other.x, y / other.y); }
-    Vector2<T> operator+ (const int   v)             const { return Vector2<T>(x + v, y + v); }
-    Vector2<T> operator- (const int   v)             const { return Vector2<T>(x - v, y - v); }
-    Vector2<T> operator* (const int   v)             const { return Vector2<T>(x * v, y * v); }
-    Vector2<T> operator/ (const int   v)             const { return Vector2<T>(x / v, y / v); }
-    Vector2<T> operator+ (const float v)             const { return Vector2<T>(x + v, y + v); }
-    Vector2<T> operator- (const float v)             const { return Vector2<T>(x - v, y - v); }
-    Vector2<T> operator* (const float v)             const { return Vector2<T>(x * v, y * v); }
-    Vector2<T> operator/ (const float v)             const { return Vector2<T>(x / v, y / v); }
-    Vector2<T> operator+=(const Vector2<T>& v)             { x += v.x, y += v.y; return *this; }
-    Vector2<T> operator-=(const Vector2<T>& v)             { x -= v.x, y -= v.y; return *this; }
-    Vector2<T> operator*=(const Vector2<T>& v)             { x *= v.x, y *= v.y; return *this; }
-    Vector2<T> operator/=(const Vector2<T>& v)             { x /= v.x, y /= v.y; return *this; }
-    Vector2<T> operator*=(const int   v)                   { x *= v,   y *= v;   return *this; }
-    Vector2<T> operator/=(const int   v)                   { x /= v,   y /= v;   return *this; }
-    Vector2<T> operator*=(const float v)                   { x *= v,   y *= v;   return *this; }
-    Vector2<T> operator/=(const float v)                   { x /= v,   y /= v;   return *this; }
+
+    Vector2<T> operator+ (const Vector2<T>& v) const { return Vector2<T>(x + v.x, y + v.y); }
+    Vector2<T> operator- (const Vector2<T>& v) const { return Vector2<T>(x - v.x, y - v.y); }
+    Vector2<T> operator* (const Vector2<T>& v) const { return Vector2<T>(x * v.x, y * v.y); }
+    Vector2<T> operator/ (const Vector2<T>& v) const { return Vector2<T>(x / v.x, y / v.y); }
+    Vector2<T> operator+=(const Vector2<T>& v)       { x += v.x, y += v.y; return *this; }
+    Vector2<T> operator-=(const Vector2<T>& v)       { x -= v.x, y -= v.y; return *this; }
+    Vector2<T> operator*=(const Vector2<T>& v)       { x *= v.x, y *= v.y; return *this; }
+    Vector2<T> operator/=(const Vector2<T>& v)       { x /= v.x, y /= v.y; return *this; }
+
+    template <typename T> Vector2<T> operator+ (const T& v) const { return Vector2<T>(x + v, y + v); }
+    template <typename T> Vector2<T> operator- (const T& v) const { return Vector2<T>(x - v, y - v); }
+    template <typename T> Vector2<T> operator* (const T& v) const { return Vector2<T>(x * v, y * v); }
+    template <typename T> Vector2<T> operator/ (const T& v) const { return Vector2<T>(x / v, y / v); }
+    template <typename T> Vector2<T> operator+=(const T& v)       { x += v; y += v; return *this; }
+    template <typename T> Vector2<T> operator-=(const T& v)       { x -= v; y -= v; return *this; }
+    template <typename T> Vector2<T> operator*=(const T& v)       { x *= v; y *= v; return *this; }
+    template <typename T> Vector2<T> operator/=(const T& v)       { x /= v; y /= v; return *this; }
 };
 using Vector2f  = Vector2<float>;
 using Vector2i  = Vector2<int>;

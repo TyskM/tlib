@@ -1,7 +1,7 @@
 
 #[[
     vcpkg dependencies:
-    core: spdlog magic-enum palsigslot freetype mimalloc cereal boost-algorithm boost-container SDL2 sdl2-gfx gl3w glm imgui imgui[docking-experimental] imgui[sdl2-binding] imgui[opengl3-binding] assimp
+    core: enet spdlog magic-enum palsigslot freetype mimalloc cereal boost-algorithm boost-container SDL2 sdl2-gfx gl3w glm imgui imgui[docking-experimental] imgui[sdl2-binding] imgui[opengl3-binding] assimp
     tests: sfml
 ]]
 
@@ -130,6 +130,9 @@ target_link_libraries(TLib PUBLIC mimalloc-static)
 
 find_dependency(cereal CONFIG REQUIRED)
 target_link_libraries(TLib PUBLIC cereal::cereal)
+
+find_package(unofficial-enet CONFIG REQUIRED)
+target_link_libraries(TLib PRIVATE unofficial::enet::enet)
 
 set(Boost_USE_STATIC_LIBS        ON)  # only find static libs
 set(Boost_USE_DEBUG_LIBS        OFF)  # ignore debug libs and
