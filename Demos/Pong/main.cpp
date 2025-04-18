@@ -492,12 +492,12 @@ struct Server
 
             if ((int32_t)loops % 100 == 0)
             {
-                tlog::info("Server: Time = {}", time);
+                //tlog::info("Server: Time = {}", time);
 
                 int32_t peeri = 0;
                 for (auto& peer : peers)
                 {
-                    tlog::info("Server: Peer {} RTT = {}", peeri, peer->roundTripTime);
+                    //tlog::info("Server: Peer {} RTT = {}", peeri, peer->roundTripTime);
                     ++peeri;
                 }
             }
@@ -674,8 +674,8 @@ struct Client
                                 const float positionErrorThreshold = 10.f;
                                 if (positionError.length() > positionErrorThreshold)
                                 {
-                                    tlog::info("Client ball position went over error threshold. \n\t Error: {} Estimated: {} Real: {}",
-                                        positionError.toString(), estimatedPosition.toString(), clientBall.position.toString());
+                                    //tlog::info("Client ball position went over error threshold. \n\t Error: {} Estimated: {} Real: {}",
+                                    //    positionError.toString(), estimatedPosition.toString(), clientBall.position.toString());
                                     clientBall.position = clientBall.position.lerp(estimatedPosition, delta * 10.f);
                                 }
 
@@ -739,38 +739,79 @@ struct Client
 
 Server server;
 Client client;
+RmlRenderer   uiRenderer;
+RmlSystem     uiSys;
+Rml::Context* uiCtx = nullptr;
+Rml::ElementDocument* uiMainMenuDoc = nullptr;
+
+static void reloadUI()
+{
+    tlog::info("UI Reload");
+
+    uiMainMenuDoc->Close();
+
+    Rml::Factory::ClearStyleSheetCache();
+    Rml::Factory::ClearTemplateCache();
+
+    uiMainMenuDoc = uiCtx->LoadDocument("assets/main_menu.rml");
+    uiMainMenuDoc->Show();
+}
 
 static void init()
 {
+    uiRenderer.init();
+    Rml::SetRenderInterface(&uiRenderer);
+    Rml::SetSystemInterface(&uiSys);
+    Rml::Initialise();
+    uiCtx = Rml::CreateContext("main", Rml::Vector2i(window.getSize().x, window.getSize().y));
+    Rml::LoadFontFace("assets/roboto.ttf");
+    Rml::LoadFontFace("assets/lato_latin.ttf");
+    uiMainMenuDoc = uiCtx->LoadDocument("assets/main_menu.rml");
+    uiMainMenuDoc->Show();
+
     if (enet_initialize () != 0)
     {
         tlog::error("An error occurred while initializing ENet.");
         ASSERT(false)
     }
 
-    tlog::info("1: Host Game, 2: Join Game");
-    String input;
-    std::getline(std::cin, input);
-    if (input == "1")
-    {
-        server.start();
-        client.connect("localhost");
-    }
-    else if (input == "2")
-    {
-        tlog::info("Enter Server IP:");
-        String ip;
-        std::getline(std::cin, ip);
-        client.connect(ip);
-    }
-    else
-    { tlog::error("the options are 1 and 2, try again u stupid idiot."); abort(); }
+    server.start();
+    client.connect("localhost");
+
+    //tlog::info("1: Host Game, 2: Join Game");
+    //String input;
+    //std::getline(std::cin, input);
+    //if (input == "1")
+    //{
+    //    server.start();
+    //    client.connect("localhost");
+    //}
+    //else if (input == "2")
+    //{
+    //    tlog::info("Enter Server IP:");
+    //    String ip;
+    //    std::getline(std::cin, ip);
+    //    client.connect(ip);
+    //}
+    //else
+    //{ tlog::error("the options are 1 and 2, try again u stupid idiot."); abort(); }
 
 }
 
 static void shutdown()
 {
     enet_deinitialize();
+}
+
+static void input(SDL_Event& e)
+{
+    switch (e.type)
+    {
+        case SDL_MOUSEMOTION:     uiCtx->ProcessMouseMove(e.motion.x, e.motion.y, 0);
+        case SDL_MOUSEBUTTONDOWN: uiCtx->ProcessMouseButtonDown(e.button.button, 0);
+        case SDL_MOUSEBUTTONUP:   uiCtx->ProcessMouseButtonUp(e.button.button, 0);
+        default: break;
+    }
 }
 
 static void fixedUpdate(float delta)
@@ -793,15 +834,29 @@ static void update(float delta)
         fixedUpdate(fixedTimeStep);
         timeBuffer -= fixedTimeStep;
     }
+
+    if (Input::isKeyJustPressed(SDL_SCANCODE_F5))
+    { reloadUI(); }
 }
 
 static void draw(float delta)
 {
-    client.draw(delta);
+    //Renderer::clearColor();
+    //client.draw(delta);
+    //Renderer2D::render();
+    
+    uiCtx->Update();
+    uiRenderer.beginFrame();
+    uiCtx->Render();
+    uiRenderer.renderFrame();
 }
 
 int main()
 {
+    #if TLIB_DEBUG
+        fs::current_path(SrcRoot);
+    #endif
+
     MyGui imgui;
     Timer deltaTimer;
 
@@ -829,6 +884,7 @@ int main()
         {
             Input::input(e);
             imgui.input(e);
+            input(e);
 
             if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
             {
@@ -841,14 +897,12 @@ int main()
         if (!(io.WantCaptureKeyboard)) { Input::updateKeyboard(); }
         if (!(io.WantCaptureMouse)) { Input::updateMouse(); }
 
-        imgui.newFrame();
+        //imgui.newFrame();
         update(delta);
-        Renderer::clearColor();
         draw(delta);
-        Renderer2D::render();
 
-        drawDiagWidget(&fpslimit);
-        imgui.render();
+        //drawDiagWidget(&fpslimit);
+        //imgui.render();
 
         window.swap();
 

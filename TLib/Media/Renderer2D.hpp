@@ -855,7 +855,7 @@ private:
                            const int                         layer = DefaultPrimitiveLayer)
     {
         ASSERT(inited); // Forgot to call Renderer2D::init()
-        ASSERT(points.size() > 0);
+        if (points.empty()) { return; }
 
         drawCmds.emplace_back();
         DrawCmd& cmd = drawCmds.back();

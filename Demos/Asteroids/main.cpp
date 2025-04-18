@@ -271,7 +271,7 @@ struct Game
         }
         else
         {
-            Vector2f screenCenter = Vector2f(screenRect.width, screenRect.height) / 2;
+            Vector2f screenCenter = Vector2f(screenRect.width, screenRect.height) / 2.f;
             String text1 = "Game Over";
             String text2 = fmt::format("Final Score: {:.0f}", score);
             Vector2f text1Size = font.calcTextSize(text1);
@@ -470,6 +470,7 @@ int main()
 
     window.create();
     window.setTitle("Asteroids");
+    Input::init(window);
     Renderer::create();
     Renderer2D::create();
     imgui.create(window);

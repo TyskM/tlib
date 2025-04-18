@@ -21,6 +21,7 @@ set(TLib_Tests
         AStar2D
         Construct
         Scripting
+        Physics
 )
 
 enable_testing()

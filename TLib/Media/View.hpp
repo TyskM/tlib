@@ -23,13 +23,24 @@ struct View
         return center - (size / zoom / 2.f);
     }
 
-    glm::mat4 getMatrix() const
+    glm::mat4 getMatrix(bool flipY = false) const
     {
         Vector2f halfSize = size/2.f;
         const float l = center.x - halfSize.x;
         const float r = center.x + halfSize.x;
-        const float t = center.y + halfSize.y;
-        const float b = center.y - halfSize.y;
+        float t;
+        float b;
+
+        if (flipY)
+        {
+            t = center.y - halfSize.y;
+            b = center.y + halfSize.y;
+        }
+        else
+        {
+            t = center.y + halfSize.y;
+            b = center.y - halfSize.y;
+        }
 
         glm::mat4 mat(1.f);
         mat = glm::scale(mat, {zoom.x, zoom.y, 1.f});

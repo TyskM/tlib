@@ -14,14 +14,17 @@ struct VertexArray : NonCopyable
     void create()
     {
         GL_CHECK(glGenVertexArrays(1, &glHandle));
-        rendlog->info("Created VAO at location {}", glHandle);
+
+        if constexpr(verboseRendererLogging)
+            rendlog->info("Created VAO at location {}", glHandle);
     }
 
     void reset()
     {
         if (created())
         {
-            rendlog->info("Destroyed VAO at location {}", glHandle);
+            if constexpr(verboseRendererLogging)
+                rendlog->info("Destroyed VAO at location {}", glHandle);
             glDeleteVertexArrays(1, &glHandle);
             glHandle = 0;
         }

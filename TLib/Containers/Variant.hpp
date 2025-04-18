@@ -1,6 +1,10 @@
 
 #pragma once
 #include <variant>
+#include <any>
+
+using Null    = std::monostate;
+using NullPtr = std::nullptr_t;
 
 template <typename T, typename VariantT>
 constexpr bool is(const VariantT& variant)
@@ -32,12 +36,16 @@ struct Variant : std::variant<Types...>
     { return std::holds_alternative<T>(*this); }
 
     template <typename T>
-    const T& get() const
-    { return std::get<T>(*this); }
+    const T& get() const { return std::get<T>(*this); }
 
     template <typename T>
-    T& get()
-    { return std::get<T>(*this); }
+    T& get() { return std::get<T>(*this); }
+
+    template <typename T>
+    const T& as() const { return std::get<T>(*this); }
+
+    template <typename T>
+    T& as() { return std::get<T>(*this); }
 
     template <typename T>
     const T* try_get() const
@@ -55,3 +63,17 @@ struct Variant : std::variant<Types...>
         return nullptr;
     }
 };
+
+namespace eastl
+{
+    template<class... Types>
+    struct hash<Variant<Types...>>
+    {
+        size_t operator()(const Variant<Types...>& key) const
+        {
+            return std::hash<std::variant<Types...>>()(key);
+        }
+    };
+}
+
+using Any = std::any;

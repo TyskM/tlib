@@ -101,4 +101,10 @@ namespace math
         const auto diff = fmod(b - a, full);
         return half - abs(abs(diff) - half);
     }
+
+    template <typename T>
+    static T moveToward(const T& value, const T& target, const T& step)
+    {
+        return std::max(std::min(value + step, target), value - step);
+    }
 }

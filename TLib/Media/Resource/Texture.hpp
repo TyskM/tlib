@@ -81,6 +81,7 @@ enum class TexPixelFormats : int
 enum class TexPixelType
 {
     UnsignedByte = GL_UNSIGNED_BYTE,
+    Byte         = GL_BYTE,
     uint8888Rev  = GL_UNSIGNED_INT_8_8_8_8_REV,
     Float        = GL_FLOAT
 
@@ -255,8 +256,8 @@ public:
         const void*              data,
         const uint32_t           width,
         const uint32_t           height,
-        const TexPixelFormats    format         = defaultFormat,
-        const TexInternalFormats internalFormat = defaultInternalFormat,
+        const TexPixelFormats    format         = defaultFormat, // Describes the format of your provided data
+        const TexInternalFormats internalFormat = defaultInternalFormat, // The format your data will be converted to.
         const TexPixelType       type           = TexPixelType::UnsignedByte)
     {
         if (!created()) { create(); }

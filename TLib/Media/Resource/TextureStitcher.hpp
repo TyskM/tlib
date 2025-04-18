@@ -247,8 +247,8 @@ public:
         auto report_unsuccessful = [](rect_type&) { return callback_result::ABORT_PACKING; };
         rects.clear();
         rects.resize(texturesToLoad.size());
-        Vector<TextureData> textures;
-        textures.resize(texturesToLoad.size());
+        Vector<TextureData> textures(texturesToLoad.size());
+        //textures.resize(texturesToLoad.size());
 
         for (uint32_t i = 0; i < textures.size(); i++)
         {

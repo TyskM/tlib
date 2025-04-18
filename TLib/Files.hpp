@@ -30,7 +30,9 @@ static Path saveFileDialog(
     { cfilters.push_back(s.c_str()); }
 
     if (defaultPath.empty())
-    { defaultPath = fs::current_path() / "file"; }
+    { defaultPath = fs::current_path(); }
+    if (fs::is_directory(defaultPath))
+    { defaultPath += "/"; }
 
     char* saveFilePath = tinyfd_saveFileDialog(
         title.c_str(),
@@ -58,6 +60,8 @@ static Path openSingleFileDialog(
 
     if (defaultPath.empty())
     { defaultPath = fs::current_path(); }
+    if (fs::is_directory(defaultPath))
+    { defaultPath += "/"; }
 
     char* openedFilePath = tinyfd_openFileDialog(
         title.c_str(),
@@ -68,7 +72,8 @@ static Path openSingleFileDialog(
 
     if (!openedFilePath)
     { return Path(); }
-    return openedFilePath;
+
+    return Path(openedFilePath);
 }
 
 // This opens the file explorer and selects the file/folder provided

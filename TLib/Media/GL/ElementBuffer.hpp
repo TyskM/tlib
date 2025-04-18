@@ -10,10 +10,9 @@
 // For storing indices
 struct ElementBuffer : IBuffer
 {
-    template <typename ContainerType>
+    template <typename ContainerType, typename T = ContainerType::value_type>
     void bufferData(const ContainerType& data, AccessType accessType)
     {
-        using T = ContainerType::value_type;
         bind();
         GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(T) * data.size(), data.data(), static_cast<GLenum>(accessType)));
     }

@@ -15,5 +15,6 @@ target_link_libraries(Pong PRIVATE $<IF:$<TARGET_EXISTS:SDL2_image::SDL2_image>,
 find_package(RmlUi CONFIG REQUIRED)
 target_link_libraries(Pong PRIVATE RmlUi::RmlUi)
 
+target_compile_definitions(Pong PRIVATE SrcRoot="${CMAKE_CURRENT_LIST_DIR}")
 add_custom_target(PongAssets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets )
 add_dependencies(Pong PongAssets)

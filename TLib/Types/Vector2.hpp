@@ -4,6 +4,7 @@
 #include <TLib/String.hpp>
 #include <TLib/Logging.hpp>
 #include <TLib/Math.hpp>
+#include <cstdint>
 #include <numeric>
 
 template <typename T>
@@ -33,8 +34,34 @@ struct Vector2
     { return atan2(y, x); }
 
     // In radians
+    // X axis, 180 counter clockwise
+    [[deprecated]]
     T angleTo(const Vector2<T>& other) const
     { return (other - *this).angle(); }
+
+    // In radians
+    T angleTo360YAxisCW(const Vector2<T>& other) const
+    {
+        auto diff = other - *this;
+        T a = atan2(diff.x, diff.y);
+        a = fmod(a + math::deg2rad(360.f), math::deg2rad(360.f)); 
+        return a;
+    }
+
+    T angleTo180YAxisCW(const Vector2<T>& other) const
+    {
+        auto diff = other - *this;
+        T a = atan2(diff.x, diff.y);
+        return a;
+    }
+
+    // This is what Chipmunk physics uses
+    T angleTo180YAxisCCW(const Vector2<T>& other) const
+    {
+        auto diff = other - *this;
+        T a = -atan2(diff.x, diff.y);
+        return a;
+    }
 
     void rotate(T radians)
     { *this = rotated(radians); }
@@ -64,8 +91,9 @@ struct Vector2
     {
         Vector2<T> rv = *this;
         T len = length();
-        if (rv.x != 0) rv.x /= len;
-        if (rv.y != 0) rv.y /= len;
+        if (len  == T(0)) { return rv;   }
+        if (rv.x != T(0)) { rv.x /= len; }
+        if (rv.y != T(0)) { rv.y /= len; }
         return rv;
     }
 
@@ -104,6 +132,14 @@ struct Vector2
     [[nodiscard]]
     bool isNan() const
     { return std::isnan(x) || std::isnan(y); }
+
+    [[nodiscard]]
+    bool isInf() const
+    { return std::isinf(x) || std::isinf(y); }
+
+    [[nodiscard]]
+    bool isSane() const
+    { return !isNan() && !isInf(); }
 
     Vector2<T> floored()    const { return Vector2<T>( static_cast<T>(std::floor(x)),      static_cast<T>(std::floor(y))      ); }
     Vector2<T> ceiled()     const { return Vector2<T>( static_cast<T>(std::ceil(x)),       static_cast<T>(std::ceil(y))       ); }
@@ -154,7 +190,7 @@ struct Vector2
     template <typename T> Vector2<T> operator/=(const T& v)       { x /= v; y /= v; return *this; }
 };
 using Vector2f  = Vector2<float>;
-using Vector2i  = Vector2<int>;
+using Vector2i  = Vector2<int32_t>;
 using Vector2i8 = Vector2<int8_t>;
 
 // Support hashing

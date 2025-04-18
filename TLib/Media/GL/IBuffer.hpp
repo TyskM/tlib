@@ -29,14 +29,17 @@ struct IBuffer : NonCopyable
     {
         reset();
         GL_CHECK(glGenBuffers(1, &glHandle));
-        rendlog->info("Created buffer at location {}", glHandle);
+
+        if constexpr(verboseRendererLogging)
+            rendlog->info("Created buffer at location {}", glHandle);
     }
 
     void reset()
     {
         if (created())
         {
-            rendlog->info("Destroyed buffer at location {}", glHandle);
+            if constexpr(verboseRendererLogging)
+                rendlog->info("Destroyed buffer at location {}", glHandle);
             glDeleteBuffers(1, &glHandle);
             glHandle = 0;
         }

@@ -79,7 +79,8 @@ public:
         if (!vao.created()) { vao.create(); }
         if (!vbo.created()) { vbo.create(); }
 
-        rendlog->info("Setting mesh layout: Bytes={}; Size={};", layout.sizeBytes(), layout.getValues().size());
+        if constexpr(verboseRendererLogging)
+            rendlog->info("Setting mesh layout: Bytes={}; Size={};", layout.sizeBytes(), layout.getValues().size());
 
         vao.bind();
         vbo.bind();
@@ -106,10 +107,9 @@ public:
 
     }
 
-    template <typename ContainerType>
+    template <typename ContainerType, typename T = ContainerType::value_type>
     void setData(const ContainerType& data, AccessType accessType = AccessType::Static)
     {
-        using T = ContainerType::value_type;
         ASSERT(validLayout()); // Layout must be set before setting data
 
         #ifdef TLIB_DEBUG
@@ -121,29 +121,32 @@ public:
         }
         #endif
 
-        if (accessType == AccessType::Static)
-        { rendlog->info("Setting static mesh data: Bytes={}; Size={};", sizeof(T) * data.size(), data.size()); }
+        if constexpr(verboseRendererLogging)
+            if (accessType == AccessType::Static)
+                { rendlog->info("Setting static mesh data: Bytes={}; Size={};", sizeof(T) * data.size(), data.size()); }
 
         vao.bind();
         vbo.bind();
-        vbo.bufferData(data, accessType);
+        vbo.bufferData<ContainerType, T>(data, accessType);
         _vertexCount = data.size();
     }
 
-    template <typename ContainerOfuint32_tType>
-    void setIndices(const ContainerOfuint32_tType& indices, AccessType accessType = AccessType::Static)
+    template <typename ContainerType, typename T = ContainerType::value_type>
+    void setIndices(const ContainerType& indices, AccessType accessType = AccessType::Static)
     {
         if (indices.size() == 0) { return; }
 
-        if (accessType == AccessType::Static)
-        { rendlog->info("Setting static mesh indices: Bytes={}; Size={};", indices.size() * sizeof(uint32_t), indices.size()); }
+        if constexpr(verboseRendererLogging)
+            if (accessType == AccessType::Static)
+                { rendlog->info("Setting static mesh indices: Bytes={}; Size={};", indices.size() * sizeof(T), indices.size()); }
+        
         if (!vao.created()) { vao.create(); }
         if (!ebo.created()) { ebo.create(); }
 
         vao.bind();
         ebo.bind();
 
-        ebo.bufferData(indices, accessType);
+        ebo.bufferData<ContainerType, T>(indices, accessType);
         _indiceCount = indices.size();
 
         ASSERT(_indiceCount > 0);
