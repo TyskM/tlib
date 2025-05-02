@@ -15,7 +15,7 @@ out vec2 vertTexCoords;
 out vec4 vertFragPosLightSpace;
 out vec3 vertClipPos;
 
-// Inject //! #define shadowMapCascadeCount 3
+//! #define  shadowMapCascadeCount 3
 uniform mat4 csmlightSpaceMatrices [shadowMapCascadeCount];
 out vec4     csmLightClipPos       [shadowMapCascadeCount];
 

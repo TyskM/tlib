@@ -44,15 +44,15 @@ struct SpotLight
     float outerCosAngle;
 };
 
-// Inject    //! #define maxDirectionalLights
+//! #define              maxDirectionalLights
 uniform int              directionalLightCount;
 uniform DirectionalLight directionalLights[maxDirectionalLights];
 
-// Inject    //! #define maxPointLights
+//! #define              maxPointLights
 uniform int              pointLightCount;
 uniform PointLight       pointLights[maxPointLights];
 
-// Inject    //! #define maxSpotLights
+//! #define              maxSpotLights
 uniform int              spotLightCount;
 uniform SpotLight        spotLights[maxSpotLights];
 
@@ -77,7 +77,7 @@ uniform vec3 fogColor   = vec3(1, 1, 1);
 
 uniform Material material;
 
-// Inject //! #define shadowMapCascadeCount 3
+//! #define       shadowMapCascadeCount 3
 uniform sampler2D csms            [shadowMapCascadeCount];
 uniform float     csmEndClipSpace [shadowMapCascadeCount];
 in vec4           csmLightClipPos [shadowMapCascadeCount];

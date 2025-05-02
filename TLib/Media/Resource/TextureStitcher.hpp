@@ -36,6 +36,7 @@ struct RectPackerOnline
 
     void init(Dim_t width, Dim_t height)
     {
+        _nodes.clear();
         _nodes.emplace();
         binWidth      = width;
         binHeight     = height;
@@ -68,7 +69,7 @@ private:
     const Node& root() const { return *_nodes.begin(); }
     Node& root() { return *_nodes.begin(); }
 
-// The total size of the bin we started with.
+    // The total size of the bin we started with.
     Dim_t binWidth;
     Dim_t binHeight;
 
@@ -201,7 +202,6 @@ struct TextureStitcherOnline
         atlas.setFilter(TextureMinFilter::Nearest, TextureMagFilter::Nearest);
         atlas.setUVMode(UVMode::Repeat);
     }
-
 };
 
 // Supply all textures up front, then stitch

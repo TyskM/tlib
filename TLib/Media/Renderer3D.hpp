@@ -11,6 +11,7 @@
 #include <TLib/Media/View3D.hpp>
 #include <TLib/Media/Transform3D.hpp>
 #include <TLib/Media/Renderer2D.hpp>
+#include <TLib/Media/GL/GLSLSource.hpp>
 
 #include <TLib/Media/ImGuiWidgets.hpp>
 
@@ -209,27 +210,6 @@ public:
         }
         return f;
     }
-
-    struct GLSLSource
-    {
-    private:
-        String src;
-
-    public:
-        GLSLSource() = default;
-        GLSLSource(const String& str) : src{str} { }
-
-        void inject(const String& str)
-        {
-            size_t versionIndex = src.find("#version");
-            if (versionIndex == src.size()) { tlog::error("Missing #version"); return; }
-            size_t insertPoint = src.find('\n', versionIndex) + 1;
-            src.insert(insertPoint, str + '\n');
-        }
-
-        String string() const
-        { return src; }
-    };
 
     static bool created()
     {

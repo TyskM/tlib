@@ -12,6 +12,9 @@
 #include <format>
 #include <magic_enum.hpp>
 
+ImVec2 iv2(const Vector2f& v)
+{ return ImVec2(v.x, v.y); }
+
 namespace ImGui
 {
     void Image(Texture&    tex,
@@ -38,6 +41,15 @@ namespace ImGui
         ImGui::Image(handle, { size.x, size.y }, {0, 1}, {1, 0},
             { tintColor.r, tintColor.g, tintColor.b, tintColor.a },
             { borderColor.r, borderColor.g, borderColor.b, borderColor.a });
+    }
+
+    void Text(const String& str)
+    { ImGui::Text(str.c_str()); }
+
+    template <typename... Args>
+    void TextFmt(fmt::format_string<Args...> s, Args&&... args)
+    {
+        ImGui::Text( fmt::format(s, std::forward<Args>(args)...).c_str() );
     }
 }
 
@@ -160,6 +172,11 @@ void drawDiagWidget(FPSLimit* fpslimit = nullptr, bool* p_open = NULL, ImGuiWind
     ImGui::Text(fmt::format("VRAM Current Avail : {} MB", sysq::kbToMb(vmeminfo.currentAvailable)).c_str());
 
     ImGui::End();
+}
+
+Vector2f toImGuiCoords(const Vector2f& pos, const Vector2f& targetSize)
+{
+    return Vector2f(pos.x, targetSize.y - pos.y);
 }
 
 // https://github.com/ocornut/imgui/blob/master/imgui_demo.cpp

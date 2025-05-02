@@ -19,8 +19,14 @@ struct View
     }
 
     Vector2f topLeft() const
+    { return center - (size / zoom / 2.f); }
+
+    Vector2f bottomRight() const
+    { center + (size / zoom / 2.f); }
+
+    Rectf rect() const
     {
-        return center - (size / zoom / 2.f);
+        return Rectf(topLeft(), Vector2f(size / zoom));
     }
 
     glm::mat4 getMatrix(bool flipY = false) const

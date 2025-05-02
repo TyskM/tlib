@@ -107,4 +107,19 @@ namespace math
     {
         return std::max(std::min(value + step, target), value - step);
     }
+
+    template <typename T>
+    T convertRange(T value, T oldMin, T oldMax, T newMin, T newMax)
+    {
+        // Thank you, Jerry
+        // https://stackoverflow.com/questions/929103/convert-a-number-range-to-another-range-maintaining-ratio
+        T oldRange = (oldMax - oldMin);
+        if (oldRange == 0)
+            return newMin;
+        else
+        {
+            T newRange = (newMax - newMin);
+            return (((value - oldMin) * newRange) / oldRange) + newMin;
+        }
+    }
 }

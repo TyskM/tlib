@@ -213,11 +213,10 @@ public:
     }
 
     void setVec2f(const String& name, glm::vec2 value)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return; }
-        GL_CHECK(glUniform2f(loc, value.x, value.y));
-    }
+    { setVec2f(name, value.x, value.y); }
+
+    void setVec2f(const String& name, const Vector2f& value)
+    { setVec2f(name, value.x, value.y); }
 
     void setVec3f(const String& name, float x, float y, float z)
     {
@@ -227,18 +226,10 @@ public:
     }
 
     void setVec3f(const String& name, glm::vec3 value)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return; }
-        GL_CHECK(glUniform3f(loc, value.x, value.y, value.z));
-    }
+    { setVec3f(name, value.x, value.y, value.z); }
 
     void setVec3f(const String& name, const Vector3f& value)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return; }
-        GL_CHECK(glUniform3f(loc, value.x, value.y, value.z));
-    }
+    { setVec3f(name, value.x, value.y, value.z); }
 
     void setVec4f(const String& name, float x, float y, float z, float w)
     {
@@ -248,18 +239,10 @@ public:
     }
 
     void setVec4f(const String& name, const Vector4<float> value)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return; }
-        GL_CHECK(glUniform4f(loc, value.x, value.y, value.z, value.w));
-    }
+    { setVec4f(name, value.x, value.y, value.z, value.w); }
 
     void setVec4f(const String& name, glm::vec4 value)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return; }
-        GL_CHECK(glUniform4f(loc, value.x, value.y, value.z, value.w));
-    }
+    { setVec4f(name, value.x, value.y, value.z, value.w); }
 
     void setMat4f(const String& name, glm::mat4 value)
     {
