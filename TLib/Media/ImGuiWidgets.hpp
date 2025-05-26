@@ -11,9 +11,13 @@
 #include <string>
 #include <format>
 #include <magic_enum.hpp>
+#include <imgui_internal.h>
 
 ImVec2 iv2(const Vector2f& v)
 { return ImVec2(v.x, v.y); }
+
+ImVec4 ic4f(const ColorRGBAf& v)
+{ return ImVec4(v.r, v.g, v.b, v.a); }
 
 namespace ImGui
 {
@@ -50,6 +54,36 @@ namespace ImGui
     void TextFmt(fmt::format_string<Args...> s, Args&&... args)
     {
         ImGui::Text( fmt::format(s, std::forward<Args>(args)...).c_str() );
+    }
+
+    void PushSelectableXAlign(float align)
+    { ImGui::PushStyleVarX(ImGuiStyleVar_SelectableTextAlign, align); }
+
+    bool SelectableEx(
+        const String&        label,
+        float                xAlign,
+        bool                 selected = false,
+        ImGuiSelectableFlags flags    = 0,
+        const Vector2f&      size     = Vector2f())
+    {
+        ImGui::PushStyleVarX(ImGuiStyleVar_SelectableTextAlign, xAlign);
+        bool ret = ImGui::Selectable(label.c_str(), selected, flags, ImVec2(size.x, size.y));
+        ImGui::PopStyleVar();
+        return ret;
+    }
+
+    bool ImageButton(
+        const String&     label,
+        const SubTexture& subTex,
+        const Vector2f&   buttonSize,
+        const ColorRGBAf& bgColor   = ColorRGBAf(0.f, 0.f, 0.f, 0.f),
+        const ColorRGBAf& tintColor = ColorRGBAf(1.f, 1.f, 1.f, 1.f))
+    {
+        auto uv = Renderer2D::getTextureUVs(*subTex.texture, subTex.rect);
+        std::swap(uv.first.y, uv.second.y);
+        return ImGui::ImageButton(label.c_str(), subTex.texture->handle(),
+                            iv2(buttonSize), iv2(uv.first), iv2(uv.second),
+                            ic4f(bgColor), ic4f(tintColor));
     }
 }
 

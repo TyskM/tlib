@@ -4,21 +4,21 @@
 #include <TLib/Types/Types.hpp>
 #include <TLib/Pointers.hpp>
 #include <TLib/Macros.hpp>
-#include <TLib/Media/Renderer.hpp>
-#include <TLib/Media/View.hpp>
-#include <TLib/Media/Frustum.hpp>
-#include <TLib/Media/Resource/Font.hpp>
-#include <TLib/EASTL.hpp>
 #include <TLib/Containers/Vector.hpp>
 #include <TLib/Containers/UnorderedMap.hpp>
 #include <TLib/Containers/Array.hpp>
 #include <TLib/Containers/Pair.hpp>
-#include <TLib/Media/RenderTarget.hpp>
-#include <TLib/Embed/Embed.hpp>
-#include <TLib/Media/Platform/Input.hpp>
 #include <TLib/Containers/FixedVector.hpp>
+#include <TLib/Containers/Span.hpp>
+#include <TLib/Media/Renderer.hpp>
+#include <TLib/Media/View.hpp>
+#include <TLib/Media/Frustum.hpp>
+#include <TLib/Media/Resource/Font.hpp>
+#include <TLib/Media/RenderTarget.hpp>
+#include <TLib/Media/Platform/Input.hpp>
+#include <TLib/Embed/Embed.hpp>
+#include <TLib/Geometry.hpp>
 #include <glm/gtx/rotate_vector.hpp>
-#include <span>
 
 using TexturePointers = FixedVector<Texture*, 4, false>;
 
@@ -26,9 +26,6 @@ struct Renderer2DRenderParams
 {
     GLBlendMode srcBlendFactor = GLBlendMode::SrcAlpha;
     GLBlendMode dstBlendFactor = GLBlendMode::OneMinusSrcAlpha;
-
-    // If false, Ignore layer parameter and draw everthing back to front
-    bool sort = false;
 
     // If true, will render using the default camera. Useful for drawing UI and FBOs
     bool ignoreView = false;
@@ -55,7 +52,6 @@ struct DrawTextureParams
     // Optional
     float            rotation = 0; // Radians
     ColorRGBAf       color    = ColorRGBAf::white();
-    int              layer    = 0;
     Shader*          shader   = nullptr;
     Renderer2DOrigin origin;
     bool             flipUVx  = false;
@@ -107,20 +103,32 @@ struct DrawTextureParams
     }
 };
 
+struct DrawQuadParams
+{
+    // Usual order for quad points are:
+    // bottom left
+    // bottom right
+    // topleft
+    // topright
+
+    TexturePointers          textures;
+    FixedVector<Vector2f, 4> UVs;
+    FixedVector<Vector2f, 4> points;
+
+    ColorRGBAf       color    = ColorRGBAf::white();
+    Shader*          shader   = nullptr;
+};
+
 struct Renderer2D
 {
 #pragma region Public
 public:
     static constexpr Vector2f OriginCenter          = { FLT_MAX, FLT_MAX };
-    static constexpr int      DefaultSpriteLayer    = 0;
-    static constexpr int      DefaultPrimitiveLayer = 1;
-    static constexpr int      DefaultTextLayer      = 2;
 
     static bool created()      { return inited; }
     static void create()       { init();        }
 
     /*
-    @param sort If false, Ignore layer parameter and draw everthing back to front
     @param ignoreCamera If true, will render using the default camera. Useful for drawing UI and FBOs
     */
     static void render(const Renderer2DRenderParams& params = Renderer2DRenderParams())
@@ -296,21 +304,19 @@ public:
         drawNinePatchTex(tex, Rectf(0.f, 0.f, Vector2f(tex.getSize())), dstRect, left, right, top, bottom);
     }
 
-    static void drawLines(const std::span<const Vector2f>& points,
-                          const ColorRGBAf&                color    = ColorRGBAf::white(),
-                          GLDrawMode                       drawMode = GLDrawMode::LineStrip,
-                          const int                        layer    = DefaultPrimitiveLayer)
+    static void drawLines(const Span<const Vector2f>& points,
+                          const ColorRGBAf&           color    = ColorRGBAf::white(),
+                          GLDrawMode                  drawMode = GLDrawMode::LineStrip)
     {
-        prim_batch(points, color, drawMode, layer);
+        prim_batch(points, color, drawMode);
     }
 
     static void drawLine(const Vector2f&   start,
                          const Vector2f&   end,
-                         const ColorRGBAf& color = ColorRGBAf::white(),
-                         const int         layer = DefaultPrimitiveLayer)
+                         const ColorRGBAf& color = ColorRGBAf::white())
     {
         Vector2f line[2] = { start, end };
-        prim_batch(line, color, GLDrawMode::LineStrip, layer);
+        prim_batch(line, color, GLDrawMode::LineStrip);
     }
 
     static void drawRect(float                   x,
@@ -320,8 +326,7 @@ public:
                          float                   rot    = 0.f,
                          bool                    filled = false,
                          const ColorRGBAf&       color  = ColorRGBAf::white(),
-                         const Renderer2DOrigin& origin = OriginCenter,
-                         const int               layer  = DefaultPrimitiveLayer)
+                         const Renderer2DOrigin& origin = OriginCenter)
     {
         Vector2f verts[4] = {
             Vector2f(x,     y    ),
@@ -353,24 +358,22 @@ public:
             }
         }
 
-        prim_batch(verts, color, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop, layer);
+        prim_batch(verts, color, filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop);
     }
 
     static void drawRect(const Rectf&            rect,
                          float                   rot    = 0.f,
                          bool                    filled = false,
                          const ColorRGBAf&       color  = ColorRGBAf::white(),
-                         const Renderer2DOrigin& origin = OriginCenter,
-                         const int               layer  = DefaultPrimitiveLayer)
+                         const Renderer2DOrigin& origin = OriginCenter)
     {
-        drawRect(rect.x, rect.y, rect.width, rect.height, rot, filled, color, origin, layer);
+        drawRect(rect.x, rect.y, rect.width, rect.height, rot, filled, color, origin);
     }
 
     static void drawGrid(const Vector2f&   offset,
                          const Vector2i&   gridCount,
                          const Vector2f&   gridSize,
-                         const ColorRGBAf& color     = ColorRGBAf::white(),
-                         const int         layer     = DefaultPrimitiveLayer)
+                         const ColorRGBAf& color     = ColorRGBAf::white())
     {
         const float targetX = gridCount.x * gridSize.x;
         const float targetY = gridCount.y * gridSize.y;
@@ -381,7 +384,7 @@ public:
             drawLine(
                 Vector2f{ worldX, 0       } + offset,
                 Vector2f{ worldX, targetY } + offset,
-                color, layer);
+                color);
         }
 
         for (int y = 0; y <= gridCount.y; y++)
@@ -390,7 +393,7 @@ public:
             drawLine(
                 Vector2f{ 0,       worldY } + offset,
                 Vector2f{ targetX, worldY } + offset,
-                color, layer);
+                color);
         }
     }
 
@@ -423,53 +426,21 @@ public:
         }
 
         GLDrawMode mode = filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop;
-        prim_batch(points, color, mode, 0);
+        prim_batch(points, color, mode);
     }
 
     // Uses radians for arc and rotation.
-    // Starts on the X-Axis and rotates clockwise
-    static void drawSemiCircle(const Vector2f&   position,
-                               float             radius,
-                               float             arc,
-                               float             rotation,
-                               const ColorRGBAf& color        = ColorRGBAf::white(),
-                               bool              filled       = false,
-                               float             thickness    = 1.f,
-                               int               segmentCount = 16)
+    // With default params, starts on the X-Axis, expands and rotates clockwise
+    static void drawSemiCircle(const Geom::SemiCircleParams& params,
+                               const ColorRGBAf&             color     = ColorRGBAf::white(),
+                               bool                          filled    = false,
+                               float                         thickness = 1.f)
     {
-        const float maxArc = glm::pi<float>() * 2.f;
-        arc = std::clamp(arc, -maxArc, maxArc);
-
-        const float theta            = arc / static_cast<float>(segmentCount-1);
-        const float tangetial_factor = tanf(theta);
-        const float radial_factor    = cosf(theta);
-
-        Vector2f current = Vector2f(radius, 0).rotated(-(rotation + arc));
-
-        static Vector<Vector2f> points;
-        points.clear();
-
-        for (uint32_t i = 0; i < segmentCount; i++)
-        {
-            points.push_back(Vector2f{ current.x + position.x, current.y + position.y });
-
-            float tx = -current.y;
-            float ty =  current.x;
-            current.x += tx * tangetial_factor;
-            current.y += ty * tangetial_factor;
-            current.x *= radial_factor;
-            current.y *= radial_factor;
-        }
-
-        if (arc < maxArc)
-        {   // TODO: This might be slow
-            points.insert(&points.front(), position);
-            points.push_back(position);
-        }
+        Geom::Geometry2D points = Geom::semiCircle(params);
 
         if (filled || thickness == 0.f)
         {
-            GLDrawMode mode = filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop;
+            GLDrawMode mode = filled ? GLDrawMode::TriangleFan : GLDrawMode::LineStrip;
             drawLines(points, color, mode);
         }
         else
@@ -506,10 +477,9 @@ public:
                          Font&             font,
                          const Vector2f&   pos,
                          const ColorRGBAf& color = ColorRGBAf::white(),
-                         const float       scale = 1.f,
-                         const int         layer = DefaultTextLayer)
+                         const float       scale = 1.f)
     {
-        text_batch(text, font, pos, layer, color, scale);
+        text_batch(text, font, pos, color, scale);
     }
 
     static void drawChar(wchar_t                 ch,
@@ -517,7 +487,6 @@ public:
                          const Rectf&            dstrect,
                          const float             rotation = 0.f,
                          const ColorRGBAf&       color    = ColorRGBAf::white(),
-                         const int               layer    = DefaultTextLayer,
                          const Renderer2DOrigin& origin   = OriginCenter,
                          const bool              flipuvx  = false,
                          const bool              flipuvy  = false,
@@ -529,7 +498,6 @@ public:
         p.dstRect  = dstrect;
         p.rotation = rotation;
         p.color    = color;
-        p.layer    = layer;
         p.origin   = origin;
         p.flipUVx  = flipuvx;
         p.flipUVy  = flipuvy;
@@ -543,7 +511,6 @@ public:
                      const Vector2f&         pos,
                      const float             rotation = 0.f,
                      const ColorRGBAf&       color    = ColorRGBAf::white(),
-                     const int               layer    = DefaultTextLayer,
                      const Renderer2DOrigin& origin   = OriginCenter,
                      const bool              flipuvx  = false,
                      const bool              flipuvy  = false,
@@ -553,7 +520,7 @@ public:
         Rectf dstRect = Rectf(pos - (srcRect.getSize()/2.f), srcRect.getSize());
 
         drawChar(ch, font, dstRect, rotation,
-             color, layer, origin, flipuvx, flipuvy, shader);
+             color, origin, flipuvx, flipuvy, shader);
     }
 
     static inline void setSDFTextWidth(const float width)
@@ -598,19 +565,15 @@ private:
 
     struct DrawCmd
     {
-        int             layer;
         GLDrawMode      drawMode;
         TexturePointers textures = { &whiteTex };
         Shader*         shader   = &defaultShader;
-        uint32_t        posIndex, posSize; // Index and size for posAndCoords // TODO: use spans
+        uint32_t        posIndex, posSize; // Index and size for posAndCoords
         uint32_t        indIndex, indSize; // Index and size for indices
         ColorRGBAf      color;
 
         bool operator<(const DrawCmd& other)
         {
-            if (layer       < other.layer) return true;
-            if (other.layer < layer      ) return false;
-
             if (shader       < other.shader) return true;
             if (other.shader < shader)       return false;
 
@@ -624,6 +587,38 @@ private:
             return false;
         }
     };
+
+public:
+
+    struct DrawCommands
+    {
+        Vector<DrawCmd>   commands;
+
+        // Draw data vertex data in these two
+        // These aren't stored in the DrawCmd struct so the alloced space can be reused
+        Vector<glm::vec4> posAndCoords;
+        IndiceCont        indices;
+
+        DrawCommands()
+        {
+            size_t reserveSize = 512;
+            commands     .reserve(reserveSize);
+            posAndCoords .reserve(reserveSize);
+            indices      .reserve(reserveSize);
+        }
+    };
+
+    static inline void drawCommandsSet(DrawCommands& yourDrawCommands)
+    {
+        currentDrawCmds = &yourDrawCommands;
+    }
+
+    static inline void drawCommandsReset()
+    {
+        currentDrawCmds = &drawCmds;
+    }
+
+private:
 
     struct PrimVert
     {
@@ -651,13 +646,9 @@ private:
     // checking for primitives isn't necessary
     static inline Frustum frustum;
 
-    // Draw data goes here, then is sorted
-    static inline Vector<DrawCmd> drawCmds;
-
-    // Draw data vertex data in these two
-    // These aren't stored in the DrawCmd struct so the alloced space can be reused
-    static inline Vector<glm::vec4> posAndCoords;
-    static inline IndiceCont        indices;
+    // Draw data goes here
+    static inline DrawCommands  drawCmds;
+    static inline DrawCommands* currentDrawCmds = &drawCmds;
 
     // These buffers are copied to the GPU
     static inline Vector<PrimVert> batchBuffer;
@@ -667,8 +658,8 @@ private:
 
     static void rotate(float& x, float& y, float radians)
     {
-        float sinv = sin(radians);
-        float cosv = cos(radians);
+        float sinv = sin(-radians);
+        float cosv = cos(-radians);
         float xcopy = x;
         float ycopy = y;
         x = xcopy * cosv - ycopy * sinv;
@@ -714,10 +705,7 @@ private:
 
         resetView();
 
-        size_t reserveSize = size_t(1024) * 5;
-        drawCmds            .reserve(reserveSize);
-        posAndCoords        .reserve(reserveSize);
-        indices             .reserve(reserveSize);
+        size_t reserveSize = size_t(1024)*2;
         batchBuffer         .reserve(reserveSize);
         batchBufferIndices  .reserve(reserveSize);
         inited = true;
@@ -751,9 +739,7 @@ private:
 
     static void flush(const Renderer2DRenderParams& params)
     {
-        if (drawCmds.empty()) { return; }
-
-        if (params.sort) { std::sort(drawCmds.begin(), drawCmds.end()); }
+        if (currentDrawCmds->commands.empty()) { return; }
 
         // Projection uniform for shader is set in flushCurrent()
         // TODO: Frustum is unused for now
@@ -765,9 +751,9 @@ private:
         { fbSize = Vector2f(RenderTarget::getBoundRenderTarget()->getSize()); }
         Renderer::setViewport(getViewportSizePixels(currentView, fbSize));
 
-        TexturePointers lastTextures = drawCmds[0].textures;
-        Shader*         lastShader   = drawCmds[0].shader;
-        GLDrawMode      lastDrawMode = drawCmds[0].drawMode;
+        TexturePointers lastTextures = currentDrawCmds->commands[0].textures;
+        Shader*         lastShader   = currentDrawCmds->commands[0].shader;
+        GLDrawMode      lastDrawMode = currentDrawCmds->commands[0].drawMode;
 
         // Multisample causes texture bleeding.
         // They still happen, but are less frequent with multisample disabled
@@ -779,7 +765,7 @@ private:
         bool   stateChanged = true;
         size_t offset = 0;
 
-        for (auto& cmd : drawCmds)
+        for (auto& cmd : currentDrawCmds->commands)
         {
             stateChanged = (cmd.textures != lastTextures || cmd.shader != lastShader || cmd.drawMode != lastDrawMode);
             if (stateChanged)
@@ -788,12 +774,12 @@ private:
             offset = batchBuffer.size();
 
             for (uint32_t i = cmd.indIndex; i < cmd.indIndex + cmd.indSize; i++)
-            { batchBufferIndices.push_back(offset + indices[i]); }
+            { batchBufferIndices.push_back(offset + currentDrawCmds->indices[i]); }
 
             batchBufferIndices.push_back(restartIndex);
 
             for (uint32_t i = cmd.posIndex; i < cmd.posIndex + cmd.posSize; i++)
-            { batchBuffer.emplace_back(posAndCoords[i], cmd.color); }
+            { batchBuffer.emplace_back(currentDrawCmds->posAndCoords[i], cmd.color); }
 
             lastTextures = cmd.textures;
             lastShader   = cmd.shader;
@@ -801,16 +787,16 @@ private:
         }
 
         flushCurrent(lastShader, lastTextures, lastDrawMode, params);
-        drawCmds.clear();
-        posAndCoords.clear();
-        indices.clear();
+        currentDrawCmds->commands    .clear();
+        currentDrawCmds->posAndCoords.clear();
+        currentDrawCmds->indices     .clear();
     }
 
     static DrawCmd& sprite_batch(const DrawTextureParams& params)
     {
         ASSERT(inited); // Forgot to call Renderer2D::init()
-        drawCmds.emplace_back();
-        DrawCmd& cmd = drawCmds.back();
+        currentDrawCmds->commands.emplace_back();
+        DrawCmd& cmd = currentDrawCmds->commands.back();
 
         if (params.shader == nullptr)
         { cmd.shader = &defaultShader; }
@@ -818,19 +804,15 @@ private:
         { cmd.shader = params.shader; }
 
         cmd.textures = params.textures;
-        cmd.layer    = params.layer;
         cmd.drawMode = GLDrawMode::Triangles;
         cmd.color    = params.color;
 
-        cmd.indIndex = indices.size();
+        cmd.indIndex = currentDrawCmds->indices.size();
         cmd.indSize  = sprite_indices.size();
-        indices.insert(indices.end(), sprite_indices.begin(), sprite_indices.end());
+        currentDrawCmds->indices.insert(currentDrawCmds->indices.end(), sprite_indices.begin(), sprite_indices.end());
 
-        cmd.posIndex = posAndCoords.size();
+        cmd.posIndex = currentDrawCmds->posAndCoords.size();
         cmd.posSize  = 4;
-
-        float xpluswidth  = params.dstRect.x + params.dstRect.width;
-        float yplusheight = params.dstRect.y + params.dstRect.height;
 
         const Pair<Vector2f, Vector2f> uv = getTextureUVs(*params.textures[0], params.srcRect);
         auto uv_x      = uv.first.x  + params.uvOffset.x;
@@ -838,20 +820,16 @@ private:
         auto uv_width  = uv.second.x + params.uvOffset.x;
         auto uv_height = uv.second.y + params.uvOffset.y;
 
-        if (params.flipUVx)
-        { std::swap(uv_x, uv_width); }
-        if (params.flipUVy)
-        { std::swap(uv_y, uv_height); }
+        if (params.flipUVx) { std::swap(uv_x, uv_width); }
+        if (params.flipUVy) { std::swap(uv_y, uv_height); }
 
-        //uv_x,      uv_y       // topleft
-        //uv_width,  uv_y       // topright
-        //uv_x,      uv_height  // bottom left
-        //uv_width,  uv_height  // bottom right
+        float xpluswidth  = params.dstRect.x + params.dstRect.width;
+        float yplusheight = params.dstRect.y + params.dstRect.height;
 
-        posAndCoords.emplace_back( params.dstRect.x , params.dstRect.y  , uv_x    , uv_y      ); // bottom left 
-        posAndCoords.emplace_back(       xpluswidth , params.dstRect.y  , uv_width, uv_y      ); // bottom right 
-        posAndCoords.emplace_back( params.dstRect.x , yplusheight,        uv_x    , uv_height ); // topleft
-        posAndCoords.emplace_back(       xpluswidth , yplusheight,        uv_width, uv_height ); // topright
+        currentDrawCmds->posAndCoords.emplace_back( params.dstRect.x , params.dstRect.y  , uv_x    , uv_y      ); // bottom left 
+        currentDrawCmds->posAndCoords.emplace_back(       xpluswidth , params.dstRect.y  , uv_width, uv_y      ); // bottom right 
+        currentDrawCmds->posAndCoords.emplace_back( params.dstRect.x , yplusheight,        uv_x    , uv_height ); // topleft
+        currentDrawCmds->posAndCoords.emplace_back(       xpluswidth , yplusheight,        uv_width, uv_height ); // topright
          
         if (params.rotation != 0)
         {
@@ -868,9 +846,9 @@ private:
                 { realOrigin = Vector2f(params.dstRect.x, params.dstRect.y) + params.origin.pos; }
             }
 
-            for (size_t i = posAndCoords.size() - 4; i < posAndCoords.size(); i++)
+            for (size_t i = currentDrawCmds->posAndCoords.size() - 4; i < currentDrawCmds->posAndCoords.size(); i++)
             {
-                auto& v = posAndCoords[i];
+                auto& v = currentDrawCmds->posAndCoords[i];
                 v.x -= realOrigin.x; v.y -= realOrigin.y;
                 rotate(v.x, v.y, params.rotation);
                 v.x += realOrigin.x; v.y += realOrigin.y;
@@ -880,39 +858,65 @@ private:
         return cmd;
     }
 
-    static void prim_batch(const std::span<const Vector2f>&  points,
-                           const ColorRGBAf&                 color = ColorRGBAf::white(),
-                           const GLDrawMode                  mode  = GLDrawMode::LineStrip,
-                           const int                         layer = DefaultPrimitiveLayer)
+public:
+    static DrawCmd& quad_batch(const DrawQuadParams& params)
+    {
+        ASSERT(inited); // Forgot to call Renderer2D::init()
+        currentDrawCmds->commands.emplace_back();
+        DrawCmd& cmd = currentDrawCmds->commands.back();
+
+        if (params.shader == nullptr) { cmd.shader = &defaultShader; }
+        else                          { cmd.shader = params.shader; }
+
+        cmd.textures = params.textures;
+        cmd.drawMode = GLDrawMode::Triangles;
+        cmd.color    = params.color;
+
+        cmd.indIndex = currentDrawCmds->indices.size();
+        cmd.indSize  = sprite_indices.size();
+        currentDrawCmds->indices.insert(currentDrawCmds->indices.end(), sprite_indices.begin(), sprite_indices.end());
+
+        cmd.posIndex = currentDrawCmds->posAndCoords.size();
+        cmd.posSize  = 4;
+        currentDrawCmds->posAndCoords.emplace_back( params.points[0].x, params.points[0].y, params.UVs[0].x, params.UVs[0].y );
+        currentDrawCmds->posAndCoords.emplace_back( params.points[1].x, params.points[1].y, params.UVs[1].x, params.UVs[1].y );
+        currentDrawCmds->posAndCoords.emplace_back( params.points[2].x, params.points[2].y, params.UVs[2].x, params.UVs[2].y );
+        currentDrawCmds->posAndCoords.emplace_back( params.points[3].x, params.points[3].y, params.UVs[3].x, params.UVs[3].y );
+
+        return cmd;
+    }
+
+private:
+    static void prim_batch(const Span<const Vector2f>& points,
+                           const ColorRGBAf&           color = ColorRGBAf::white(),
+                           const GLDrawMode            mode  = GLDrawMode::LineStrip)
     {
         ASSERT(inited); // Forgot to call Renderer2D::init()
         if (points.empty()) { return; }
 
-        drawCmds.emplace_back();
-        DrawCmd& cmd = drawCmds.back();
+        currentDrawCmds->commands.emplace_back();
+        DrawCmd& cmd = currentDrawCmds->commands.back();
         
         cmd.textures = {&whiteTex};
-        cmd.layer    = layer;
         cmd.drawMode = mode;
         cmd.color    = color;
 
-        cmd.indIndex = indices.size();
+        cmd.indIndex = currentDrawCmds->indices.size();
         cmd.indSize  = points.size();
-        cmd.posIndex = posAndCoords.size();
+        cmd.posIndex = currentDrawCmds->posAndCoords.size();
         cmd.posSize  = cmd.indSize;
         
         for (int i = 0; i < cmd.indSize; i++)
         {
             const Vector2f& p = points[i];
-            posAndCoords.emplace_back(p.x, p.y, 0.f, 0.f);
-            indices.push_back(i);
+            currentDrawCmds->posAndCoords.emplace_back(p.x, p.y, 0.f, 0.f);
+            currentDrawCmds->indices.push_back(i);
         }
     }
 
     static void text_batch(const String&     text,
                                  Font&       font,
                            const Vector2f&   pos,
-                           const int         layer = DefaultTextLayer,
                            const ColorRGBAf& color = ColorRGBAf::white(),
                            const float       scale = 1.f)
     {
@@ -952,7 +956,6 @@ private:
             p.dstRect  = { xpos, ypos, w, h };
             p.rotation = 0.f;
             p.color    = color;
-            p.layer    = layer;
             p.shader   = &textShader;
 
             sprite_batch(p);

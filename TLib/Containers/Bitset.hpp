@@ -8,12 +8,25 @@
 template <size_t Size, typename WordType = uint64_t>
 struct Bitset : public eastl::bitset<Size, WordType>
 {
+    using This = Bitset<Size, WordType>;
+    using Base = eastl::bitset<Size, WordType>;
+
     Bitset() = default;
 
-    template<typename... Args>
     Bitset(InitializerList<Pair<WordType, bool>> flags)
     {
         for (auto& flag : flags)
         { this->set(flag.first, flag.second); }
+    }
+
+    Bitset(InitializerList<WordType> flags)
+    {
+        for (auto& flag : flags)
+        { this->set(flag, true); }
+    }
+
+    void set(WordType i, bool value)
+    {
+        Base::set(i, value);
     }
 };

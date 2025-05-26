@@ -48,6 +48,7 @@ GLOB_RECURSE_APPEND(TLIB_SOURCE_FILES "TLib/thirdparty/multiarray/*.hpp;TLib/thi
 GLOB_RECURSE_APPEND(TLIB_SOURCE_FILES "TLib/thirdparty/plf/*.hpp;TLib/thirdparty/plf/*.cpp;TLib/thirdparty/plf/*.h")
 GLOB_RECURSE_APPEND(TLIB_SOURCE_FILES "TLib/thirdparty/rectpack2d/*.hpp;TLib/thirdparty/rectpack2d/*.cpp;TLib/thirdparty/rectpack2d/*.h")
 GLOB_RECURSE_APPEND(TLIB_SOURCE_FILES "TLib/thirdparty/ImGuiColorTextEdit/*.hpp;TLib/thirdparty/ImGuiColorTextEdit/*.cpp;TLib/thirdparty/ImGuiColorTextEdit/*.h")
+GLOB_RECURSE_APPEND(TLIB_SOURCE_FILES "TLib/thirdparty/arena/*.h")
 
 # AngelScript
 if(MSVC AND CMAKE_CL_64)
@@ -79,17 +80,6 @@ set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 include(FetchContent)
 
-message("Triplet:      ${VCPKG_TARGET_TRIPLET}")
-message("Build Type:   ${CMAKE_BUILD_TYPE}")
-message("Shared Build: ${BUILD_SHARED_LIBS}")
-if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
-    message("ASan:         Enabled")
-    add_compile_definitions(_DISABLE_STRING_ANNOTATION=1 _DISABLE_VECTOR_ANNOTATION=1)
-    add_compile_options(-fsanitize=address)
-else()
-    message("ASan:         Disabled")
-endif()
-
 target_include_directories(TLib PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 $<INSTALL_INTERFACE:TLib> # <prefix>/TLib
@@ -113,7 +103,7 @@ include(CMakeFindDependencyMacro)
 #### Dependencies
 ### Core stuff
 
-find_dependency(EASTL CONFIG REQUIRED)
+add_subdirectory("TLib/thirdparty/eastl")
 target_link_libraries(TLib PUBLIC EASTL)
 
 find_dependency(spdlog CONFIG REQUIRED)
@@ -241,3 +231,15 @@ add_dependencies(TLib RunEmbedder)
 # Link TLib like this:
 # add_subdirectory("D:/Resources/Dev/CPP/TLib" "sub/tlib")
 # target_link_libraries(main PUBLIC TLib::TLib)
+
+
+message("Triplet:      ${VCPKG_TARGET_TRIPLET}")
+message("Build Type:   ${CMAKE_BUILD_TYPE}")
+message("Shared Build: ${BUILD_SHARED_LIBS}")
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    message("ASan:         Enabled")
+    add_compile_definitions(_DISABLE_STRING_ANNOTATION=1 _DISABLE_VECTOR_ANNOTATION=1)
+    add_compile_options(-fsanitize=address)
+else()
+    message("ASan:         Disabled")
+endif()

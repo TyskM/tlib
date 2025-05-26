@@ -4,7 +4,7 @@
 #include <TLib/Pointers.hpp>
 #include <TLib/Containers/Vector.hpp>
 
-template <typename T, typename Allocator = MiAllocator>
+template <typename T, typename Allocator = AllocatorMiMalloc>
 struct PointerVector
 {
     using value_type = T;

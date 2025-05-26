@@ -14,5 +14,5 @@ void main()
     float distance = texture(image, fragTexCoords).r;
     float alpha    = smoothstep(width, width + edge, distance);
 
-    outColor = vec4(fragColor.xyz, alpha);
+    outColor = vec4(fragColor.xyz, alpha * fragColor.w);
 }

@@ -7,7 +7,7 @@
 
 int main()
 {
-    Bitset<8, int> b{ {0, true}, {1, false}, {2, true} };
+    Bitset<8, uint32_t> b{ {0, true}, {1, false}, {2, true} };
     tlog::info(b.test(0));
     tlog::info(b.test(1));
     tlog::info(b.test(2));

@@ -6,7 +6,7 @@
 template <typename Key,
           typename T,
           typename Compare = eastl::less<Key>,
-          typename Allocator = MiAllocator>
+          typename Allocator = AllocatorMiMalloc>
 struct Map : public eastl::map<Key, T, Compare, Allocator>
 {
     using eastl::map<Key, T, Compare, Allocator>::map;

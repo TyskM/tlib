@@ -7,7 +7,7 @@ template <typename Key,
           typename T,
           typename Hash           = eastl::hash<Key>,
           typename Predicate      = eastl::equal_to<Key>,
-          typename Allocator      = MiAllocator,
+          typename Allocator      = AllocatorMiMalloc,
           bool     bCacheHashCode = false>
 struct UnorderedMap : public eastl::unordered_map<Key, T, Hash, Predicate, Allocator, bCacheHashCode>
 {

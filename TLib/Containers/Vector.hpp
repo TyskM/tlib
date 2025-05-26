@@ -4,7 +4,7 @@
 #include <EASTL/vector.h>
 #include <TLib/Macros.hpp>
 
-template <typename T, typename Allocator = MiAllocator>
+template <typename T, typename Allocator = AllocatorMiMalloc>
 struct Vector : eastl::vector<T, Allocator>
 {
     static constexpr size_t NotFound = std::numeric_limits<size_t>::max();
@@ -44,6 +44,16 @@ struct Vector : eastl::vector<T, Allocator>
             { return value; }
         }
         ASSERT(false);
+    }
+
+    T* tryFind(T& target)
+    {
+        for (auto& value : *this)
+        {
+            if (target == value)
+            { return &value; }
+        }
+        return nullptr;
     }
 
     std::string toString() const

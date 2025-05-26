@@ -16,13 +16,13 @@ inline void* operator new[](size_t size, size_t alignment, size_t alignmentOffse
 
 // Microsofts mimalloc
 // https://github.com/microsoft/mimalloc
-struct MiAllocator
+struct AllocatorMiMalloc
 {
-    EASTL_ALLOCATOR_EXPLICIT MiAllocator(const char* = NULL) { }
-    MiAllocator(const MiAllocator&) { }
-    MiAllocator(const MiAllocator&, const char*) { }
+    EASTL_ALLOCATOR_EXPLICIT AllocatorMiMalloc(const char* = NULL) { }
+    AllocatorMiMalloc(const AllocatorMiMalloc&) { }
+    AllocatorMiMalloc(const AllocatorMiMalloc&, const char*) { }
 
-    MiAllocator& operator=(const MiAllocator&) { return *this; }
+    AllocatorMiMalloc& operator=(const AllocatorMiMalloc&) { return *this; }
 
     void* allocate(size_t size, int flags = 0)
     { return mi_malloc(size); }
@@ -30,14 +30,12 @@ struct MiAllocator
     void* allocate(size_t size, size_t alignment, size_t alignmentOffset, int flags = 0)
     { return mi_malloc(size); }
 
-    void  deallocate(void* p, size_t size)
+    void deallocate(void* p, size_t size)
     { mi_free_size(p, size); }
 
     const char* get_name() const { return ""; }
     void        set_name(const char*) { }
 
-    inline bool operator==(const MiAllocator&) { return true;  }
-    inline bool operator!=(const MiAllocator&) { return false; }
+    inline bool operator==(const AllocatorMiMalloc&) { return true;  }
+    inline bool operator!=(const AllocatorMiMalloc&) { return false; }
 };
-
-

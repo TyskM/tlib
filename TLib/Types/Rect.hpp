@@ -42,6 +42,17 @@ struct Rect
     static Rect fromLTRB(const Vector2<T>& lt, const Vector2<T>& rb)
     { return fromLTRB(lt.x, lt.y, rb.x, rb.y); }
 
+    static Rect fromCenter(const Vector2<T>& center, const Vector2<T>& size)
+    {
+        const T halfSize = size / T(2);
+        Rect ret;
+        ret.x      = center.x - halfSize;
+        ret.y      = center.y - halfSize;
+        ret.width  = center.x + halfSize;
+        ret.height = center.y + halfSize;
+        return ret;
+    }
+
     Vector2<T> getPos() const
     { return Vector2<T>(x, y); }
 
@@ -71,6 +82,17 @@ struct Rect
 
     Vector2<T> center() const
     { return getPos() + (getSize() / T(2)); }
+
+    Rect<T> padded(T padding) const
+    {
+        const T halfPadding = padding/T(2);
+        Rect ret;
+        ret.x      = x      - halfPadding;
+        ret.y      = y      - halfPadding;
+        ret.width  = width  + halfPadding;
+        ret.height = height + halfPadding;
+        return ret;
+    }
 
     bool contains(Vector2<T> value) const
     { return contains(value.x, value.y); }

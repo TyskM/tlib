@@ -34,8 +34,8 @@ if( !(expr) )                                                                   
 
 using InputEvent = SDL_Event;
 
-enum class WindowFlags
-{
+namespace WindowFlags
+{ enum Flag {
     Fullscreen         = SDL_WINDOW_FULLSCREEN,              /* fullscreen window */
     OpenGL             = SDL_WINDOW_OPENGL,                  /* window usable with GL context */
     Shown              = SDL_WINDOW_SHOWN,                   /* window is visible */
@@ -61,14 +61,14 @@ enum class WindowFlags
     KeyboardGrabbed    = SDL_WINDOW_KEYBOARD_GRABBED,        /* window has grabbed keyboard input */
     Vulkan             = SDL_WINDOW_VULKAN,                  /* window usable for Vulkan surface */
     Metal              = SDL_WINDOW_METAL,                   /* window usable for Metal view */
-};  FLAG_ENUM(WindowFlags);
+}; };
 
 struct WindowCreateParams
 {
-    String      title = "Window";
-    Vector2i    size  = { 640, 480 };
-    Vector2i    pos   = { SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED };
-    WindowFlags flags = WindowFlags::Resizable | WindowFlags::OpenGL;
+    String            title = "Window";
+    Vector2i          size  = { 640, 480 };
+    Vector2i          pos   = { SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED };
+    WindowFlags::Flag flags = WindowFlags::Resizable | WindowFlags::OpenGL;
 
     int stencilSize = 1; // Stencil bits per pixel
 };
@@ -200,11 +200,11 @@ struct Window : NonAssignable
     [[nodiscard]] bool isMinimized() const
     { return hasFlag(WindowFlags::Minimized); }
 
-    [[nodiscard]] bool hasFlag(const WindowFlags flag) const
-    { return bool(flag & static_cast<WindowFlags>(SDL_GetWindowFlags(window))); }
+    [[nodiscard]] bool hasFlag(const WindowFlags::Flag flag) const
+    { return bool(flag & SDL_GetWindowFlags(window)); }
 
-    [[nodiscard]] WindowFlags getFlags()
-    { return static_cast<WindowFlags>(SDL_GetWindowFlags(window)); }
+    [[nodiscard]] WindowFlags::Flag getFlags() const
+    { return (WindowFlags::Flag)SDL_GetWindowFlags(window); }
 
     void setTitle(const char* title)
     { SDL_SetWindowTitle(window, title); }

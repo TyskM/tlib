@@ -26,6 +26,11 @@ struct Vector2
     T x = 0;
     T y = 0;
 
+    static inline Vector2<T> up()    { return Vector2<T>( 0,  1); }
+    static inline Vector2<T> down()  { return Vector2<T>( 0, -1); }
+    static inline Vector2<T> left()  { return Vector2<T>(-1,  0); }
+    static inline Vector2<T> right() { return Vector2<T>( 1,  0); }
+
     Vector2<T> midpoint(const Vector2<T>& other) const
     { return Vector2<T>(std::midpoint(x, other.x), std::midpoint(y, other.y)); }
 
@@ -68,15 +73,15 @@ struct Vector2
 
     Vector2<T> rotated(const T radians) const
     {
-        T sinv = static_cast<T>(sin(radians));
-        T cosv = static_cast<T>(cos(radians));
+        T sinv = static_cast<T>(sin(-radians));
+        T cosv = static_cast<T>(cos(-radians));
         return Vector2<T>(x * cosv - y * sinv, x * sinv + y * cosv);
     }
 
     Vector2<T> rotated(const T radians, const Vector2<T>& origin) const
     {
-        T sinv = static_cast<T>(sin(radians));
-        T cosv = static_cast<T>(cos(radians));
+        T sinv = static_cast<T>(sin(-radians));
+        T cosv = static_cast<T>(cos(-radians));
         auto nvec = *this;
         nvec -= origin;
         return nvec.rotated(radians) + origin;
@@ -118,6 +123,7 @@ struct Vector2
     T distanceTo(const Vector2<T>& other) const
     { return static_cast<T>(std::sqrt((x - other.x) * (x - other.x) + (y - other.y) * (y - other.y))); }
 
+    // An inaccurate but fast alternative to distanceTo
     T distanceToSquared(const Vector2<T>& other) const
     { return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y); }
 

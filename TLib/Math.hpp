@@ -122,4 +122,16 @@ namespace math
             return (((value - oldMin) * newRange) / oldRange) + newMin;
         }
     }
+
+    template <typename T>
+    T convertRange_0ToX_0To1(T value, T max)
+    {
+        // I always over complicate this
+        if (value == T(0)) { return 0; }
+        return value / max;
+    }
+
+    template <typename T>
+    bool inRange(T value, T min, T max)
+    { return min <= value && value <= max; }
 }

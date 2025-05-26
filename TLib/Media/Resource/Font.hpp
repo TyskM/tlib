@@ -56,7 +56,7 @@ struct FontDetail
     }
 };
 
-struct Font : NonAssignable
+struct Font
 {
 protected:
     Texture               textureAtlas;

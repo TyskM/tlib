@@ -10,6 +10,7 @@
 #include <vector>
 #include <boost/algorithm/string/predicate.hpp>
 #include <TLib/Containers/Vector.hpp>
+#include <fmt/format.h>
 #include <codecvt>
 
 using String       = std::string;
@@ -20,6 +21,8 @@ using WideStringStream = std::wstringstream;
 
 template <typename T>
 using Hash = std::hash<T>;
+
+using fmt::format;
 
 namespace strhelp
 {
