@@ -15,6 +15,7 @@
 
 using String       = std::string;
 using StringStream = std::stringstream;
+using StringRef    = std::string_view;
 
 using WideString       = std::wstring;
 using WideStringStream = std::wstringstream;
@@ -171,3 +172,7 @@ namespace strhelp
 }
 
 using namespace strhelp;
+
+template <typename T>
+String toString(const T& v)
+{ return std::to_string(v); }

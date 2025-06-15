@@ -49,19 +49,29 @@ struct FrameBuffer
 {
 private:
     GLuint glHandle = 0;
-
     Array<Texture*, (GLenum)FrameBufferAttachmentType::Size> textures;
+
+    void move(FrameBuffer&& other)
+    {
+        reset();
+        this->glHandle = other.glHandle;
+        this->textures = other.textures;
+        other.glHandle = 0;
+    }
 
 public:
 
     DISABLE_COPY(FrameBuffer);
-    DISABLE_MOVE(FrameBuffer);
+
     FrameBuffer()
     {
         textures.fill(nullptr);
     }
 
    ~FrameBuffer() { reset(); }
+
+    FrameBuffer           (FrameBuffer&& other) noexcept { move(std::move(other)); }
+    FrameBuffer& operator=(FrameBuffer&& other) noexcept { move(std::move(other)); }
 
     void setTexture(Texture& texture, FrameBufferAttachmentType type = FrameBufferAttachmentType::Color0)
     {
@@ -132,5 +142,5 @@ public:
     }
 
     operator GLuint*() { return &glHandle; }
-    operator GLuint()  { return glHandle; }
+    operator GLuint()  { return  glHandle; }
 };

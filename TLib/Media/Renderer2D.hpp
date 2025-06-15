@@ -10,6 +10,8 @@
 #include <TLib/Containers/Pair.hpp>
 #include <TLib/Containers/FixedVector.hpp>
 #include <TLib/Containers/Span.hpp>
+#include <TLib/Containers/Stack.hpp>
+#include <TLib/Containers/Variant.hpp>
 #include <TLib/Media/Renderer.hpp>
 #include <TLib/Media/View.hpp>
 #include <TLib/Media/Frustum.hpp>
@@ -179,11 +181,13 @@ public:
         return localToWorldPoint(pos, Renderer2D::getView(), Renderer::getFramebufferSize());
     }
 
-    // TODO: Make this a command, for now it is immediate.
     static void clearColor(const ColorRGBAf& color = { 0.1f, 0.1f, 0.1f, 1.f })
-    { Renderer::clearColor(color); }
+    {
+        auto& cmd = currentDrawCmds().commands.emplace_back().emplace<ClearCmd>();
+        cmd.color = color;
+    }
 
-    static void drawTexture(DrawTextureParams& params)
+    static void drawTexture(const DrawTextureParams& params)
     {
         sprite_batch(params);
     }
@@ -430,17 +434,16 @@ public:
     }
 
     // Uses radians for arc and rotation.
-    // With default params, starts on the X-Axis, expands and rotates clockwise
     static void drawSemiCircle(const Geom::SemiCircleParams& params,
                                const ColorRGBAf&             color     = ColorRGBAf::white(),
                                bool                          filled    = false,
-                               float                         thickness = 1.f)
+                               float                         thickness = 0.f)
     {
         Geom::Geometry2D points = Geom::semiCircle(params);
 
         if (filled || thickness == 0.f)
         {
-            GLDrawMode mode = filled ? GLDrawMode::TriangleFan : GLDrawMode::LineStrip;
+            GLDrawMode mode = filled ? GLDrawMode::TriangleFan : GLDrawMode::LineLoop;
             drawLines(points, color, mode);
         }
         else
@@ -561,102 +564,108 @@ public:
 
 #pragma region Impl
 private:
-    using IndiceCont = Vector<uint32_t>;
+    static inline    Vector<uint32_t> sprite_indices = { 0, 2, 1, 1, 2, 3 };
+    static inline    Texture          whiteTex;
+    static inline    GLubyte          whiteTexData[1][1][4] = { { {255, 255, 255, 255} } };
+    static constexpr GLuint           restartIndex = std::numeric_limits<GLuint>::max();
+    static inline    GPUVertexData    mesh;
+    static inline    Shader           defaultShader;
+    static inline    Shader           textShader;
+    static inline    View             currentView;
+    static inline    bool             inited = false;
+    static inline    float            sdfTextWidth;
+    static inline    float            sdfTextEdge;
 
-    struct DrawCmd
+    struct ISpan
     {
-        GLDrawMode      drawMode;
-        TexturePointers textures = { &whiteTex };
-        Shader*         shader   = &defaultShader;
-        uint32_t        posIndex, posSize; // Index and size for posAndCoords
-        uint32_t        indIndex, indSize; // Index and size for indices
-        ColorRGBAf      color;
+        uint32_t index = 0;
+        uint32_t size  = 0;
 
-        bool operator<(const DrawCmd& other)
-        {
-            if (shader       < other.shader) return true;
-            if (other.shader < shader)       return false;
-
-            // i dont even use sorting
-            //if (texture       < other.texture) return true;
-            //if (other.texture < texture)       return false;
-
-            if (static_cast<int>(drawMode)       < static_cast<int>(other.drawMode)) return true;
-            if (static_cast<int>(other.drawMode) < static_cast<int>(drawMode)      ) return false;
-
-            return false;
-        }
+        uint32_t begin() const { return index; }
+        uint32_t end()   const { return index + size; }
     };
+
+    #pragma pack(push, 0)
+    struct VerticesDrawCmdVert
+    {
+        glm::vec2 vert;
+        glm::vec4 color;
+        glm::vec2 uv;
+    };
+    #pragma pack(pop)
+
+    struct VerticesDrawCmd
+    {
+        GLDrawMode                  drawMode;
+        TexturePointers             textures = { &whiteTex };
+        Shader*                     shader   = &defaultShader;
+        Vector<VerticesDrawCmdVert> vertices;
+        Vector<uint32_t>            indices;
+    };
+
+    struct VerticesMaskedDrawCmd : VerticesDrawCmd
+    {
+        Texture* mask = nullptr;
+        ISpan    maskUVs;
+    };
+
+    struct ClearCmd
+    {
+        ColorRGBAf color;
+    };
+
+    using DrawCmd = Variant<VerticesDrawCmd, ClearCmd>;
 
 public:
 
     struct DrawCommands
     {
-        Vector<DrawCmd>   commands;
-
-        // Draw data vertex data in these two
-        // These aren't stored in the DrawCmd struct so the alloced space can be reused
-        Vector<glm::vec4> posAndCoords;
-        IndiceCont        indices;
+        Vector<DrawCmd> commands;
 
         DrawCommands()
         {
             size_t reserveSize = 512;
-            commands     .reserve(reserveSize);
-            posAndCoords .reserve(reserveSize);
-            indices      .reserve(reserveSize);
+            commands.reserve(reserveSize);
+        }
+
+        void clear()
+        {
+            commands.clear();
         }
     };
 
-    static inline void drawCommandsSet(DrawCommands& yourDrawCommands)
+    static inline void drawCommandsPush(DrawCommands& yourDrawCmds)
     {
-        currentDrawCmds = &yourDrawCommands;
+        drawCmdStack.push(&yourDrawCmds);
     }
 
-    static inline void drawCommandsReset()
+    static inline void drawCommandsPop()
     {
-        currentDrawCmds = &drawCmds;
+        ASSERT(drawCmdStack.size() > 1);
+        drawCmdStack.pop();
     }
 
 private:
-
-    struct PrimVert
-    {
-        glm::vec4  vert;
-        ColorRGBAf color;
-    };
-
-    static inline IndiceCont       sprite_indices ={ 0, 2, 1, 1, 2, 3 };
-    static inline Texture          whiteTex;
-    static inline GLubyte          whiteTexData[1][1][4] = { { {255, 255, 255, 255} } };
-
-    static constexpr GLuint   restartIndex = std::numeric_limits<GLuint>::max();
-
-    static inline GPUVertexData mesh;
-    static inline Shader        defaultShader;
-    static inline Shader        textShader;
-    static inline View          currentView;
-    static inline bool          inited = false;
-
-    static inline float sdfTextWidth;
-    static inline float sdfTextEdge;
-
     // TODO: actually use the frustum
     // need to calculate AABB of the sprites rect to check collision
     // checking for primitives isn't necessary
     static inline Frustum frustum;
 
     // Draw data goes here
-    static inline DrawCommands  drawCmds;
-    static inline DrawCommands* currentDrawCmds = &drawCmds;
+    static inline DrawCommands         drawCmds;
+    static inline Stack<DrawCommands*> drawCmdStack = { &drawCmds };
+    static inline DrawCommands& currentDrawCmds() { return *drawCmdStack.top(); }
 
     // These buffers are copied to the GPU
-    static inline Vector<PrimVert> batchBuffer;
-    static inline IndiceCont       batchBufferIndices;
+    static inline Vector<VerticesDrawCmdVert> batchBuffer;
+    static inline Vector<uint32_t>            batchBufferIndices;
 
     #pragma region Util
 
-    static void rotate(float& x, float& y, float radians)
+    static inline glm::vec4 vec4(const ColorRGBAf& color)
+    { return glm::vec4(color.r, color.g, color.b, color.a); }
+
+    static inline void rotate(float& x, float& y, float radians)
     {
         float sinv = sin(-radians);
         float cosv = cos(-radians);
@@ -666,14 +675,31 @@ private:
         y = xcopy * sinv + ycopy * cosv;
     }
 
-
-    float interpolate(float from, float to, float percent)
+    static inline float interpolate(float from, float to, float percent)
     {
         float difference = to - from;
         return from + ( difference * percent );
     }
 
     #pragma endregion
+
+    struct FlushState
+    {
+        TexturePointers textures = {};
+        Shader*         shader   = nullptr;
+        GLDrawMode      drawMode = GLDrawMode::None;
+
+        bool null() const { return shader == nullptr; }
+
+        bool operator==(const FlushState& fs) const
+        {
+            return textures == fs.textures &&
+                   shader   == fs.shader   &&
+                   drawMode == fs.drawMode;
+        }
+
+        bool operator!=(const FlushState& fs) const { return !(*this == fs); }
+    };
 
     static void init()
     {
@@ -683,7 +709,7 @@ private:
         { Renderer::create(); }
 
         if (!mesh.valid())
-        { mesh.setLayout({ TLib::Layout::Vec4f(), TLib::Layout::Vec4f() }); }
+        { mesh.setLayout({ TLib::Layout::Vec2f(), TLib::Layout::Vec4f(), TLib::Layout::Vec2f() }); }
 
         if (!whiteTex.created())
         { whiteTex.setData(whiteTexData, 1, 1); }
@@ -711,27 +737,24 @@ private:
         inited = true;
     }
 
-    static void flushCurrent(
-        Shader*                       shader,
-        TexturePointers               textures,
-        GLDrawMode                    drawMode,
-        const Renderer2DRenderParams& params)
+    static void flushCurrent(FlushState& fs, const Renderer2DRenderParams& params)
     {
-        if (batchBuffer.empty()) { return; }
+        if (batchBuffer.empty() || fs.null()) { return; }
 
-        for (int32_t i = 0; i < textures.size(); i++)
-        { textures[i]->bind(i); }
-        shader->bind();
+        for (int32_t i = 0; i < fs.textures.size(); i++)
+        { fs.textures[i]->bind(i); }
 
-        shader->setMat4f("projection", currentView.getMatrix());
-        mesh.setData(batchBuffer, AccessType::Dynamic);
+        fs.shader->bind();
+        fs.shader->setMat4f("projection", currentView.getMatrix());
+
+        mesh.setData   (batchBuffer,        AccessType::Dynamic);
         mesh.setIndices(batchBufferIndices, AccessType::Dynamic);
 
         RenderState rs;
-        rs.drawMode = drawMode;
+        rs.drawMode       = fs.drawMode;
         rs.srcBlendFactor = params.srcBlendFactor;
         rs.dstBlendFactor = params.dstBlendFactor;
-        Renderer::draw(*shader, mesh, rs);
+        Renderer::draw(*fs.shader, mesh, rs);
 
         batchBuffer.clear();
         batchBufferIndices.clear();
@@ -739,7 +762,9 @@ private:
 
     static void flush(const Renderer2DRenderParams& params)
     {
-        if (currentDrawCmds->commands.empty()) { return; }
+        auto& cmds = currentDrawCmds();
+
+        if (cmds.commands.empty()) { return; }
 
         // Projection uniform for shader is set in flushCurrent()
         // TODO: Frustum is unused for now
@@ -751,10 +776,6 @@ private:
         { fbSize = Vector2f(RenderTarget::getBoundRenderTarget()->getSize()); }
         Renderer::setViewport(getViewportSizePixels(currentView, fbSize));
 
-        TexturePointers lastTextures = currentDrawCmds->commands[0].textures;
-        Shader*         lastShader   = currentDrawCmds->commands[0].shader;
-        GLDrawMode      lastDrawMode = currentDrawCmds->commands[0].drawMode;
-
         // Multisample causes texture bleeding.
         // They still happen, but are less frequent with multisample disabled
         // To fix it completely, center your texels
@@ -762,57 +783,61 @@ private:
         glEnable(GL_PRIMITIVE_RESTART);
         glPrimitiveRestartIndex(restartIndex);
 
-        bool   stateChanged = true;
-        size_t offset = 0;
+        FlushState newState;
+        FlushState state;
 
-        for (auto& cmd : currentDrawCmds->commands)
+        auto flushIfNewState = [&](const FlushState& newState)
         {
-            stateChanged = (cmd.textures != lastTextures || cmd.shader != lastShader || cmd.drawMode != lastDrawMode);
-            if (stateChanged)
-            { flushCurrent(lastShader, lastTextures, lastDrawMode, params); }
+            bool stateChangeImminent = newState != state;
+            if (stateChangeImminent)
+            {
+                flushCurrent(state, params);
+                state = newState;
+            }
+        };
 
-            offset = batchBuffer.size();
+        for (auto& cmd : cmds.commands)
+        {
+            if (cmd.is<VerticesDrawCmd>())
+            {
+                auto& vdCmd = cmd.as<VerticesDrawCmd>();
 
-            for (uint32_t i = cmd.indIndex; i < cmd.indIndex + cmd.indSize; i++)
-            { batchBufferIndices.push_back(offset + currentDrawCmds->indices[i]); }
+                newState.textures = vdCmd.textures;
+                newState.shader   = vdCmd.shader;
+                newState.drawMode = vdCmd.drawMode;
+                flushIfNewState(newState);
 
-            batchBufferIndices.push_back(restartIndex);
-
-            for (uint32_t i = cmd.posIndex; i < cmd.posIndex + cmd.posSize; i++)
-            { batchBuffer.emplace_back(currentDrawCmds->posAndCoords[i], cmd.color); }
-
-            lastTextures = cmd.textures;
-            lastShader   = cmd.shader;
-            lastDrawMode = cmd.drawMode;
+                size_t nextIndex = batchBuffer.size();
+                for (auto& i : vdCmd.indices)
+                { batchBufferIndices.push_back(nextIndex + i); }
+                batchBufferIndices.push_back(restartIndex);
+                batchBuffer.push_back(vdCmd.vertices);
+            }
+            else if (cmd.is<ClearCmd>())
+            {
+                flushCurrent(state, params);
+                Renderer::clearColor(cmd.as<ClearCmd>().color);
+            }
         }
 
-        flushCurrent(lastShader, lastTextures, lastDrawMode, params);
-        currentDrawCmds->commands    .clear();
-        currentDrawCmds->posAndCoords.clear();
-        currentDrawCmds->indices     .clear();
+        flushCurrent(newState, params);
+        cmds.clear();
     }
 
-    static DrawCmd& sprite_batch(const DrawTextureParams& params)
+    static VerticesDrawCmd& sprite_batch(const DrawTextureParams& params)
     {
         ASSERT(inited); // Forgot to call Renderer2D::init()
-        currentDrawCmds->commands.emplace_back();
-        DrawCmd& cmd = currentDrawCmds->commands.back();
 
-        if (params.shader == nullptr)
-        { cmd.shader = &defaultShader; }
-        else
-        { cmd.shader = params.shader; }
+        auto& cmds = currentDrawCmds();
+        VerticesDrawCmd& cmd = cmds.commands.emplace_back().emplace<VerticesDrawCmd>();
+
+        if (params.shader == nullptr) { cmd.shader = &defaultShader; }
+        else                          { cmd.shader = params.shader;  }
 
         cmd.textures = params.textures;
         cmd.drawMode = GLDrawMode::Triangles;
-        cmd.color    = params.color;
 
-        cmd.indIndex = currentDrawCmds->indices.size();
-        cmd.indSize  = sprite_indices.size();
-        currentDrawCmds->indices.insert(currentDrawCmds->indices.end(), sprite_indices.begin(), sprite_indices.end());
-
-        cmd.posIndex = currentDrawCmds->posAndCoords.size();
-        cmd.posSize  = 4;
+        cmd.indices.push_back(sprite_indices);
 
         const Pair<Vector2f, Vector2f> uv = getTextureUVs(*params.textures[0], params.srcRect);
         auto uv_x      = uv.first.x  + params.uvOffset.x;
@@ -826,11 +851,14 @@ private:
         float xpluswidth  = params.dstRect.x + params.dstRect.width;
         float yplusheight = params.dstRect.y + params.dstRect.height;
 
-        currentDrawCmds->posAndCoords.emplace_back( params.dstRect.x , params.dstRect.y  , uv_x    , uv_y      ); // bottom left 
-        currentDrawCmds->posAndCoords.emplace_back(       xpluswidth , params.dstRect.y  , uv_width, uv_y      ); // bottom right 
-        currentDrawCmds->posAndCoords.emplace_back( params.dstRect.x , yplusheight,        uv_x    , uv_height ); // topleft
-        currentDrawCmds->posAndCoords.emplace_back(       xpluswidth , yplusheight,        uv_width, uv_height ); // topright
-         
+        Array<VerticesDrawCmdVert, 4> vertices =
+        {
+            VerticesDrawCmdVert{ glm::vec2( params.dstRect.x, params.dstRect.y ), vec4(params.color), glm::vec2( uv_x,     uv_y      ) }, // bottom left
+            VerticesDrawCmdVert{ glm::vec2(       xpluswidth, params.dstRect.y ), vec4(params.color), glm::vec2( uv_width, uv_y      ) }, // bottom right
+            VerticesDrawCmdVert{ glm::vec2( params.dstRect.x, yplusheight      ), vec4(params.color), glm::vec2( uv_x,     uv_height ) }, // topleft
+            VerticesDrawCmdVert{ glm::vec2(       xpluswidth, yplusheight      ), vec4(params.color), glm::vec2( uv_width, uv_height ) }  // topright
+        };
+
         if (params.rotation != 0)
         {
             Vector2f realOrigin;
@@ -846,42 +874,44 @@ private:
                 { realOrigin = Vector2f(params.dstRect.x, params.dstRect.y) + params.origin.pos; }
             }
 
-            for (size_t i = currentDrawCmds->posAndCoords.size() - 4; i < currentDrawCmds->posAndCoords.size(); i++)
+            for (auto& vertex : vertices)
             {
-                auto& v = currentDrawCmds->posAndCoords[i];
-                v.x -= realOrigin.x; v.y -= realOrigin.y;
-                rotate(v.x, v.y, params.rotation);
-                v.x += realOrigin.x; v.y += realOrigin.y;
+                vertex.vert.x -= realOrigin.x; vertex.vert.y -= realOrigin.y;
+                rotate(vertex.vert.x, vertex.vert.y, params.rotation);
+                vertex.vert.x += realOrigin.x; vertex.vert.y += realOrigin.y;
             }
         }
+
+        cmd.vertices.push_back(vertices);
 
         return cmd;
     }
 
 public:
-    static DrawCmd& quad_batch(const DrawQuadParams& params)
+    static VerticesDrawCmd& quad_batch(const DrawQuadParams& params)
     {
         ASSERT(inited); // Forgot to call Renderer2D::init()
-        currentDrawCmds->commands.emplace_back();
-        DrawCmd& cmd = currentDrawCmds->commands.back();
+
+        auto& cmds = currentDrawCmds();
+        VerticesDrawCmd& cmd = cmds.commands.emplace_back().emplace<VerticesDrawCmd>();
 
         if (params.shader == nullptr) { cmd.shader = &defaultShader; }
         else                          { cmd.shader = params.shader; }
 
         cmd.textures = params.textures;
         cmd.drawMode = GLDrawMode::Triangles;
-        cmd.color    = params.color;
 
-        cmd.indIndex = currentDrawCmds->indices.size();
-        cmd.indSize  = sprite_indices.size();
-        currentDrawCmds->indices.insert(currentDrawCmds->indices.end(), sprite_indices.begin(), sprite_indices.end());
+        cmd.indices.push_back(sprite_indices);
 
-        cmd.posIndex = currentDrawCmds->posAndCoords.size();
-        cmd.posSize  = 4;
-        currentDrawCmds->posAndCoords.emplace_back( params.points[0].x, params.points[0].y, params.UVs[0].x, params.UVs[0].y );
-        currentDrawCmds->posAndCoords.emplace_back( params.points[1].x, params.points[1].y, params.UVs[1].x, params.UVs[1].y );
-        currentDrawCmds->posAndCoords.emplace_back( params.points[2].x, params.points[2].y, params.UVs[2].x, params.UVs[2].y );
-        currentDrawCmds->posAndCoords.emplace_back( params.points[3].x, params.points[3].y, params.UVs[3].x, params.UVs[3].y );
+        Array<VerticesDrawCmdVert, 4> vertices =
+        {
+            VerticesDrawCmdVert{ glm::vec2( params.points[0].x, params.points[0].y ), vec4(params.color), glm::vec2( params.UVs[0].x, params.UVs[0].y ) }, // bottom left
+            VerticesDrawCmdVert{ glm::vec2( params.points[1].x, params.points[1].y ), vec4(params.color), glm::vec2( params.UVs[1].x, params.UVs[1].y ) }, // bottom right
+            VerticesDrawCmdVert{ glm::vec2( params.points[2].x, params.points[2].y ), vec4(params.color), glm::vec2( params.UVs[2].x, params.UVs[2].y ) }, // topleft
+            VerticesDrawCmdVert{ glm::vec2( params.points[3].x, params.points[3].y ), vec4(params.color), glm::vec2( params.UVs[3].x, params.UVs[3].y ) }  // topright
+        };
+
+        cmd.vertices.push_back(vertices);
 
         return cmd;
     }
@@ -894,24 +924,17 @@ private:
         ASSERT(inited); // Forgot to call Renderer2D::init()
         if (points.empty()) { return; }
 
-        currentDrawCmds->commands.emplace_back();
-        DrawCmd& cmd = currentDrawCmds->commands.back();
+        auto& cmds = currentDrawCmds();
+        VerticesDrawCmd& cmd = cmds.commands.emplace_back().emplace<VerticesDrawCmd>();
         
-        cmd.textures = {&whiteTex};
+        cmd.textures = { &whiteTex };
         cmd.drawMode = mode;
-        cmd.color    = color;
 
-        cmd.indIndex = currentDrawCmds->indices.size();
-        cmd.indSize  = points.size();
-        cmd.posIndex = currentDrawCmds->posAndCoords.size();
-        cmd.posSize  = cmd.indSize;
-        
-        for (int i = 0; i < cmd.indSize; i++)
-        {
-            const Vector2f& p = points[i];
-            currentDrawCmds->posAndCoords.emplace_back(p.x, p.y, 0.f, 0.f);
-            currentDrawCmds->indices.push_back(i);
-        }
+        for (auto& point : points)
+        { cmd.vertices.emplace_back(glm::vec2(point.x, point.y), vec4(color), glm::vec2(0.f, 0.f)); }
+
+        for (size_t i = 0; i < points.size(); i++)
+        { cmd.indices.push_back(i); }
     }
 
     static void text_batch(const String&     text,
@@ -962,13 +985,5 @@ private:
         }
     }
 
-    static void onWindowResized()
-    {
-        //GLint viewport[4];
-        //glGetIntegerv(GL_VIEWPORT, viewport);
-        //auto fbSize = Renderer::getFramebufferSize();
-        //// glViewport origin is bottom left, so i make it top left :))
-        //glViewport(0, fbSize.y - viewport[3], viewport[2], viewport[3]);
-    }
 #pragma endregion
 };

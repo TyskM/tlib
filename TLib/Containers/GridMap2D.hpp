@@ -1,6 +1,7 @@
 
 #pragma once
 #include <TLib/Types/Types.hpp>
+#include <TLib/String.hpp>
 #include <TLib/thirdparty/multiarray/array.h>
 
 template <typename T>
@@ -85,4 +86,25 @@ public:
         }}
         return ret;
     }
+
+    String toString() const
+    {
+        StringStream ss;
+        ss << '\n';
+        for (int32_t y = 0; y < height(); y++)
+        {
+            for (int32_t x = 0; x < width(); x++)
+            {
+                ss << std::to_string(at(x, y)) << ", ";
+            }
+        
+            ss << '\n';
+        }
+
+        return ss.str();
+    }
+
+    operator String() const
+    { return toString(); }
+
 };

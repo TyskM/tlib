@@ -16,7 +16,6 @@ struct VertexBuffer : IBuffer
     void bind()
     {
         ASSERT(created());
-        //if (glState.boundVertexBuffer == this) { return; }
         GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, glHandle));
         glState.boundVertexBuffer = this;
     }

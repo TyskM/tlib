@@ -85,19 +85,22 @@ public:
         vao.bind();
         vbo.bind();
 
-        GLuint   index  = 0;
-        uint32_t offset = 0;
-        GLsizei  stride = layout.sizeBytes();
+        GLuint  index  = 0;
+        int32_t offset = 0;
 
-        for (const auto& l : layout.getValues())
+        for (const auto& attribute : layout.getValues())
         {
+            GLint   size       = attribute.size();
+            GLsizei stride     = layout.sizeBytes();
+            GLenum  type       = static_cast<GLenum>(attribute.type());
+            bool    normalized = false;
+
             GL_CHECK(glEnableVertexAttribArray(index));
-            GL_CHECK(glVertexAttribPointer(index, l.size(), static_cast<GLenum>(l.type()),
-                                           GL_FALSE, stride, (GLvoid*)(offset)));
-            if (l.divisor())
-            { GL_CHECK(glVertexAttribDivisor(index, l.divisor())); }
+            GL_CHECK(glVertexAttribPointer(index, size, type, normalized, stride, (GLvoid*)offset));
+            if (attribute.divisor())
+            { GL_CHECK(glVertexAttribDivisor(index, attribute.divisor())); }
             ++index;
-            offset += l.sizeBytes();
+            offset += attribute.sizeBytes();
         }
 
         _layout = layout;

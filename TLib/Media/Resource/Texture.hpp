@@ -198,6 +198,17 @@ public:
             internalFormat != TexInternalFormats::Unknown;
     }
 
+    bool loadInfoFromFile(const Path& path)
+    {
+        _path = path;
+        int res = stbi_info(path.string().c_str(), &width, &height, NULL);
+        
+        if (res == NULL)
+        { tlog::error("\tReason: {}", stbi_failure_reason()); return false; }
+
+        return true;
+    }
+
     bool loadFromFile(const Path& path)
     {
         if (!created()) { create(); }
@@ -430,5 +441,6 @@ struct SubTexture
 
     constexpr SubTexture() = default;
     SubTexture(Texture& tex, const Rectf& rect) : texture{ &tex }, rect{ rect } { }
+    SubTexture(Texture* tex, const Rectf& rect) : texture{  tex }, rect{ rect } { }
     SubTexture(Texture& tex) : texture{ &tex }, rect{ Vector2f{0,0}, Vector2f(texture->getSize()) } { }
 };

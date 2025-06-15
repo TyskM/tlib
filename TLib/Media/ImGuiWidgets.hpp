@@ -19,32 +19,37 @@ ImVec2 iv2(const Vector2f& v)
 ImVec4 ic4f(const ColorRGBAf& v)
 { return ImVec4(v.r, v.g, v.b, v.a); }
 
+ImU32 iu32(const ColorRGBAf& v)
+{ return ImGui::ColorConvertFloat4ToU32(ImVec4(v.r, v.g, v.b, v.a)); }
+
 namespace ImGui
 {
     void Image(Texture&    tex,
          const Vector2f&   size,
          const Rectf&      srcRect,
-         const ColorRGBAf& tintColor   = ColorRGBAf::white(),
-         const ColorRGBAf& borderColor = ColorRGBAf::transparent())
+         const ColorRGBAf& bgColor   = ColorRGBAf::transparent(),
+         const ColorRGBAf& tintColor = ColorRGBAf::white())
     {
         auto handle = (ImTextureID)tex.handle();
         auto uv = Renderer2D::getTextureUVs(tex, srcRect);
-        ImGui::Image(handle, { size.x, size.y },
+        ImGui::ImageWithBg(
+            handle,
+            { size.x, size.y },
             { uv.first.x, uv.second.y }, { uv.second.x, uv.first.y },
-            { tintColor.r, tintColor.g, tintColor.b, tintColor.a },
-            { borderColor.r, borderColor.g, borderColor.b, borderColor.a });
+            ic4f(bgColor), ic4f(tintColor));
     }
 
     void Image(Texture&    tex,
          const Vector2f&   size,
-         const ColorRGBAf& tintColor   = ColorRGBAf::white(),
-         const ColorRGBAf& borderColor = ColorRGBAf::transparent())
+         const ColorRGBAf& bgColor   = ColorRGBAf::transparent(),
+         const ColorRGBAf& tintColor = ColorRGBAf::white())
     {
-
         auto handle = (ImTextureID)tex.handle();
-        ImGui::Image(handle, { size.x, size.y }, {0, 1}, {1, 0},
-            { tintColor.r, tintColor.g, tintColor.b, tintColor.a },
-            { borderColor.r, borderColor.g, borderColor.b, borderColor.a });
+        ImGui::ImageWithBg(
+            handle,
+            { size.x, size.y },
+            {0.f, 1.f}, {1.f, 0.f},
+            ic4f(bgColor), ic4f(tintColor));
     }
 
     void Text(const String& str)

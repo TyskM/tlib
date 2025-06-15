@@ -58,7 +58,8 @@ enum class GLDrawMode : GLenum
     Triangles              [[maybe_unused]] = GL_TRIANGLES                    ,
     TriangleStripAdjacency [[maybe_unused]] = GL_TRIANGLE_STRIP_ADJACENCY     ,
     TrianglesAdjacency     [[maybe_unused]] = GL_TRIANGLES_ADJACENCY          ,
-    Patches                [[maybe_unused]] = GL_PATCHES
+    Patches                [[maybe_unused]] = GL_PATCHES                      ,
+    None                                    = 6969420
 };
 
 enum class GLBlendMode : GLenum

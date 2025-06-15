@@ -36,15 +36,22 @@ namespace TLib
     struct Attribute
     {
     protected:
-        uint8_t  _size = 0;
-        GLType   _type = GLType::Unknown;
+        static inline size_t _count = 0;
+        
+        String   _name    = "value";
+        uint8_t  _size    = 0;
+        GLType   _type    = GLType::Unknown;
         uint32_t _divisor = 0;
     
     public:
-        constexpr Attribute(uint8_t size, GLType type, uint32_t divisor = 0) : _size{ size }, _type{ type }, _divisor{ divisor }
+        constexpr Attribute(uint8_t size, GLType type, uint32_t divisor = 0, StringRef name = "") : _size{size}, _type{type}, _divisor{divisor}
         {
             // Attributes can't have more than 4 components
             ASSERT(size <= 4);
+
+            if (name.empty())
+            { name = fmt::format("value_{}", _count++); }
+            this->_name = name;
         }
     
         inline Attribute& setDivisor(uint32_t v)
@@ -63,9 +70,9 @@ namespace TLib
     struct Layout
     {
     protected:
-        uint32_t _sizeBytes = 0;
+        uint32_t          _sizeBytes = 0;
         Vector<Attribute> _values;
-    
+
     public:
         Layout() = default;
     
@@ -126,19 +133,21 @@ namespace TLib
             return *this;
         }
     
-        [[nodiscard]] inline uint32_t sizeBytes() const { return _sizeBytes; }
-        [[nodiscard]] inline const Vector<Attribute>& getValues() const { return _values; }
+        [[nodiscard]] inline uint32_t                 sizeBytes() const { return _sizeBytes; }
+        [[nodiscard]] inline const Vector<Attribute>& getValues() const { return _values;    }
     
-        // TODO: low prio, add more presets. Most of the presets that matter are already here
-        [[maybe_unused]] constexpr static inline Attribute Bool () { return { 1, GLType::Bool  }; }
-        [[maybe_unused]] constexpr static inline Attribute Float() { return { 1, GLType::Float }; }
-        [[maybe_unused]] constexpr static inline Attribute Int  () { return { 1, GLType::Int   }; }
-        [[maybe_unused]] constexpr static inline Attribute Vec2f() { return { 2, GLType::Float }; }
-        [[maybe_unused]] constexpr static inline Attribute Vec3f() { return { 3, GLType::Float }; }
-        [[maybe_unused]] constexpr static inline Attribute Vec4f() { return { 4, GLType::Float }; }
+        constexpr static inline Attribute Bool () { return Attribute( 1, GLType::Bool  ); }
+        constexpr static inline Attribute Int  () { return Attribute( 1, GLType::Int   ); }
+        constexpr static inline Attribute Vec2i() { return Attribute( 2, GLType::Int   ); }
+        constexpr static inline Attribute Vec3i() { return Attribute( 3, GLType::Int   ); }
+        constexpr static inline Attribute Vec4i() { return Attribute( 4, GLType::Int   ); }
+        constexpr static inline Attribute Float() { return Attribute( 1, GLType::Float ); }
+        constexpr static inline Attribute Vec2f() { return Attribute( 2, GLType::Float ); }
+        constexpr static inline Attribute Vec3f() { return Attribute( 3, GLType::Float ); }
+        constexpr static inline Attribute Vec4f() { return Attribute( 4, GLType::Float ); }
     
-        [[maybe_unused]] static inline Layout Mat3f() { return { Vec3f(), 3 }; }
-        [[maybe_unused]] static inline Layout Mat4f() { return { Vec4f(), 4 }; }
+        static inline Layout Mat3f() { return { Vec3f(), 3 }; }
+        static inline Layout Mat4f() { return { Vec4f(), 4 }; }
     };
 
 }

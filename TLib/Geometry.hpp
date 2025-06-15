@@ -14,15 +14,19 @@ namespace Geom
         enum class ExpandDir : uint8_t { Center, Clockwise, CounterClockwise };
 
         // Required
-        Vector2f   position;
-        float_t    radius       = 0.f;
-        float_t    arc          = 0.f;
-        float_t    rotation     = 0.f;
+        Vector2f position;
+        float    radius       = 10.f;
+        float    arc          = 3.14;
+        float    rotation     = 0.f;
 
         uint32_t   segmentCount = 16;
         Axis       axis         = Axis::Y; // Starting axis
         ExpandDir  expandDir    = ExpandDir::Center;
         bool       includeSides = true;
+
+        SemiCircleParams() = default;
+        SemiCircleParams(Vector2f position, float radius, float arc, float rotation, uint32_t segmentCount = 16) :
+                         position{position}, radius{radius}, arc{arc}, rotation{rotation}, segmentCount{segmentCount} { }
     };
 
     static Geometry2D semiCircle(const SemiCircleParams& params)
@@ -61,6 +65,11 @@ namespace Geom
 
         Vector<Vector2f> points;
 
+        if (params.includeSides && arc < maxArc)
+        {
+            points.push_back(params.position);
+        }
+
         for (uint32_t i = 0; i < params.segmentCount; i++)
         {
             points.push_back(Vector2f{ current.x + params.position.x, current.y + params.position.y });
@@ -71,12 +80,6 @@ namespace Geom
             current.y += ty * tangetial_factor;
             current.x *= radial_factor;
             current.y *= radial_factor;
-        }
-
-        if (params.includeSides && arc < maxArc)
-        {   // TODO: This might be slow
-            points.insert(&points.front(), params.position);
-            points.push_back(params.position);
         }
 
         return points;

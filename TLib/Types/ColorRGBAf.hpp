@@ -58,9 +58,6 @@ struct ColorRGBAf
     String toString() const { return toVec4().toString(); }
     operator String() const { return toString(); }
 
-
-
-
     bool operator==(const ColorRGBAf& other) { return r == other.r && g == other.g && b == other.b && a == other.a; }
     bool operator!=(const ColorRGBAf& other) { return !(operator==(other)); }
 

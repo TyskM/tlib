@@ -12,6 +12,7 @@
 #include <TLib/Media/GL/UniformBuffer.hpp>
 #include <TLib/Containers/Array.hpp>
 #include <TLib/Containers/UnorderedMap.hpp>
+#include <TLib/Containers/Span.hpp>
 #include <TLib/Types/ColorRGBf.hpp>
 
 class Shader : NonCopyable
@@ -88,7 +89,7 @@ or the GLSL compiler could have optimized it away.
     }
 
 public:
-    Shader() { }
+    Shader() = default;
     Shader(const char* vertData, const char* fragData) { create(vertData, fragData); }
     Shader(Shader&& other) noexcept { operator=(std::move(other)); }
     Shader& operator=(Shader&& other) noexcept
@@ -139,6 +140,20 @@ public:
         glState.boundShader = nullptr;
     }
 
+    GLint getUniformLocation(const String& name) const
+    {
+        const auto& it = _uniformCache.find(name);
+        if (it != _uniformCache.end())
+        { return it->second; }
+
+        GLint loc = glGetUniformLocation(glHandle, name.c_str());
+        if (loc < 0) { showFailedToFindUniformError(name); }
+
+        checkOpenGLError("glGetUniformLocation", __FILE__, __LINE__);
+        _uniformCache.insert_or_assign(name, loc);
+        return loc;
+    }
+
     void setBool(const String& name, bool value)
     {
         bind();
@@ -162,6 +177,15 @@ public:
         return ret;
     }
 
+    void setUniformBlock(const String& name, UniformBuffer& ubo, int index)
+    {
+        ubo.setBufferBase(index);
+        int uniformIndex = glGetUniformBlockIndex(glHandle, name.c_str());
+        glUniformBlockBinding(glHandle, uniformIndex, index);
+    }
+
+    #pragma region Float
+
     GLfloat getFloat(const String& name)
     {
         bind();
@@ -170,6 +194,50 @@ public:
         GL_CHECK(glGetUniformfv(glHandle, loc, &ret));
         return ret;
     }
+
+    void setFloat(const String& name, float value)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        GL_CHECK(glUniform1f(loc, value));
+    }
+
+    bool setFloatArray(const String& name, Span<float> values)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return false; }
+        GL_CHECK(glUniform1fv(loc, values.size(), &values[0]));
+        return true;
+    }
+
+    #pragma endregion
+
+    #pragma region Vec2i
+
+    bool setVec2i(const String& name, int32_t x, int32_t y)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return false; }
+        GL_CHECK(glUniform2i(loc, x, y));
+        return true;
+    }
+
+    bool setVec2i(const String& name, const Vector2i& value)
+    {
+        return setVec2i(name, value.x, value.y);
+    }
+
+    bool setVec2iArray(const String& name, Span<Vector2i> values)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return false; }
+        GL_CHECK(glUniform2iv(loc, values.size(), &values[0].x));
+        return true;
+    }
+
+    #pragma endregion
+
+    #pragma region Vec2f
 
     glm::vec2 getVec2f(const String& name)
     {
@@ -180,31 +248,6 @@ public:
         return { ret[0], ret[1] };
     }
 
-    glm::vec3 getVec3f(const String& name)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return {}; }
-        Array<GLfloat, 3> ret{ 0,0,0 };
-        GL_CHECK(glGetnUniformfv(glHandle, loc, sizeof(GLfloat) * 3, ret.data()));
-        return {ret[0], ret[1], ret[2]};
-    }
-
-    glm::vec4 getVec4f(const String& name)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return {}; }
-        Array<GLfloat, 4> ret{ 0,0,0,0 };
-        GL_CHECK(glGetnUniformfv(glHandle, loc, sizeof(GLfloat) * 4, ret.data()));
-        return { ret[0], ret[1], ret[2], ret[3] };
-    }
-
-    void setFloat(const String& name, float value)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return; }
-        GL_CHECK(glUniform1f(loc, value));
-    }
-    
     void setVec2f(const String& name, float x, float y)
     {
         bind();
@@ -217,6 +260,28 @@ public:
 
     void setVec2f(const String& name, const Vector2f& value)
     { setVec2f(name, value.x, value.y); }
+
+    template <typename ContainerType>
+    void setVec2fArray(const String& name, const ContainerType& value, size_t count)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        ASSERT(value.size() > 0);
+        GL_CHECK(glUniform2fv(loc, count, glm::value_ptr(value[0])));
+    }
+
+    #pragma endregion
+
+    #pragma region Vec3f
+
+    glm::vec3 getVec3f(const String& name)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return {}; }
+        Array<GLfloat, 3> ret{ 0,0,0 };
+        GL_CHECK(glGetnUniformfv(glHandle, loc, sizeof(GLfloat) * 3, ret.data()));
+        return {ret[0], ret[1], ret[2]};
+    }
 
     void setVec3f(const String& name, float x, float y, float z)
     {
@@ -231,6 +296,19 @@ public:
     void setVec3f(const String& name, const Vector3f& value)
     { setVec3f(name, value.x, value.y, value.z); }
 
+    #pragma endregion
+
+    #pragma region Vec4f
+
+    glm::vec4 getVec4f(const String& name)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return {}; }
+        Array<GLfloat, 4> ret{ 0,0,0,0 };
+        GL_CHECK(glGetnUniformfv(glHandle, loc, sizeof(GLfloat) * 4, ret.data()));
+        return { ret[0], ret[1], ret[2], ret[3] };
+    }
+
     void setVec4f(const String& name, float x, float y, float z, float w)
     {
         bind();
@@ -243,6 +321,19 @@ public:
 
     void setVec4f(const String& name, glm::vec4 value)
     { setVec4f(name, value.x, value.y, value.z, value.w); }
+
+    template <typename ContainerType>
+    void setVec4fArray(const String& name, const ContainerType& value, size_t count)
+    {
+        bind();
+        auto loc = getUniformLocation(name); if (loc < 0) { return; }
+        ASSERT(value.size() > 0);
+        GL_CHECK(glUniform4fv(loc, count, glm::value_ptr(value[0])));
+    }
+    
+    #pragma endregion
+
+    #pragma region Mat4f
 
     void setMat4f(const String& name, glm::mat4 value)
     {
@@ -258,13 +349,6 @@ public:
         GL_CHECK(glUniformMatrix4fv(loc, 1, false, value.data()));
     }
 
-    void setUniformBlock(const String& name, UniformBuffer& ubo, int index)
-    {
-        ubo.setBufferBase(index);
-        int uniformIndex = glGetUniformBlockIndex(glHandle, name.c_str());
-        glUniformBlockBinding(glHandle, uniformIndex, index);
-    }
-
     template <typename ContainerType>
     void setMat4fArray(const String& name, const ContainerType& value, size_t count)
     {
@@ -273,38 +357,8 @@ public:
         ASSERT(value.size() > 0);
         GL_CHECK(glUniformMatrix4fv(loc, count, false, glm::value_ptr(value[0])));
     }
-
-    template <typename ContainerType>
-    void setVec2fArray(const String& name, const ContainerType& value, size_t count)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return; }
-        ASSERT(value.size() > 0);
-        GL_CHECK(glUniform2fv(loc, count, glm::value_ptr(value[0])));
-    }
-
-    template <typename ContainerType>
-    void setVec4fArray(const String& name, const ContainerType& value, size_t count)
-    {
-        bind();
-        auto loc = getUniformLocation(name); if (loc < 0) { return; }
-        ASSERT(value.size() > 0);
-        GL_CHECK(glUniform4fv(loc, count, glm::value_ptr(value[0])));
-    }
-
-    GLint getUniformLocation(const String& name) const
-    {
-        const auto& it = _uniformCache.find(name);
-        if (it != _uniformCache.end())
-        { return it->second; }
-
-        GLint loc = glGetUniformLocation(glHandle, name.c_str());
-        if (loc < 0) { showFailedToFindUniformError(name); }
-
-        checkOpenGLError("glGetUniformLocation", __FILE__, __LINE__);
-        _uniformCache.insert_or_assign(name, loc);
-        return loc;
-    }
+    
+    #pragma endregion
 
     static inline bool verifyShaderCompilation(GLuint shaderHandle)
     {
