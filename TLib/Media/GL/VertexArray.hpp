@@ -1,13 +1,24 @@
 #pragma once
 
+#include <TLib/Macros.hpp>
 #include <TLib/Media/GL/GLHelpers.hpp>
-#include <TLib/Media/GL/GLState.hpp>
 #include <TLib/Media/Logging.hpp>
 
-// Used for storing information about a VertexBuffer
-struct VertexArray : NonCopyable
+// Used for storing information about a ArrayBuffer
+struct VertexArray
 {
+private:
     GLuint glHandle = 0;
+
+    void move(VertexArray& other)
+    {
+        reset();
+        glHandle = other.glHandle;
+        other.glHandle = 0;
+    }
+
+public:
+    DISABLE_COPY(VertexArray);
 
     bool created() const { return glHandle != 0; }
 
@@ -34,32 +45,19 @@ struct VertexArray : NonCopyable
     {
         ASSERT(created());
         GL_CHECK(glBindVertexArray(glHandle));
-        glState.boundVertexArray = this;
     }
 
     static void unbind()
     {
         GL_CHECK(glBindVertexArray(0));
-        glState.boundVertexArray = nullptr;
     }
 
-    VertexArray() = default;
+     VertexArray() = default;
     ~VertexArray() { reset(); }
 
     operator GLuint*() { return &glHandle; }
-    operator GLuint()  { return glHandle; }
+    operator GLuint () { return glHandle; }
 
-    VertexArray(VertexArray&& src) noexcept
-    {
-        glHandle = src.glHandle;
-        src.glHandle = 0;
-    }
-
-    VertexArray& operator=(VertexArray&& src) noexcept
-    {
-        reset();
-        glHandle = src.glHandle;
-        src.glHandle = 0;
-        return *this;
-    }
+    VertexArray(VertexArray&& other)            noexcept { move(other); }
+    VertexArray& operator=(VertexArray&& other) noexcept { move(other); return *this; }
 };

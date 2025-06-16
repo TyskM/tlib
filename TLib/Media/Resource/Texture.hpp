@@ -4,7 +4,6 @@
 
 #include <TLib/Types/Types.hpp>
 #include <TLib/Media/GL/GLHelpers.hpp>
-#include <TLib/Media/GL/GLState.hpp>
 #include <TLib/Media/Logging.hpp>
 #include <TLib/Files.hpp>
 #include <TLib/NonAssignable.hpp>
@@ -312,20 +311,14 @@ public:
     void bind(int slot = 0)
     {
         ASSERT(created());
-
-        if (slot > glState.boundTextures.size())
-        { glState.boundTextures.resize(slot, nullptr); }
-
         GL_CHECK(glActiveTexture(GL_TEXTURE0 + slot));
         GL_CHECK(glBindTexture(GL_TEXTURE_2D, glHandle));
-        glState.boundTextures[slot] = this;
     }
 
     static inline void unbind(int slot = 0)
     {
         GL_CHECK(glActiveTexture(GL_TEXTURE0 + slot));
         GL_CHECK(glBindTexture(GL_TEXTURE_2D, 0));
-        glState.boundTextures[slot] = nullptr;
     }
 
     [[nodiscard]]

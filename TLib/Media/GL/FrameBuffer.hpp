@@ -2,7 +2,6 @@
 
 #include <TLib/Media/GL/GLHelpers.hpp>
 #include <TLib/Media/Resource/Texture.hpp>
-#include <TLib/Media/GL/GLState.hpp>
 #include <TLib/Containers/FixedVector.hpp>
 #include <TLib/Containers/UnorderedMap.hpp>
 #include <TLib/Types/Types.hpp>

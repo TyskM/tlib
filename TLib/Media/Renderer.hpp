@@ -8,12 +8,26 @@
 #include <TLib/Media/Logging.hpp>
 #include <TLib/Macros.hpp>
 #include <TLib/Containers/Span.hpp>
+#include <TLib/Containers/Pair.hpp>
+
+static Pair<Vector2f, Vector2f> getTextureUVs(const Texture& tex, const Rectf& srcRect)
+{
+    const Vector2f texSize(tex.getSize());
+    float uvWidth  = (srcRect.x + srcRect.width  - 0.01f) / texSize.x;
+    float uvHeight = (srcRect.y + srcRect.height - 0.01f) / texSize.y;
+    float uvX      = (srcRect.x + 0.02f) / texSize.x;
+    float uvY      = (srcRect.y + 0.02f) / texSize.y;
+    return { Vector2f(uvX, uvY), Vector2f(uvWidth, uvHeight) };
+}
 
 struct RenderState
 {
-    GLDrawMode  drawMode       = GLDrawMode::Triangles;
-    GLBlendMode srcBlendFactor = GLBlendMode::SrcAlpha;
-    GLBlendMode dstBlendFactor = GLBlendMode::OneMinusSrcAlpha;
+    GPUVertexData*                  mesh;
+    Shader*                         shader         = nullptr;
+    FixedVector<Texture*, 4, false> textures;
+    GLDrawMode                      drawMode       = GLDrawMode::Triangles;
+    GLBlendMode                     srcBlendFactor = GLBlendMode::SrcAlpha;
+    GLBlendMode                     dstBlendFactor = GLBlendMode::OneMinusSrcAlpha;
 };
 
 struct VideoMemoryInfo
@@ -44,26 +58,6 @@ struct Renderer
 protected:
     static inline size_t drawCalls = 0;
     static inline bool   isCreated = false;
-
-    static bool prepare(Shader& shader, GPUVertexData& mesh, const RenderState& state)
-    {
-        if (!mesh.bind())
-        {
-            rendlog->error("Tried to draw a mesh that's in an invalid state");
-            if (!mesh.validLayout())   rendlog->error("\tReason: Invalid layout. Did you forget to call Mesh::setLayout()?");
-            if (!mesh.validVertices()) rendlog->error("\tReason: Invalid vertices. Did you forget to call Mesh::setData()?");
-            return false;
-        }
-        
-        return prepare(shader, state);
-    }
-
-    static bool prepare(Shader& shader, const RenderState& state)
-    {
-        shader.bind();
-        GL_CHECK(glBlendFunc(static_cast<GLenum>(state.srcBlendFactor), static_cast<GLenum>(state.dstBlendFactor)));
-        return true;
-    }
 
 public:
     inline static bool created() { return isCreated; }
@@ -103,54 +97,30 @@ public:
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
-    static void draw(Shader& shader, GPUVertexData& mesh, const RenderState& state = RenderState())
+    static void drawElementsInstanced(RenderState& state, uint32_t instanceCount)
     {
-        if (!prepare(shader, mesh, state)) { return; }
+        const GLenum  srcBlendFactor = (GLenum)state.srcBlendFactor;
+        const GLenum  dstBlendFactor = (GLenum)state.dstBlendFactor;
+        const GLenum  drawMode       = static_cast<GLenum>(state.drawMode);
+        const int32_t elementCount   = state.mesh->ebo.size();
+        const GLenum  indiceType     = GL_UNSIGNED_INT;
+        const void*   indicePtr      = NULL; // Use NULL because our buffer is on the GPU
+        
+        if (elementCount > 0 || !state.mesh->buffers.empty() && state.mesh->buffers[0].size() > 0)
+        {
+            ASSERTMSG(elementCount,                  "You forgot to add indices");
+            ASSERTMSG(state.mesh->buffers[0].size(), "You forgot your vertex data");
+        }
 
-        const GLenum glmode = static_cast<GLenum>(state.drawMode);
+        state.  mesh->bind();
+        state.shader->bind();
 
-        if (mesh.validIndices()) { GL_CHECK(glDrawElements(glmode, mesh.indiceCount(), GL_UNSIGNED_INT, (void*)0)); }
-        else                     { GL_CHECK(glDrawArrays(glmode, 0, mesh.vertexCount())); }
+        GL_CHECK(glBlendFunc(srcBlendFactor, dstBlendFactor));
+        GL_CHECK(glDrawElementsInstanced(drawMode, elementCount, indiceType, indicePtr, instanceCount));
+
+        state.mesh->unbind();
 
         ++drawCalls;
-
-        mesh.unbind(); // TODO: skip unbinds in release build
-    }
-
-    static void drawIndirect(
-        Shader&                        shader,
-        GPUVertexData&                 mesh,
-        const Vector<DrawIndirectCmd>& cmds,
-        const RenderState&             state = RenderState())
-    {
-        if (!prepare(shader, mesh, state)) { return; }
-        ASSERT(mesh.validIndices());
-        const GLenum glmode = static_cast<GLenum>(state.drawMode);
-
-        GL_CHECK(glMultiDrawElementsIndirect(glmode, GL_UNSIGNED_INT, cmds.data(), cmds.size(), sizeof(cmds[0])));
-
-        ++drawCalls;
-    }
-
-    static void drawInstanced(Shader& shader, GPUVertexData& mesh, uint32_t count, const RenderState& state = RenderState())
-    {
-        if (!prepare(shader, mesh, state)) { return; }
-
-        const GLenum glmode = static_cast<GLenum>(state.drawMode);
-
-        if (mesh.validIndices()) { GL_CHECK(glDrawElementsInstanced(glmode, mesh.indiceCount(), GL_UNSIGNED_INT, (void*)0, count)); }
-        else                     { GL_CHECK(glDrawArraysInstanced(glmode, 0, mesh.vertexCount(), count)); }
-
-        ++drawCalls;
-
-        mesh.unbind();
-    }
-
-    static void drawIndices(Shader& shader, Span<uint32_t> indices, const RenderState& state = RenderState())
-    {
-        if (!prepare(shader, state)) { return; }
-        const GLenum glmode = static_cast<GLenum>(state.drawMode);
-        GL_CHECK(glDrawElements(glmode, indices.size(), GL_UNSIGNED_INT, indices.begin()));
     }
 
     static void setViewport(const Recti& vp)

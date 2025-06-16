@@ -32,17 +32,27 @@ struct Mat4f
     const float* data() const
     { return glm::value_ptr(matrix); }
 
+    Mat4f translated(const Vector2f& transform) const
+    { return glm::translate(matrix, glm::vec3(transform.x, transform.y, 0.f)); }
+
     Mat4f translated(const Vector3f& transform) const
     { return glm::translate(matrix, transform.toGlm()); }
 
     Mat4f translated(const Vector4f& transform) const
     { return glm::translate(matrix, glm::vec3(transform.toGlm())); }
 
+    Mat4f scaled(const Vector2f& _scale) const
+    { return glm::scale(matrix, glm::vec3(_scale.x, _scale.y, 1.f)); }
+
     Mat4f scaled(const Vector3f& _scale) const
     { return glm::scale(matrix, glm::vec3(_scale.x, _scale.y, _scale.z)); }
 
     Mat4f scaled(float x, float y, float z) const
     { return glm::scale(matrix, glm::vec3(x, y, z)); }
+
+    // Use me for 2D
+    Mat4f rotatedZ(float radians) const
+    { return glm::rotate(matrix, radians, glm::vec3(0.f, 0.f, 1.f)); }
 
     Mat4f inverse() const
     { return glm::inverse(toGlm()); }

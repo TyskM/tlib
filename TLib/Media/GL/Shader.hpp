@@ -8,8 +8,7 @@
 #include <TLib/Types/Types.hpp>
 #include <TLib/NonAssignable.hpp>
 #include <TLib/Macros.hpp>
-#include <TLib/Media/GL/GLState.hpp>
-#include <TLib/Media/GL/UniformBuffer.hpp>
+#include <TLib/Media/GL/Buffer.hpp>
 #include <TLib/Containers/Array.hpp>
 #include <TLib/Containers/UnorderedMap.hpp>
 #include <TLib/Containers/Span.hpp>
@@ -129,15 +128,12 @@ public:
     void bind()
     {
         ASSERTMSG(created(), "Forgot to call shader::create()");
-        //if (glState.boundShader == this) { return; }
         GL_CHECK(glUseProgram(glHandle));
-        glState.boundShader = this;
     }
 
     static inline void unbind()
     {
         glUseProgram(0);
-        glState.boundShader = nullptr;
     }
 
     GLint getUniformLocation(const String& name) const

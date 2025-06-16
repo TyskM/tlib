@@ -24,7 +24,6 @@ private:
 
     struct Material
     {
-        // TODO: why is this a UPtr?
         Array<Texture, (size_t)TextureType::Count> textures;
     };
 

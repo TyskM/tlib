@@ -22,6 +22,7 @@ set(TLib_Tests
         Construct
         Scripting
         Physics
+        Renderer
 )
 
 enable_testing()
@@ -32,7 +33,7 @@ add_library(TLib STATIC IMPORTED)
 add_custom_target(copy_assets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets )
 
 foreach(test IN LISTS TLib_Tests)
-    add_executable(${test} "${test}.cpp" "Common.hpp")
+    add_executable(${test} "${test}.cpp" "Common.hpp" "Renderer.cpp")
     target_include_directories(${test} PUBLIC TLib::TLib)
     target_link_libraries(${test} PUBLIC TLib::TLib)
     add_test(NAME ${test} COMMAND ${test})

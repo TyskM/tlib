@@ -33,6 +33,8 @@ struct Renderer2DRenderParams
     bool ignoreView = false;
 };
 
+
+
 struct Renderer2DOrigin
 {
     Renderer2DOrigin() = default;
@@ -125,7 +127,7 @@ struct Renderer2D
 {
 #pragma region Public
 public:
-    static constexpr Vector2f OriginCenter          = { FLT_MAX, FLT_MAX };
+    static constexpr Vector2f OriginCenter = { FLT_MAX, FLT_MAX };
 
     static bool created()      { return inited; }
     static void create()       { init();        }
@@ -548,16 +550,6 @@ public:
     {
         return Vector2f(rect.x + rect.width  / 2,
                         rect.y + rect.height / 2);
-    }
-
-    static Pair<Vector2f, Vector2f> getTextureUVs(const Texture& tex, const Rectf& srcRect)
-    {
-        const Vector2f texSize(tex.getSize());
-        float uvWidth  = (srcRect.x + srcRect.width  - 0.01f) / texSize.x;
-        float uvHeight = (srcRect.y + srcRect.height - 0.01f) / texSize.y;
-        float uvX      = (srcRect.x + 0.02f) / texSize.x;
-        float uvY      = (srcRect.y + 0.02f) / texSize.y;
-        return { Vector2f(uvX, uvY), Vector2f(uvWidth, uvHeight) };
     }
 
 #pragma endregion

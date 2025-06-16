@@ -2,7 +2,6 @@
 
 #include <TLib/Media/ImGui.hpp>
 #include <TLib/Media/Renderer.hpp>
-#include <TLib/Media/Renderer2D.hpp>
 #include <TLib/Media/Platform/SysQuery.hpp>
 #include <TLib/Media/Platform/FPSLimit.hpp>
 #include <TLib/Media/Platform/Input.hpp>
@@ -31,7 +30,7 @@ namespace ImGui
          const ColorRGBAf& tintColor = ColorRGBAf::white())
     {
         auto handle = (ImTextureID)tex.handle();
-        auto uv = Renderer2D::getTextureUVs(tex, srcRect);
+        auto uv = getTextureUVs(tex, srcRect);
         ImGui::ImageWithBg(
             handle,
             { size.x, size.y },
@@ -84,7 +83,7 @@ namespace ImGui
         const ColorRGBAf& bgColor   = ColorRGBAf(0.f, 0.f, 0.f, 0.f),
         const ColorRGBAf& tintColor = ColorRGBAf(1.f, 1.f, 1.f, 1.f))
     {
-        auto uv = Renderer2D::getTextureUVs(*subTex.texture, subTex.rect);
+        auto uv = getTextureUVs(*subTex.texture, subTex.rect);
         std::swap(uv.first.y, uv.second.y);
         return ImGui::ImageButton(label.c_str(), subTex.texture->handle(),
                             iv2(buttonSize), iv2(uv.first), iv2(uv.second),

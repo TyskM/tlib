@@ -46,9 +46,6 @@ namespace TLib
     public:
         constexpr Attribute(uint8_t size, GLType type, uint32_t divisor = 0, StringRef name = "") : _size{size}, _type{type}, _divisor{divisor}
         {
-            // Attributes can't have more than 4 components
-            ASSERT(size <= 4);
-
             if (name.empty())
             { name = fmt::format("value_{}", _count++); }
             this->_name = name;
@@ -136,18 +133,17 @@ namespace TLib
         [[nodiscard]] inline uint32_t                 sizeBytes() const { return _sizeBytes; }
         [[nodiscard]] inline const Vector<Attribute>& getValues() const { return _values;    }
     
-        constexpr static inline Attribute Bool () { return Attribute( 1, GLType::Bool  ); }
-        constexpr static inline Attribute Int  () { return Attribute( 1, GLType::Int   ); }
-        constexpr static inline Attribute Vec2i() { return Attribute( 2, GLType::Int   ); }
-        constexpr static inline Attribute Vec3i() { return Attribute( 3, GLType::Int   ); }
-        constexpr static inline Attribute Vec4i() { return Attribute( 4, GLType::Int   ); }
-        constexpr static inline Attribute Float() { return Attribute( 1, GLType::Float ); }
-        constexpr static inline Attribute Vec2f() { return Attribute( 2, GLType::Float ); }
-        constexpr static inline Attribute Vec3f() { return Attribute( 3, GLType::Float ); }
-        constexpr static inline Attribute Vec4f() { return Attribute( 4, GLType::Float ); }
-    
-        static inline Layout Mat3f() { return { Vec3f(), 3 }; }
-        static inline Layout Mat4f() { return { Vec4f(), 4 }; }
+        constexpr static inline Attribute Bool () { return Attribute( 1,  GLType::Bool  ); }
+        constexpr static inline Attribute Int  () { return Attribute( 1,  GLType::Int   ); }
+        constexpr static inline Attribute Vec2i() { return Attribute( 2,  GLType::Int   ); }
+        constexpr static inline Attribute Vec3i() { return Attribute( 3,  GLType::Int   ); }
+        constexpr static inline Attribute Vec4i() { return Attribute( 4,  GLType::Int   ); }
+        constexpr static inline Attribute Float() { return Attribute( 1,  GLType::Float ); }
+        constexpr static inline Attribute Vec2f() { return Attribute( 2,  GLType::Float ); }
+        constexpr static inline Attribute Vec3f() { return Attribute( 3,  GLType::Float ); }
+        constexpr static inline Attribute Vec4f() { return Attribute( 4,  GLType::Float ); }
+        constexpr static inline Attribute Mat3f() { return Attribute( 9,  GLType::Float ); }
+        constexpr static inline Attribute Mat4f() { return Attribute( 16, GLType::Float ); }
     };
 
 }
