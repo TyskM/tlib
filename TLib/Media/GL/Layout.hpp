@@ -38,14 +38,21 @@ namespace TLib
     protected:
         static inline size_t _count = 0;
         
-        String   _name    = "value";
-        uint8_t  _size    = 0;
-        GLType   _type    = GLType::Unknown;
-        uint32_t _divisor = 0;
+        String   _name         = "value";
+        uint8_t  _size         = 0;
+        GLType   _type         = GLType::Unknown;
+        uint32_t _divisor      = 0;
+        uint32_t _valuesPerRow = 4;
     
     public:
-        constexpr Attribute(uint8_t size, GLType type, uint32_t divisor = 0, StringRef name = "") : _size{size}, _type{type}, _divisor{divisor}
+        constexpr Attribute(uint8_t   size,
+                            GLType    type,
+                            uint32_t  valuesPerRow = 4,
+                            StringRef name         = "")
         {
+            this->_size         = size;
+            this->_type         = type;
+            this->_valuesPerRow = valuesPerRow;
             if (name.empty())
             { name = fmt::format("value_{}", _count++); }
             this->_name = name;
@@ -54,10 +61,11 @@ namespace TLib
         inline Attribute& setDivisor(uint32_t v)
         { _divisor = v; return *this; }
     
-        [[nodiscard]] inline uint32_t sizeBytes() const { return _size * glTypeSizeMap[_type]; }
-        [[nodiscard]] inline uint8_t  size()      const { return _size; }
-        [[nodiscard]] inline GLType   type()      const { return _type; }
-        [[nodiscard]] inline uint32_t divisor()   const { return _divisor; }
+        [[nodiscard]] inline uint32_t sizeBytes()    const { return _size * glTypeSizeMap[_type]; }
+        [[nodiscard]] inline uint8_t  size()         const { return _size; }
+        [[nodiscard]] inline GLType   type()         const { return _type; }
+        [[nodiscard]] inline uint32_t divisor()      const { return _divisor; }
+        [[nodiscard]] inline uint32_t valuesPerRow() const { return _valuesPerRow; }
     };
     
     /**
@@ -133,17 +141,17 @@ namespace TLib
         [[nodiscard]] inline uint32_t                 sizeBytes() const { return _sizeBytes; }
         [[nodiscard]] inline const Vector<Attribute>& getValues() const { return _values;    }
     
-        constexpr static inline Attribute Bool () { return Attribute( 1,  GLType::Bool  ); }
-        constexpr static inline Attribute Int  () { return Attribute( 1,  GLType::Int   ); }
-        constexpr static inline Attribute Vec2i() { return Attribute( 2,  GLType::Int   ); }
-        constexpr static inline Attribute Vec3i() { return Attribute( 3,  GLType::Int   ); }
-        constexpr static inline Attribute Vec4i() { return Attribute( 4,  GLType::Int   ); }
-        constexpr static inline Attribute Float() { return Attribute( 1,  GLType::Float ); }
-        constexpr static inline Attribute Vec2f() { return Attribute( 2,  GLType::Float ); }
-        constexpr static inline Attribute Vec3f() { return Attribute( 3,  GLType::Float ); }
-        constexpr static inline Attribute Vec4f() { return Attribute( 4,  GLType::Float ); }
-        constexpr static inline Attribute Mat3f() { return Attribute( 9,  GLType::Float ); }
-        constexpr static inline Attribute Mat4f() { return Attribute( 16, GLType::Float ); }
+        constexpr static inline Attribute Bool () { return Attribute( 1,  GLType::Bool     ); }
+        constexpr static inline Attribute Int  () { return Attribute( 1,  GLType::Int      ); }
+        constexpr static inline Attribute Vec2i() { return Attribute( 2,  GLType::Int      ); }
+        constexpr static inline Attribute Vec3i() { return Attribute( 3,  GLType::Int      ); }
+        constexpr static inline Attribute Vec4i() { return Attribute( 4,  GLType::Int      ); }
+        constexpr static inline Attribute Float() { return Attribute( 1,  GLType::Float    ); }
+        constexpr static inline Attribute Vec2f() { return Attribute( 2,  GLType::Float    ); }
+        constexpr static inline Attribute Vec3f() { return Attribute( 3,  GLType::Float    ); }
+        constexpr static inline Attribute Vec4f() { return Attribute( 4,  GLType::Float    ); }
+        constexpr static inline Attribute Mat3f() { return Attribute( 9,  GLType::Float, 3 ); }
+        constexpr static inline Attribute Mat4f() { return Attribute( 16, GLType::Float, 4 ); }
     };
 
 }

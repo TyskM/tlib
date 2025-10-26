@@ -97,6 +97,32 @@ public:
         glClear(GL_COLOR_BUFFER_BIT);
     }
 
+    static void drawElements(RenderState& state)
+    {
+        const GLenum  srcBlendFactor = (GLenum)state.srcBlendFactor;
+        const GLenum  dstBlendFactor = (GLenum)state.dstBlendFactor;
+        const GLenum  drawMode       = static_cast<GLenum>(state.drawMode);
+        const int32_t elementCount   = state.mesh->ebo.size();
+        const GLenum  indiceType     = GL_UNSIGNED_INT;
+        const void*   indicePtr      = NULL; // Use NULL because our buffer is on the GPU
+        
+        if (elementCount > 0 || !state.mesh->buffers.empty() && state.mesh->buffers[0].size() > 0)
+        {
+            ASSERTMSG(elementCount,                  "You forgot to add indices");
+            ASSERTMSG(state.mesh->buffers[0].size(), "You forgot your vertex data");
+        }
+
+        state.  mesh->bind();
+        state.shader->bind();
+
+        GL_CHECK(glBlendFunc(srcBlendFactor, dstBlendFactor));
+        GL_CHECK(glDrawElements(drawMode, elementCount, indiceType, indicePtr));
+
+        state.mesh->unbind();
+
+        ++drawCalls;
+    }
+
     static void drawElementsInstanced(RenderState& state, uint32_t instanceCount)
     {
         const GLenum  srcBlendFactor = (GLenum)state.srcBlendFactor;

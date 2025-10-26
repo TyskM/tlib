@@ -38,6 +38,11 @@ struct Vector : eastl::vector<T, Allocator>
     void push_back(const Array<T, Size>& other)
     { this->insert(this->end(), other.begin(), other.end()); }
 
+    void fill(const T& value)
+    {
+        eastl::fill(this->begin(), this->end(), value);
+    }
+
     size_t tryFindIndex(T& target)
     {
         for (size_t i = 0; i < this->size(); i++)

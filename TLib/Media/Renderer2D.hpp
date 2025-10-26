@@ -700,8 +700,7 @@ private:
         if (!Renderer::created())
         { Renderer::create(); }
 
-        if (!mesh.valid())
-        { mesh.setLayout({ TLib::Layout::Vec2f(), TLib::Layout::Vec4f(), TLib::Layout::Vec2f() }); }
+        mesh.setLayout({ TLib::Layout::Vec2f(), TLib::Layout::Vec4f(), TLib::Layout::Vec2f() });
 
         if (!whiteTex.created())
         { whiteTex.setData(whiteTexData, 1, 1); }
@@ -743,10 +742,13 @@ private:
         mesh.setIndices(batchBufferIndices, AccessType::Dynamic);
 
         RenderState rs;
+        rs.mesh           = &mesh;
+        rs.textures       = fs.textures;
+        rs.shader         = fs.shader;
         rs.drawMode       = fs.drawMode;
         rs.srcBlendFactor = params.srcBlendFactor;
         rs.dstBlendFactor = params.dstBlendFactor;
-        Renderer::draw(*fs.shader, mesh, rs);
+        Renderer::drawElements(rs);
 
         batchBuffer.clear();
         batchBufferIndices.clear();

@@ -23,6 +23,19 @@ ImU32 iu32(const ColorRGBAf& v)
 
 namespace ImGui
 {
+    bool Button(StringView text, const Vector2f& size = Vector2f(0, 0))
+    {
+        return ImGui::Button(text.data(), iv2(size));
+    }
+
+    bool ButtonDisabled(StringView text, const Vector2f& size = Vector2f(0, 0))
+    {
+        ImGui::BeginDisabled();
+        ImGui::Button(text.data(), iv2(size));
+        ImGui::EndDisabled();
+        return false;
+    }
+
     void Image(Texture&    tex,
          const Vector2f&   size,
          const Rectf&      srcRect,

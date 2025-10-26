@@ -15,6 +15,8 @@
 
 using String       = std::string;
 using StringStream = std::stringstream;
+
+using StringView   = std::string_view;
 using StringRef    = std::string_view;
 
 using WideString       = std::wstring;

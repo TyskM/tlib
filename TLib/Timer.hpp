@@ -76,7 +76,7 @@ public:
     inline const TimePoint getStartTime() const noexcept
     { return _startTime; }
 
-    bool _paused = false;
+    bool      _paused = false;
     TimePoint _pausedTime;
     TimePoint _startTime;
 };

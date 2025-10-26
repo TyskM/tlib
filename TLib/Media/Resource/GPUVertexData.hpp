@@ -87,9 +87,8 @@ public:
             int32_t layoutSlotsNeeded = 1;
             if (attributeCount > 4)
             {
-                double slots = sqrt(attributeCount);
-                layoutSlotsNeeded = slots;
-                ASSERT(slots == layoutSlotsNeeded); // Attributes > 4 need to be square
+                ASSERT(attribute.size() % attribute.valuesPerRow() == 0);
+                layoutSlotsNeeded = attribute.size() / attribute.valuesPerRow();
             }
             const bool multiSlot = layoutSlotsNeeded > 1;
 
