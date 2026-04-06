@@ -73,6 +73,21 @@ namespace ImGui
         ImGui::Text( fmt::format(s, std::forward<Args>(args)...).c_str() );
     }
 
+    template <typename... Args>
+    void ProgressBarFmt(
+        const float       fraction,
+        const ColorRGBAf& fillColor = ColorRGBAf::yellow(),
+        const Vector2f&   size = {-FLT_MIN, 0.f},
+        fmt::format_string<Args...> overlay = "", Args&&... args)
+    {
+        auto str = fmt::format(overlay, std::forward<Args>(args)...);
+        ImVec2 sizeIm(size.x, size.y);
+
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ic4f(fillColor));
+        ImGui::ProgressBar(fraction, sizeIm, str.c_str());
+        ImGui::PopStyleColor();
+    }
+
     void PushSelectableXAlign(float align)
     { ImGui::PushStyleVarX(ImGuiStyleVar_SelectableTextAlign, align); }
 
@@ -102,25 +117,71 @@ namespace ImGui
                             iv2(buttonSize), iv2(uv.first), iv2(uv.second),
                             ic4f(bgColor), ic4f(tintColor));
     }
+
+    static ColorRGBAf getStyleColor(ImGuiCol_ color)
+    {
+        auto ret = ImGui::GetStyle().Colors[color];
+        return ColorRGBAf(ret.x, ret.y, ret.z, ret.w);
+    }
+
+    static void outline(float thickness, float rounding, ColorRGBAf color)
+    {
+        ImVec2 pos_min = ImGui::GetItemRectMin();
+        ImVec2 pos_max = ImGui::GetItemRectMax();
+        ImGui::GetWindowDrawList()->AddRect(pos_min, pos_max, iu32(color), rounding, 0, thickness);
+    }
+
+    static void sameLineIfFits()
+    {
+        ImGuiStyle& style = ImGui::GetStyle();
+    
+        // 1. Where the last item actually ended (Absolute screen coordinate)
+        float lastItemRightEdge = ImGui::GetItemRectMax().x;
+    
+        // 2. How much space the NEXT item needs
+        float nextItemWidth = ImGui::GetItemRectSize().x; 
+        float nextItemRightEdge = lastItemRightEdge + style.ItemSpacing.x + nextItemWidth;
+    
+        // 3. Where the window actually ends
+        float windowRightEdge = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+
+        if (nextItemRightEdge < windowRightEdge)
+        {
+            ImGui::SameLine();
+        }
+    }
 }
 
-void debugCamera(View& view, const float minZoom = 0.1f, const float maxZoom = 40.f, const float zoomIncr = 0.15f)
+void debugCamera(View&          view,
+                 const float    minZoom = 0.1f,
+                 const float    maxZoom = 40.f,
+                 const float    zoomIncr = 0.15f,
+                 Input::Action* customDragKeybind    = nullptr,
+                 Input::Action* customZoominKeybind  = nullptr,
+                 Input::Action* customZoomoutKeybind = nullptr)
 {
-    static bool dragging = false;
+    bool inputDrag = customDragKeybind ? Input::isActionPressed(*customDragKeybind) :
+                                         Input::isMousePressed(Input::MOUSE_MIDDLE);
+
+    bool inputZoomout = customZoomoutKeybind ? Input::isActionJustPressed(*customZoomoutKeybind) :
+                                               Input::isMouseJustPressed(Input::MOUSE_WHEEL_DOWN);
+
+    bool inputZoomin = customZoominKeybind ? Input::isActionJustPressed(*customZoominKeybind) :
+                                             Input::isMouseJustPressed(Input::MOUSE_WHEEL_UP);
 
     // Dragging
-    if (Input::isMousePressed(Input::MOUSE_MIDDLE))
+    if (inputDrag)
     {
         view.center.x -= Input::mouseDelta.x / view.zoom.x;
         view.center.y += Input::mouseDelta.y / view.zoom.y;
     }
 
     // Zooming
-    if (Input::isMouseJustPressed(Input::MOUSE_WHEEL_DOWN))
+    if (inputZoomout)
     {
         view.zoom.x -= zoomIncr * view.zoom.x;
         view.zoom.y -= zoomIncr * view.zoom.y;
-    } else if (Input::isMouseJustPressed(Input::MOUSE_WHEEL_UP))
+    } else if (inputZoomin)
     {
         view.zoom.x += zoomIncr * view.zoom.x;
         view.zoom.y += zoomIncr * view.zoom.y;

@@ -63,10 +63,10 @@ Recti getViewportSizePixels(const View& view, const Vector2f& targetSize)
     // Width and height must be >= 1
 
     Recti viewportPx{0, 0, 0, 0};
-    if (view.viewport.x != 0) { viewportPx.x = targetSize.x * view.viewport.x; }
-    if (view.viewport.y != 0) { viewportPx.y = targetSize.y * view.viewport.y; }
-    viewportPx.width  = targetSize.x * view.viewport.width;
-    viewportPx.height = targetSize.y * view.viewport.height;
+    if (view.viewport.x != 0) { viewportPx.x = (int)(targetSize.x * view.viewport.x); }
+    if (view.viewport.y != 0) { viewportPx.y = (int)(targetSize.y * view.viewport.y); }
+    viewportPx.width  = (int)(targetSize.x * view.viewport.width );
+    viewportPx.height = (int)(targetSize.y * view.viewport.height);
     return viewportPx;
 }
 

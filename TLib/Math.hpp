@@ -102,6 +102,15 @@ namespace math
         return half - abs(abs(diff) - half);
     }
 
+    static float wrapAngleRadians(float angle)
+    {
+        float pi      = glm::pi<float>();
+        float twoPi   = 2.0f * pi;
+        float wrapped = std::fmod(angle + pi, twoPi);
+        if (wrapped < 0) wrapped += twoPi;
+        return wrapped - pi;
+    }
+
     template <typename T>
     static T moveToward(const T& value, const T& target, const T& step)
     {

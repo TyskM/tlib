@@ -191,12 +191,12 @@ public:
         if (!_verifyAction(action)) { return false; }
         for (auto& ctrl : action.controls)
         {
-            if (!_verifyControl(ctrl)) return false;
+            if (!_verifyControl(ctrl)) continue;
             switch (ctrl.type)
             {
             case ActionType::MOUSE:    if (isMousePressed(ctrl.id)) return true; break;
             case ActionType::KEYBOARD: if (isKeyPressed(ctrl.id))   return true; break;
-            default: return false; break;
+            default: break;
             }
         }
         return false;
@@ -207,12 +207,12 @@ public:
         if (!_verifyAction(action)) { return false; }
         for (auto& ctrl : action.controls)
         {
-            if (!_verifyControl(ctrl)) return false;
+            if (!_verifyControl(ctrl)) continue;
             switch (ctrl.type)
             {
             case ActionType::MOUSE:    if (isMouseJustPressed(ctrl.id)) return true; break;
             case ActionType::KEYBOARD: if (isKeyJustPressed(ctrl.id))   return true; break;
-            default: return false; break;
+            default: break;
             }
         }
         return false;
@@ -393,6 +393,11 @@ public:
         return str;
     }
 
+    static inline bool isModifierKey(int scancode)
+    {
+        return (scancode >= SDL_SCANCODE_LCTRL && scancode <= SDL_SCANCODE_RGUI);
+    }
+
 private:
     static inline bool _verifyAction(const Action& act)
     {
@@ -401,9 +406,13 @@ private:
 
     static inline bool _verifyControl(const ActionControl& ctrl)
     {
-        const auto modkeys = KMOD_CTRL | KMOD_SHIFT | KMOD_ALT | KMOD_GUI;
+        if (isModifierKey(ctrl.id))
+        { return true; }
+
+        const auto modkeys  = KMOD_CTRL | KMOD_SHIFT | KMOD_ALT | KMOD_GUI;
         const auto modState = SDL_GetModState();
         const bool MOD_NONE = !(modState & modkeys);
+
         return ctrl.modifier == (modState & modkeys);
     }
 }; 

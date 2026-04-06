@@ -37,7 +37,7 @@ static Path saveFileDialog(
     char* saveFilePath = tinyfd_saveFileDialog(
         title.c_str(),
         defaultPath.string().c_str(),
-        cfilters.size(),
+   (int)cfilters.size(),
         cfilters.data(),
         filterDescription.empty() ? NULL : filterDescription.c_str());
 
@@ -66,7 +66,7 @@ static Path openSingleFileDialog(
     char* openedFilePath = tinyfd_openFileDialog(
         title.c_str(),
         defaultPath.string().c_str(),
-        cfilters.size(),
+   (int)cfilters.size(),
         cfilters.data(),
         filterDescription.empty() ? NULL : filterDescription.c_str(), 0);
 

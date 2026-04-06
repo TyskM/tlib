@@ -37,6 +37,8 @@ int main() {
 
 #pragma once
 #include <sigslot/signal.hpp>
+#include <TLib/Containers/Queue.hpp>
+#include <TLib/Containers/Tuple.hpp>
 
 // Thread unsafe event
 template <typename... T>
@@ -47,3 +49,37 @@ template <typename... T>
 using EventMt = sigslot::signal<T...>;
 
 using ScopedEventConnection = sigslot::scoped_connection;
+
+template <typename... CallArgs>
+class EventQueue
+{
+    using Args = std::tuple<CallArgs...>;
+    Queue<Args>       _queue;
+    Event<CallArgs...> event;
+
+public:
+    void queue(CallArgs... args)
+    {
+        _queue.push(args...);
+    }
+
+    void dispatch()
+    {
+        while (!_queue.empty())
+        {
+            std::apply(event, _queue.front());
+            _queue.pop();
+        }
+    }
+
+    void clear()
+    { _queue.get_container().clear(); }
+
+    template <typename... CallArgs>
+    auto connectScoped(CallArgs&& ...args)
+    { return event.connect_scoped(args...); }
+
+    template <typename... CallArgs>
+    auto connect(CallArgs&& ...args)
+    { return event.connect(args...); }
+};

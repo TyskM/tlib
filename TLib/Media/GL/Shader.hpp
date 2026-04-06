@@ -202,7 +202,7 @@ public:
     {
         bind();
         auto loc = getUniformLocation(name); if (loc < 0) { return false; }
-        GL_CHECK(glUniform1fv(loc, values.size(), &values[0]));
+        GL_CHECK(glUniform1fv(loc, (GLsizei)values.size(), &values[0]));
         return true;
     }
 
@@ -227,7 +227,7 @@ public:
     {
         bind();
         auto loc = getUniformLocation(name); if (loc < 0) { return false; }
-        GL_CHECK(glUniform2iv(loc, values.size(), &values[0].x));
+        GL_CHECK(glUniform2iv(loc, (GLsizei)values.size(), &values[0].x));
         return true;
     }
 

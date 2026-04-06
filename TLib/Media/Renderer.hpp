@@ -102,7 +102,7 @@ public:
         const GLenum  srcBlendFactor = (GLenum)state.srcBlendFactor;
         const GLenum  dstBlendFactor = (GLenum)state.dstBlendFactor;
         const GLenum  drawMode       = static_cast<GLenum>(state.drawMode);
-        const int32_t elementCount   = state.mesh->ebo.size();
+        const int32_t elementCount   = (int32_t)state.mesh->ebo.size();
         const GLenum  indiceType     = GL_UNSIGNED_INT;
         const void*   indicePtr      = NULL; // Use NULL because our buffer is on the GPU
         
@@ -128,7 +128,7 @@ public:
         const GLenum  srcBlendFactor = (GLenum)state.srcBlendFactor;
         const GLenum  dstBlendFactor = (GLenum)state.dstBlendFactor;
         const GLenum  drawMode       = static_cast<GLenum>(state.drawMode);
-        const int32_t elementCount   = state.mesh->ebo.size();
+        const int32_t elementCount   = (int32_t)state.mesh->ebo.size();
         const GLenum  indiceType     = GL_UNSIGNED_INT;
         const void*   indicePtr      = NULL; // Use NULL because our buffer is on the GPU
         

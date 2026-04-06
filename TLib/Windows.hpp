@@ -5,7 +5,6 @@
 
 #ifdef OS_WINDOWS
 
-#define NOMINMAX
 #include <Windows.h>
 #include <shellapi.h>
 

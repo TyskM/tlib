@@ -1,7 +1,5 @@
 #pragma once
 
-// Saves 3 seconds of compile time :o
-#define SPDLOG_COMPILED_LIB
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include "String.hpp"

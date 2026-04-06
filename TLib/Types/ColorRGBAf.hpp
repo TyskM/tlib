@@ -58,6 +58,26 @@ struct ColorRGBAf
     String toString() const { return toVec4().toString(); }
     operator String() const { return toString(); }
 
+    static ColorRGBAf mix(const ColorRGBAf& color1, const ColorRGBAf& color2, float blendFactor = 0.5f)
+    {
+        return ColorRGBAf(
+            color1.r + blendFactor * (color2.r - color1.r),
+            color1.g + blendFactor * (color2.g - color1.g),
+            color1.b + blendFactor * (color2.b - color1.b),
+            color1.a + blendFactor * (color2.a - color1.a));
+    }
+
+    ColorRGBAf lightened(float factor)
+    {
+        ColorRGBAf c = *this;
+        return {
+            c.r + (1.0f - c.r) * factor,
+            c.g + (1.0f - c.g) * factor,
+            c.b + (1.0f - c.b) * factor,
+            c.a // Keep alpha the same
+        };
+    }
+
     bool operator==(const ColorRGBAf& other) { return r == other.r && g == other.g && b == other.b && a == other.a; }
     bool operator!=(const ColorRGBAf& other) { return !(operator==(other)); }
 

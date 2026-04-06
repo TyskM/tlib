@@ -26,7 +26,8 @@ struct RectPackerOnline
         Node* left  = nullptr;
         Node* right = nullptr;
 
-        Path path;
+        Path     path;
+        uint32_t id = 0;
 
         Dim_t x      = 0;
         Dim_t y      = 0;
@@ -164,10 +165,12 @@ private:
 // Supply and stitch textures one at a time.
 struct TextureStitcherOnline
 {
-    RectPackerOnline packer;
-    Texture          atlas;
+    RectPackerOnline   packer;
+    Texture            atlas;
+    Vector<SubTexture> regions;
+    Texture            defaultTexture;
 
-    SubTexture load(const Path& path)
+    uint32_t load(const Path& path)
     {
         // TODO: Resize/New texture when atlas is full
         if (!atlas.created()) { init(); }
@@ -178,9 +181,7 @@ struct TextureStitcherOnline
 
         ASSERT(!existingNode->path.empty());
         if (existingNode != packer.nodes().end())
-        {
-            return SubTexture(atlas, Rectf(Vector2f(existingNode->x, existingNode->y), Vector2f(existingNode->width, existingNode->height)));
-        }
+        { return existingNode->id; }
 
         TextureData data;
         data.loadFromPath(path);
@@ -188,8 +189,16 @@ struct TextureStitcherOnline
         auto node  = packer.insert(size.x, size.y);
         node->path = path;
         atlas.setSubData(data, node->x, node->y);
-        return SubTexture(atlas, Rectf(Vector2f(node->x, node->y), Vector2f(size)));
+
+        SubTexture region(atlas, Rectf(Vector2f(node->x, node->y), Vector2f(size)));
+        regions.push_back(region);
+        uint32_t id = regions.size() - 1;
+        node->id = id;
+        return id;
     }
+
+    SubTexture get(uint32_t id)
+    { return regions[id]; }
 
     auto& getAtlas()
     { return atlas; }
@@ -201,6 +210,11 @@ struct TextureStitcherOnline
         atlas.setData(NULL, initialSizeX, initialSizeY, TexPixelFormats::RGBA, TexInternalFormats::RGBA);
         atlas.setFilter(TextureMinFilter::Nearest, TextureMagFilter::Nearest);
         atlas.setUVMode(UVMode::Repeat);
+
+        SubTexture& nullTexture = regions.emplace_back();
+        nullTexture.texture = &defaultTexture;
+        nullTexture.texture->loadFallbackTexture();
+        nullTexture.rect = Rectf(0.f, 0.f, 2.f, 2.f);
     }
 };
 

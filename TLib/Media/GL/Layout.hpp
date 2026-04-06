@@ -89,7 +89,7 @@ namespace TLib
         {
             clear();
             _values.reserve(count);
-            for (int i = 0; i < count; ++i)
+            for (uint32_t i = 0; i < count; ++i)
             { append(attr); }
         }
     

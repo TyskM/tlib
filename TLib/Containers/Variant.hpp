@@ -3,8 +3,8 @@
 #include <variant>
 #include <any>
 
-using Null    = std::monostate;
-using NullPtr = std::nullptr_t;
+using NullState = std::monostate;
+using NullPtr   = std::nullptr_t;
 
 template <typename T, typename VariantT>
 constexpr bool is(const VariantT& variant)
@@ -30,6 +30,7 @@ template <class... Types>
 struct Variant : std::variant<Types...>
 {
     using std::variant<Types...>::variant;
+    using base = std::variant<Types...>;
 
     template <typename T>
     constexpr bool is() const
@@ -75,5 +76,19 @@ namespace eastl
         }
     };
 }
+
+/*
+    Use this to get the number of arguments in a variant:
+        using YourVariant = Variant<NullState, Passable, Buildable>;
+        constexpr size_t ArgumentCount = std::variant_size_v<YourVariant::base>;
+*/
+template <typename T, typename Variant>
+struct get_index;
+template <typename T, typename... Args>
+struct get_index<T, std::variant<T, Args...>>
+{ static constexpr size_t value = 0; };
+template <typename T, typename U, typename... Args>
+struct get_index<T, std::variant<U, Args...>>
+{ static constexpr size_t value = 1 + get_index<T, std::variant<Args...>>::value; };
 
 using Any = std::any;

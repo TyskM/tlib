@@ -171,7 +171,7 @@ public:
         size_t           rangeMin      = 0,
         size_t           rangeMax      = 128,
         FontRenderMode   renderMode    = FontRenderMode::SDF,
-        TextureFiltering texFilterMode = TextureFiltering::Linear)
+        TextureMagFilter texFilterMode = TextureMagFilter::Linear)
     {
         ///// Load font and cache basic details
         FontDetail::initFreetype();
@@ -273,7 +273,7 @@ public:
         //// Create texture using the size we found
         textureAtlas.create();
         textureAtlas.setData(NULL, result_size.w, result_size.h, TexPixelFormats::RED, TexInternalFormats::RED);
-        textureAtlas.setFilter(texFilterMode);
+        textureAtlas.setFilter((TextureMinFilter)texFilterMode, texFilterMode);
         textureAtlas.setUnpackAlignment(1);
 
         //// Loop through saved sdf bitmaps,

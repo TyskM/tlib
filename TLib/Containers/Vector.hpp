@@ -19,7 +19,7 @@ struct Vector : eastl::vector<T, Allocator>
         return index >= 0 && index < this->size();
     }
 
-    bool eraseByRef(T& target)
+    bool eraseByRef(const T& target)
     {
         for (size_t i = 0; i < this->size(); i++)
         {
@@ -71,6 +71,15 @@ struct Vector : eastl::vector<T, Allocator>
             { return &value; }
         }
         return nullptr;
+    }
+
+    bool contains(const T& target) const
+    {
+        for(auto& value : *this)
+        {
+            if (value == target) return true;
+        }
+        return false;
     }
 
     std::string toString() const

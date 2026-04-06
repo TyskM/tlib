@@ -3,6 +3,7 @@
 
 #define NOMINMAX
 
+#include <TLib/Files.hpp>
 #include <TLib/String.hpp>
 #include <TLib/NonAssignable.hpp>
 #include <TLib/thirdparty/stbi.hpp>

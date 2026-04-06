@@ -8,10 +8,12 @@
 cmake_minimum_required(VERSION 3.15)
 project(TLib VERSION 0.1.0)
 
-include(CTest)
-enable_testing()
-add_subdirectory("Tests")
-add_subdirectory("Demos")
+if(TLIB_TESTS)
+    include(CTest)
+    enable_testing()
+    add_subdirectory("Tests")
+    add_subdirectory("Demos")
+endif()
 
 # Like file(glob) but appends, not overwrites
 macro(GLOB_APPEND out pattern)
@@ -68,12 +70,19 @@ endforeach()
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-add_library(TLib STATIC ${TLIB_SOURCE_FILES} "TLib/thirdparty/zep/config_app.h")
+add_library(TLib STATIC ${TLIB_SOURCE_FILES})
 add_library(TLib::TLib ALIAS TLib)
 target_compile_features(TLib PUBLIC cxx_std_20)
+target_compile_options(TLib PRIVATE /W1 /WX)
+target_compile_definitions(TLib PUBLIC _CRT_SECURE_NO_WARNINGS) # Microsoft bs
+target_compile_definitions(TLib PUBLIC SPDLOG_COMPILED_LIB) # Saves 3 seconds of compile time :o
+target_compile_definitions(TLib PUBLIC _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
 
-add_executable(TLibTest "TLib/main.cpp" "TLib/thirdparty/zep/config_app.h")
+add_executable(TLibTest "TLib/main.cpp")
 target_link_libraries(TLibTest PUBLIC TLib)
+
+add_executable(TLibAutoTileTool "TLib/Media/AutoTileTool.cpp")
+target_link_libraries(TLibAutoTileTool PUBLIC TLib)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -195,9 +204,9 @@ target_link_libraries(Embedder PUBLIC CLI11::CLI11)
 target_link_libraries(Embedder PUBLIC spdlog::spdlog spdlog::spdlog_header_only)
 
 enable_testing()
-add_test(NAME EmbedderTest COMMAND "Embedder -f Embedder/test/2d.frag Embedder/test/2d.vert -o embed.hpp --ow")
 
 # Embedder tests
+add_test(NAME EmbedderTest COMMAND "Embedder -f Embedder/test/2d.frag Embedder/test/2d.vert -o embed.hpp --ow")
 add_custom_target(EmbedTestAssets COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/Embedder/test ${CMAKE_CURRENT_BINARY_DIR}/Embedder/test )
 add_dependencies(Embedder EmbedTestAssets)
 

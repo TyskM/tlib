@@ -65,7 +65,7 @@ struct DrawTextureParams
     DrawTextureParams() = default;
 
     // Draw SubTexture to destination
-    DrawTextureParams(SubTexture& subTexture, const Rectf& dstRect)
+    DrawTextureParams(const SubTexture& subTexture, const Rectf& dstRect)
     {
         this->textures = { subTexture.texture };
         this->srcRect  = subTexture.rect;
@@ -73,7 +73,7 @@ struct DrawTextureParams
     }
 
     // Draw SubTexture with pos/rot/scale
-    DrawTextureParams(SubTexture& texture, const Vector2f& position, float rotation = 0.f, const Vector2f& scale = Vector2f(1, 1))
+    DrawTextureParams(const SubTexture& texture, const Vector2f& position, float rotation = 0.f, const Vector2f& scale = Vector2f(1, 1))
     {
         Vector2f texSize     = Vector2f(texture.rect.getSize()) * scale;
         Vector2f halfTexSize = texSize / 2.f;
@@ -577,14 +577,12 @@ private:
         uint32_t end()   const { return index + size; }
     };
 
-    #pragma pack(push, 0)
     struct VerticesDrawCmdVert
     {
         glm::vec2 vert;
         glm::vec4 color;
         glm::vec2 uv;
     };
-    #pragma pack(pop)
 
     struct VerticesDrawCmd
     {
@@ -828,6 +826,11 @@ private:
         if (params.shader == nullptr) { cmd.shader = &defaultShader; }
         else                          { cmd.shader = params.shader;  }
 
+        #if TLIB_DEBUG
+        for(auto& texture : params.textures)
+        { ASSERT(texture->created()); }
+        #endif
+
         cmd.textures = params.textures;
         cmd.drawMode = GLDrawMode::Triangles;
 
@@ -948,7 +951,7 @@ private:
         {
             if (strchar == '\n')
             {
-                currentPos.y += font.lineSpacing();
+                currentPos.y -= font.lineSpacing();
                 currentPos.x = pos.x;
                 continue;
             }

@@ -29,6 +29,19 @@ struct AStar2DRaycastResult
     AStar2DRaycastResult() = default;
 };
 
+enum class AStar2DPathStatus
+{
+    Success,
+    PartialPath,
+    NoPath
+};
+
+struct AStar2DPath
+{
+    AStar2DPathStatus status = AStar2DPathStatus::NoPath;
+    Vector<Vector2i>  nodes;
+};
+
 template <typename GridType = AStar2DGrid>
 struct AStar2D
 {
@@ -44,17 +57,19 @@ protected:
 
         // Diagonal directions
         Vector2i{ 1, -1}, Vector2i{  1,  1},
-        Vector2i{-1,  1}, Vector2i{ -1, -1} // TODO: Make diagonals optional
+        Vector2i{-1,  1}, Vector2i{ -1, -1}
     };
 
     GridMap2D<GridType> grids;
 
-    Vector<Vector2i> neighbors(const Vector2i& pos) const
+    Vector<Vector2i> neighbors(const Vector2i& pos, bool diagonals) const
     {
         Vector<Vector2i> results;
-        results.reserve(dirs.size());
-        for (Vector2i dir : dirs)
+        int32_t dirCount = diagonals ? 8 : 4;
+        results.reserve(dirCount);
+        for(size_t i = 0; i < dirCount; i++)
         {
+            auto& dir = dirs[i];
             Vector2i next{ pos.x + dir.x, pos.y + dir.y };
             if (inBounds(next) && passable(next))
             { results.push_back(next); }
@@ -148,36 +163,57 @@ public:
     Vector2i size()   const { return grids.size();   }
 
     mutable GridPriorityQueue<Vector2i, float> frontier;
-    mutable UnorderedMap<Vector2i, Vector2i>   internalCameFrom;
-    mutable UnorderedMap<Vector2i, float>      internalCostSoFar;
+    
+    using CameFromMap  = UnorderedMap<Vector2i, Vector2i>;
+    using CostSoFarMap = UnorderedMap<Vector2i, float>;
 
-    Vector<Vector2i> computePath(
+    mutable CameFromMap  internalCameFrom;
+    mutable CostSoFarMap internalCostSoFar;
+
+    mutable CameFromMap*  cameFromPtr  = nullptr;
+    mutable CostSoFarMap* costSoFarPtr = nullptr;
+
+    CameFromMap& getCameFromMap() const
+    {
+        if (cameFromPtr) { return *cameFromPtr; }
+        return internalCameFrom;
+    }
+
+    CostSoFarMap& getCostSoFarMap() const
+    {
+        if (costSoFarPtr) { return *costSoFarPtr; }
+        return internalCostSoFar;
+    }
+
+    AStar2DPath computePath(
         const Vector2i& start,
         const Vector2i& goal,
-        const bool      includeStart = false,
-        const float     diagonalCost = 1.001f,
-        UnorderedMap<Vector2i, Vector2i>* cameFromPtr  = nullptr, // For debug
-        UnorderedMap<Vector2i, float>*    costSoFarPtr = nullptr) // For debug
-        const
+        const float     diagonalCost = FLT_MAX) const
     {
-        if (!inBounds(start)) { return Vector<Vector2i>(); }
-        if (!inBounds(goal))  { return Vector<Vector2i>(); }
+        const bool allowDiagonals = diagonalCost != FLT_MAX;
 
-        if (!cameFromPtr)  { cameFromPtr  = &internalCameFrom; }
-        if (!costSoFarPtr) { costSoFarPtr = &internalCostSoFar; }
+        if (start == goal)
+        {
+            AStar2DPath p;
+            p.status = AStar2DPathStatus::Success;
+            return p;
+        }
 
-        UnorderedMap<Vector2i, Vector2i>& cameFrom  = *cameFromPtr;
-        UnorderedMap<Vector2i, float>&    costSoFar = *costSoFarPtr;
+        if (!inBounds(start)) { return AStar2DPath{AStar2DPathStatus::NoPath}; }
+        if (!inBounds(goal))  { return AStar2DPath{AStar2DPathStatus::NoPath}; }
+
+        UnorderedMap<Vector2i, Vector2i>& cameFrom  = getCameFromMap();
+        UnorderedMap<Vector2i, float>&    costSoFar = getCostSoFarMap();
 
         // If the goal is impassable, we want to try and return a path leading next to it.
         // So make it temporarily passable and pop it before returning.
-        // TODO: Make this a setting
+        // DONE: Make this a setting
         // TODO: Make this work for further distances
         const Grid& goalGridConst = at(goal);
         // HACK: Changes are reverted at the end of the function, dunno if there's a better way.
-        Grid& goalGrid       = const_cast<Grid&>(goalGridConst);
-        bool goalIsPassable  = goalGrid.passable;
-        goalGrid.passable    = true;
+        Grid& goalGrid      = const_cast<Grid&>(goalGridConst);
+        bool goalIsPassable = goalGrid.passable;
+        goalGrid.passable   = true;
 
         frontier.clear();
         frontier.put(start, 0.f);
@@ -193,7 +229,7 @@ public:
 
             if (current == goal) { break; }
 
-            for (Vector2i next : neighbors(current))
+            for (Vector2i next : neighbors(current, allowDiagonals))
             {
                 float newCost = costSoFar[current] + cost(current, at(current), next, at(next), diagonalCost);
                 if (costSoFar.find(next) == costSoFar.end() || newCost < costSoFar[next])
@@ -208,26 +244,27 @@ public:
 
         goalGrid.passable = goalIsPassable;
 
-        // Reconstruct path
-        Vector<Vector2i> path;
-        Vector2i current = goal;
-
+        // no path can be found
         if (cameFrom.find(goal) == cameFrom.end())
-        { return path; } // no path can be found
+        { return AStar2DPath{AStar2DPathStatus::NoPath}; }
 
+        AStar2DPath path{};
+        path.status = AStar2DPathStatus::Success;
+
+        Vector2i current = goal;
         while (current != start)
         {
-            path.push_back(current);
+            path.nodes.push_back(current);
             current = cameFrom[current];
         }
 
-        if (includeStart)
-        { path.push_back(start); }
+        std::reverse(path.nodes.begin(), path.nodes.end());
 
-        std::reverse(path.begin(), path.end());
-
-        if (!goalIsPassable && path.size() > 0)
-        { path.pop_back(); }
+        if (!goalIsPassable)
+        {
+            path.nodes.pop_back();
+            path.status = AStar2DPathStatus::PartialPath;
+        }
 
         return path;
     }

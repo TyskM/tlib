@@ -7,13 +7,15 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "installDir": "${sourceDir}/out/install/${presetName}",
-      "toolchainFile": "D:/Resources/Dev/CPP/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "toolchainFile": "E:/Resources/Dev/CPP/vcpkg/scripts/buildsystems/vcpkg.cmake",
 
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",
         "VCPKG_TARGET_TRIPLET": "x64-windows-static",
-        "BUILD_SHARED_LIBS": "FALSE"
+        "BUILD_SHARED_LIBS": "FALSE",
+        "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
+        "TLIB_TESTS": "TRUE"
       },
       "condition": {
         "type": "equals",

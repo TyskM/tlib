@@ -44,12 +44,12 @@ struct Rect
 
     static Rect fromCenter(const Vector2<T>& center, const Vector2<T>& size)
     {
-        const T halfSize = size / T(2);
+        const Vector2<T> halfSize = size / T(2.f);
         Rect ret;
-        ret.x      = center.x - halfSize;
-        ret.y      = center.y - halfSize;
-        ret.width  = center.x + halfSize;
-        ret.height = center.y + halfSize;
+        ret.x      = center.x - halfSize.x;
+        ret.y      = center.y - halfSize.y;
+        ret.width  = size.x;
+        ret.height = size.y;
         return ret;
     }
 

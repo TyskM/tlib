@@ -75,8 +75,8 @@ public:
         vao.bind();
         buffer.bind();
 
-        GLuint  index  = layoutOffset;
-        int32_t offset = 0;
+        GLuint index  = layoutOffset;
+        size_t offset = 0;
 
         for (const auto& attribute : layout.getValues())
         {
@@ -92,7 +92,7 @@ public:
             }
             const bool multiSlot = layoutSlotsNeeded > 1;
 
-            for (uint32_t i = 0; i < layoutSlotsNeeded; i++)
+            for (int32_t i = 0; i < layoutSlotsNeeded; i++)
             {
                 GLint size = attributeCount;
                 if (multiSlot)
@@ -103,7 +103,7 @@ public:
                 const bool    normalized = false;
 
                 GL_CHECK(glEnableVertexAttribArray(index));
-                GL_CHECK(glVertexAttribPointer(index, size, type, normalized, stride, (GLvoid*)offset));
+                GL_CHECK(glVertexAttribPointer(index, size, type, normalized, stride, reinterpret_cast<GLvoid*>(offset)));
                 if (attribute.divisor())
                 { GL_CHECK(glVertexAttribDivisor(index, attribute.divisor())); }
                 ++index;

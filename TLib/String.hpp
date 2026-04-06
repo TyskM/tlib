@@ -13,6 +13,8 @@
 #include <fmt/format.h>
 #include <codecvt>
 
+using fmt::format;
+
 using String       = std::string;
 using StringStream = std::stringstream;
 
@@ -25,7 +27,36 @@ using WideStringStream = std::wstringstream;
 template <typename T>
 using Hash = std::hash<T>;
 
-using fmt::format;
+// Like a normal string, but faster for comparisons.
+class HashedString
+{
+    static constexpr uint32_t FNV_OFFSET_BASIS = 0x811c9dc5;
+    static constexpr uint32_t FNV_PRIME        = 0x01000193;
+
+    constexpr uint32_t makeHash(const char* str, uint32_t hash = FNV_OFFSET_BASIS)
+    { return (*str == '\0') ? hash : makeHash(str + 1, (hash ^ (uint32_t)*str) * FNV_PRIME); }
+
+    uint32_t _hash   = FNV_OFFSET_BASIS;
+    String   _string = "";
+
+public:
+    uint32_t      hash()   const { return _hash;   }
+    const String& string() const { return _string; }
+
+    void setString(const String& value)
+    {
+        _string = value;
+        _hash   = makeHash(_string.data());
+    }
+
+    HashedString() = default;
+
+    HashedString(const String& value) { setString(value); }
+    HashedString(const char*   value) { setString(String(value)); }
+
+    bool operator==           (uint32_t otherHash) const { return _hash == otherHash;       }
+    bool operator==(const HashedString& otherHash) const { return _hash == otherHash._hash; }
+};
 
 namespace strhelp
 {

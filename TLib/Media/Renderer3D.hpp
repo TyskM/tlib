@@ -139,21 +139,6 @@ public:
     static inline uint32_t          maxSpotLights = 32;
     static inline Vector<SpotLight> spotLights;
 
-    static void drawMeshImmediate(GPUVertexData& mesh, Texture& tex, const Transform3D& transform)
-    {
-        tex.bind();
-        shader3d.setMat4f("model", transform.getMatrix());
-        Renderer::draw(shader3d, mesh);
-    }
-
-    static void flushPrimitives(Shader& shader, GLDrawMode drawMode, Span<uint32_t> indices)
-    {
-        primitiveMesh.bind();
-        RenderState rs;
-        rs.drawMode = drawMode;
-        Renderer::drawIndices(shader, indices, rs);
-    }
-
     static Frustum getCurrentCameraFrustum()
     {
         return getFrustumWorldSpace(camera.getPerspectiveMatrix(), camera.getViewMatrix());
@@ -599,7 +584,7 @@ private:
             auto& tex = csmTextures[i]; ASSERT(tex);
             csmFbo.setTexture(*tex, FrameBufferAttachmentType::Depth);
             csmFbo.bind();
-            Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize)), Vector2f((float)shadowSize));
+            Renderer::setViewport(Recti(Vector2i(0), Vector2i(shadowSize, shadowSize))/* , Vector2f((float)shadowSize) */);
             csmShader.setMat4f("lightSpaceMatrix", lightSpaceMatrix);
 
             shader3d.setMat4f(fmt::format("csmlightSpaceMatrices[{}]", i), lightSpaceMatrix);
@@ -620,7 +605,11 @@ private:
                     for (auto& mesh : cmd.model->getMeshes())
                     {
                         csmShader.setMat4f("model", cmd.transform.getMatrix());
-                        Renderer::draw(csmShader, *mesh.vertices);
+                        RenderState rs;
+                        rs.drawMode = GLDrawMode::Triangles;
+                        rs.mesh     = mesh.vertices.get();
+                        rs.shader   = &csmShader;
+                        Renderer::drawElements(rs);
                     }
                 }
             }
@@ -775,8 +764,11 @@ private:
                 primitiveMesh.setData   (pos, AccessType::Dynamic);
                 primitiveMesh.setIndices(ind, AccessType::Dynamic);
 
-                RenderState rs; rs.drawMode = cmd.drawMode;
-                Renderer::draw(*cmd.shader, primitiveMesh, rs);
+                RenderState rs;
+                rs.drawMode = cmd.drawMode;
+                rs.shader   = cmd.shader;
+                rs.mesh     = &primitiveMesh;
+                Renderer::drawElements(rs);
             }
 
             else if (is<ModelDrawCmd>(varCmd))
@@ -792,7 +784,11 @@ private:
                     mesh.material.textures[(int32_t)TextureType::Metalness].bind(2);
 
                     shader3d.setMat4f("model", cmd.transform.getMatrix());
-                    Renderer::draw(shader3d, *mesh.vertices);
+
+                    RenderState rs;
+                    rs.shader = &shader3d;
+                    rs.mesh   = mesh.vertices.get();
+                    Renderer::drawElements(rs);
                 }
             }
         }

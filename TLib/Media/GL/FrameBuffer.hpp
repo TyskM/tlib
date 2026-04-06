@@ -131,7 +131,7 @@ public:
             if (textures[i])
             { attachments.push_back(FBOAttachmentTypeToGLType((FrameBufferAttachmentType)i)); }
         }
-        GL_CHECK(glDrawBuffers(attachments.size(), attachments.data()));
+        GL_CHECK(glDrawBuffers((GLsizei)attachments.size(), attachments.data()));
     }
 
     static void unbind()

@@ -31,13 +31,6 @@ enum class TextureMagFilter : GLenum
     Linear  = GL_LINEAR
 };
 
-// TODO: Deprecated
-enum class TextureFiltering : uint8_t
-{
-    Nearest,
-    Linear
-};
-
 // TODO: add the rest of the formats
 enum class TexInternalFormats : int
 {
@@ -108,18 +101,12 @@ static inline int32_t getFormatSize(TexInternalFormats format)
     }
 }
 
-static GLenum toGLFlag(TextureFiltering flag)
-{
-    constexpr Array<GLenum, 2> map = { GL_NEAREST, GL_LINEAR };
-    return map[(int)flag];
-}
-
 // OpenGL Texture
 struct Texture
 {
 public:
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
-    static constexpr TextureFiltering   defaultTexFiltering   = TextureFiltering::Linear;
+    static constexpr TextureMagFilter   defaultTexFiltering   = TextureMagFilter::Linear;
     static constexpr TexPixelFormats    defaultFormat         = TexPixelFormats::RGBA;
     static constexpr TexInternalFormats defaultInternalFormat = TexInternalFormats::RGBA;
     static constexpr UVMode             defaultUVMode         = UVMode::ClampToEdge;
@@ -250,7 +237,7 @@ public:
         Vector<char> buffer;
         buffer.reserve(bufferSize);
 
-        GL_CHECK(glGetnTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, bufferSize, buffer.data()));
+        GL_CHECK(glGetnTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, (GLsizei)bufferSize, buffer.data()));
         stbi_write_png(path.string().c_str(), size.x, size.y, comp, buffer.data(), size.x * comp);
         return true;
     }
@@ -277,7 +264,7 @@ public:
         this->internalFormat = internalFormat;
 
         bind();
-        setFilter(defaultTexFiltering);
+        setFilter((TextureMinFilter)defaultTexFiltering, defaultTexFiltering);
         setUVMode(defaultUVMode);
 
         GL_CHECK(glTexImage2D(GL_TEXTURE_2D, 0, (GLint)internalFormat, width, height, 0, (GLenum)format, (GLenum)type, data));
@@ -385,12 +372,9 @@ public:
     void setUVMode(UVMode uv)
     { setUVMode(uv, uv); }
 
-    [[deprecated]]
-    void setFilter(TextureFiltering min, TextureFiltering max)
+    void setFilter(TextureMagFilter filter)
     {
-        bind();
-        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, toGLFlag(min)) );
-        GL_CHECK( glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, toGLFlag(max)) );
+        setFilter((TextureMinFilter)filter, filter);
     }
 
     void setFilter(TextureMinFilter min, TextureMagFilter mag)
@@ -399,9 +383,6 @@ public:
         GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<GLenum>(min)));
         GL_CHECK(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<GLenum>(mag)));
     }
-
-    void setFilter(TextureFiltering mode)
-    { setFilter(mode, mode); }
 
     // BGRA Mask example
     // int32_t swizzleMask[] = {GL_BLUE, GL_GREEN, GL_RED, GL_ALPHA};
@@ -420,7 +401,7 @@ public:
     void loadFallbackTexture()
     {
         setData(fallbackImage, 2, 2);
-        setFilter(TextureFiltering::Nearest);
+        setFilter(TextureMinFilter::Nearest, TextureMagFilter::Nearest);
     }
 };
 
