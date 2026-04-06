@@ -27,8 +27,11 @@ int main()
     FPSLimit   fpslimit;
     Timer      deltaTimer;
 
-    window.create();
-    window.setTitle("Minimal Example");
+    WindowCreateParams wcp;
+    wcp.size = {1280, 720};
+    window.create(wcp);
+    window.setTitle("Box2D");
+    Input::init(window);
     Renderer::create();
     Renderer2D::create();
 
@@ -42,7 +45,7 @@ int main()
     const int32_t positionIterations = 2;
     TLibBox2DDebugDraw dbgDraw;
     dbgDraw.scale = scale;
-    b2World world({0.f, 10.f});
+    b2World world({0.f, -10.f});
     world.SetDebugDraw(&dbgDraw);
     dbgDraw.SetFlags(dbgDraw.allBit);
     
@@ -57,7 +60,7 @@ int main()
     // Dynamic
     b2BodyDef bodyDef;
     bodyDef.type = b2_dynamicBody;
-    bodyDef.position.Set(25.0f, 4.0f);
+    bodyDef.position.Set(25.0f, 50.0f);
     b2Body* body = world.CreateBody(&bodyDef);
     b2PolygonShape dynamicBox;
     dynamicBox.SetAsBox(1.0f, 1.0f);
@@ -66,6 +69,10 @@ int main()
     fixtureDef.density = 1.0f;
     fixtureDef.friction = 0.3f;
     body->CreateFixture(&fixtureDef);
+
+    auto view = Renderer2D::getView();
+    view.center = Vector2f(284, 371);
+    Renderer2D::setView(view);
 
     bool running = true;
     while (running)

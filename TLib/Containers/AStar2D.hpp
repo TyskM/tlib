@@ -207,10 +207,7 @@ public:
 
         // If the goal is impassable, we want to try and return a path leading next to it.
         // So make it temporarily passable and pop it before returning.
-        // DONE: Make this a setting
-        // TODO: Make this work for further distances
         const Grid& goalGridConst = at(goal);
-        // HACK: Changes are reverted at the end of the function, dunno if there's a better way.
         Grid& goalGrid      = const_cast<Grid&>(goalGridConst);
         bool goalIsPassable = goalGrid.passable;
         goalGrid.passable   = true;

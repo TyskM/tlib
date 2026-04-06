@@ -178,7 +178,6 @@ private:
 public:
     static inline uint32 allBit = e_aabbBit | e_centerOfMassBit | e_jointBit | e_pairBit | e_shapeBit;
     float scale = 1.f;
-    int   layer = Renderer2D::DefaultPrimitiveLayer;
 
     void DrawPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override
     {
@@ -191,7 +190,7 @@ public:
             verts.push_back(transformedVec);
         }
 
-        Renderer2D::drawLines(verts, convColor(color), GLDrawMode::LineLoop, layer);
+        Renderer2D::drawLines(verts, convColor(color), GLDrawMode::LineLoop);
     }
 
     void DrawSolidPolygon(const b2Vec2* vertices, int32 vertexCount, const b2Color& color) override
@@ -205,22 +204,22 @@ public:
             verts.push_back(transformedVec);
         }
 
-        Renderer2D::drawLines(verts, convColor(color), GLDrawMode::TriangleFan, layer);
+        Renderer2D::drawLines(verts, convColor(color), GLDrawMode::TriangleFan);
     }
 
     void DrawCircle(const b2Vec2& center, float radius, const b2Color& color) override
     {
-        Renderer2D::drawCircle(convVec(center), radius * scale, layer, convColor(color));
+        Renderer2D::drawCircle(convVec(center), radius * scale, false, convColor(color));
     }
 
     void DrawSolidCircle(const b2Vec2& center, float radius, const b2Vec2& axis, const b2Color& color) override
     {
-        Renderer2D::drawCircle(convVec(center), radius * scale, layer, convColor(color), true);
+        Renderer2D::drawCircle(convVec(center), radius * scale, false, convColor(color), true);
     }
 
     void DrawSegment(const b2Vec2& p1, const b2Vec2& p2, const b2Color& color) override
     {
-        Renderer2D::drawLine(convVec(p1), convVec(p2), convColor(color), layer + 1);
+        Renderer2D::drawLine(convVec(p1), convVec(p2), convColor(color));
     }
 
     void DrawTransform(const b2Transform& xf) override
