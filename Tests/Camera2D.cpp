@@ -28,8 +28,11 @@ int main()
     FPSLimit   fpslimit;
     Timer      deltaTimer;
 
-    window.create();
+    WindowCreateParams wcp;
+    wcp.size = {1280, 720};
+    window.create(wcp);
     window.setTitle("Camera2D");
+    Input::init(window);
     Renderer::create();
     Renderer2D::create();
 

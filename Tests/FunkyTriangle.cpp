@@ -3,6 +3,7 @@
 //
 
 #include "Common.hpp"
+#include <TLib/Media/Resource/Mesh.hpp>
 
 const char* frag_flat_floored = R"""(
         #version 330 core
@@ -40,8 +41,9 @@ struct TriangleTest : GameTest
     {
         GameTest::create();
         window.setTitle("Funky Triangle");
-        mesh.setLayout({ Layout::Vec2f(), Layout::Vec4f() });
-        mesh.setData(triVerts, AccessType::Dynamic);
+        auto& submesh = mesh.getMeshes().emplace_back();
+        submesh.vertices->setLayout({ TLib::Layout::Vec2f(), TLib::Layout::Vec4f() });
+        submesh.vertices->setData(triVerts, AccessType::Dynamic);
         shader.create(vert_flat, frag_flat_floored);
         View view;
         view.setBounds({ 0, 0, 1, 1 });
@@ -75,7 +77,10 @@ struct TriangleTest : GameTest
 
         Renderer::clearColor();
         makeTriangleFunky();
-        Renderer::draw(shader, mesh);
+        RenderState rs;
+        rs.mesh   = mesh.getMeshes()[0].vertices.get();
+        rs.shader = &shader;
+        Renderer::drawElements(rs);
         window.swap();
         fpslimit.wait();
     }
@@ -91,7 +96,7 @@ struct TriangleTest : GameTest
             v.color.b = 0.1f + std::fmod(std::sin(i * time * 3), 1.f);
             ++i;
         }
-        mesh.setData(triVerts, AccessType::Dynamic);
+        mesh.getMeshes()[0].vertices->setData(triVerts, AccessType::Dynamic);
     }
 };
 

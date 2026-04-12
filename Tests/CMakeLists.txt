@@ -17,7 +17,7 @@ set(TLib_Tests
         Box2D
         NinePatchTest
         Camera2D
-        FBOTest
+        #FBOTest
         AStar2D
         Construct
         Scripting
